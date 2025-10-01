@@ -13,7 +13,7 @@ from eth_account.signers.local import LocalAccount
 from .ledger import LedgerManager
 from .inference import InferenceManager
 from .auth import AuthManager
-from .contracts.abis import SERVING_CONTRACT_ABI, DEFAULT_CONTRACT_ADDRESS
+from .contracts.abis import SERVING_CONTRACT_ABI, DEFAULT_SERVING_ADDRESS, DEFAULT_LEDGER_ADDRESS, LEDGER_CONTRACT_ABI
 from .exceptions import ConfigurationError
 
 
@@ -61,21 +61,26 @@ class ZGServingBroker:
         self.account = account
         self.web3 = web3
         
-        # Use default contract address if not provided
+        # Use default contract addresses if not provided
         if contract_address is None:
-            contract_address = DEFAULT_CONTRACT_ADDRESS
+            contract_address = DEFAULT_SERVING_ADDRESS
         
-        # Initialize contract
-        self.contract = self.web3.eth.contract(
+        # Initialize contracts
+        self.serving_contract = self.web3.eth.contract(
             address=Web3.to_checksum_address(contract_address),
             abi=SERVING_CONTRACT_ABI
         )
         
+        self.ledger_contract = self.web3.eth.contract(
+            address=Web3.to_checksum_address(DEFAULT_LEDGER_ADDRESS),
+            abi=LEDGER_CONTRACT_ABI
+        )
+        
         # Initialize managers
-        self._auth_manager = AuthManager(self.contract, self.account, self.web3)
-        self._ledger_manager = LedgerManager(self.contract, self.account, self.web3)
+        self._auth_manager = AuthManager(self.serving_contract, self.account, self.web3)
+        self._ledger_manager = LedgerManager(self.ledger_contract, self.account, self.web3)
         self._inference_manager = InferenceManager(
-            self.contract,
+            self.serving_contract,
             self.account,
             self.web3,
             self._auth_manager
