@@ -216,12 +216,18 @@ main();
             if data:
                 cmd.append(json.dumps(data))
             
-            # Execute
+            # Execute (set NODE_PATH so Node can find node_modules)
+            project_root = Path(__file__).parent.parent
+            node_modules_path = project_root / 'node_modules'
+            env = os.environ.copy()
+            env['NODE_PATH'] = str(node_modules_path)
+
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
+                env=env
             )
             
             # Clean up

@@ -47,3 +47,9 @@ Thumbs.db
 
 # Test files (optional - remove this line if you want to commit test.py)
 test.py
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.pnpm-lock.yaml

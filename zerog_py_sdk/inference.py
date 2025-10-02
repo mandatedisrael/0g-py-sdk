@@ -11,6 +11,7 @@ from web3.contract import Contract
 from eth_account.signers.local import LocalAccount
 import requests
 
+
 from .models import ServiceMetadata
 from .exceptions import (
     ContractError,
@@ -135,37 +136,60 @@ class InferenceManager:
             
         except Exception as e:
             raise ServiceNotFoundError(provider_address)
-    
+
     def acknowledge_provider_signer(self, provider_address: str) -> Dict[str, Any]:
-        """
-        Acknowledge a provider's signer on-chain (required before using the service).
-        
-        This is a one-time operation per provider that establishes a cryptographic
-        relationship for billing purposes.
-        
-        Args:
-            provider_address: Provider's wallet address
-            
-        Returns:
-            Transaction receipt information
-            
-        Raises:
-            ContractError: If the transaction fails
-            
-        Example:
-            >>> receipt = inference.acknowledge_provider_signer("0xf07240Efa67755B5311bc75784a061eDB47165Dd")
-        """
-        if not validate_provider_address(provider_address):
-            raise ValueError(f"Invalid provider address: {provider_address}")
-        
+        """Acknowledge a provider's TEE signer."""
         try:
             provider_address = format_address(provider_address)
             
-            # acknowledgeProviderSigner(provider, providerPubKey)
-            # Using [0, 0] as placeholder for providerPubKey
-            tx = self.contract.functions.acknowledgeProviderSigner(
+            # Step 1: Check if account exists on InferenceServing contract
+            try:
+                account = self.contract.functions.getAccount(
+                    self.account.address,
+                    provider_address
+                ).call()
+                print("Account exists")
+            except:
+                print("Account doesn't exist, creating with transferFund...")
+                # This needs to be implemented properly - for now skip
+                pass
+            
+            # Step 2: Get quote
+            service = self.get_service(provider_address)
+            quote_endpoint = f"{service.url}/v1/quote"
+            
+            print(f"Getting quote from: {quote_endpoint}")
+            quote_response = requests.get(quote_endpoint, timeout=10)
+            
+            if quote_response.status_code != 200:
+                raise ContractError("acknowledge", f"Failed to get quote: {quote_response.status_code}")
+            
+            quote_data = quote_response.json()
+            provider_signer = quote_data.get('provider_signer')  # This is an ADDRESS
+            
+            if not provider_signer:
+                raise ContractError("acknowledge", "No provider_signer in quote")
+            
+            print(f"Got provider signer (TEE address): {provider_signer}")
+            
+            # Step 3: Check if already acknowledged
+            try:
+                account = self.contract.functions.getAccount(
+                    self.account.address,
+                    provider_address
+                ).call()
+                current_tee_signer = account[9]  # teeSignerAddress field
+                
+                if current_tee_signer.lower() == provider_signer.lower():
+                    print("TEE signer already acknowledged")
+                    return {"status": "already_acknowledged"}
+            except:
+                pass
+            
+            # Step 4: Use acknowledgeTEESigner, NOT acknowledgeProviderSigner!
+            tx = self.contract.functions.acknowledgeTEESigner(
                 provider_address,
-                [0, 0]  # Placeholder public key
+                provider_signer  # Just pass the address directly
             ).build_transaction({
                 'from': self.account.address,
                 'gas': 150000,
@@ -174,20 +198,54 @@ class InferenceManager:
             })
             
             signed_tx = self.account.sign_transaction(tx)
-            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
             receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
             
             if receipt['status'] != 1:
-                raise ContractError("acknowledgeProviderSigner", "Transaction failed")
-            
-            # Mark provider as acknowledged
-            self._acknowledged_providers.add(provider_address.lower())
+                raise ContractError("acknowledgeTEESigner", "Transaction failed")
             
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-            raise ContractError("acknowledgeProviderSigner", str(e))
-    
+            import traceback
+            traceback.print_exc()
+            raise ContractError("acknowledge", str(e))
+
+    def _verify_quote_with_automata(self, quote: str) -> bool:
+        """
+        Verify TEE quote using Automata contract.
+        
+        Args:
+            quote: Hex-encoded quote from provider
+            
+        Returns:
+            True if quote is valid, False otherwise
+        """
+        from .contracts.abis import AUTOMATA_CONTRACT_ADDRESS
+        
+        # Automata contract ABI for verifyQuote function
+        automata_abi = [{
+            "inputs": [{"internalType": "bytes", "name": "quote", "type": "bytes"}],
+            "name": "verifyQuote",
+            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+        }]
+        
+        automata_contract = self.web3.eth.contract(
+            address=Web3.to_checksum_address(AUTOMATA_CONTRACT_ADDRESS),
+            abi=automata_abi
+        )
+        
+        try:
+            # Convert hex string to bytes
+            quote_bytes = bytes.fromhex(quote.replace('0x', ''))
+            is_valid = automata_contract.functions.verifyQuote(quote_bytes).call()
+            return is_valid
+        except Exception as e:
+            print(f"Quote verification error: {e}")
+            return False
+
     def get_service_metadata(self, provider_address: str) -> Dict[str, str]:
         """
         Get service endpoint and model information for a provider.

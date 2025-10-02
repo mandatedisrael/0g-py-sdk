@@ -1,0 +1,23 @@
+{
+  "name": "og-py-sdk",
+  "version": "1.0.0",
+  "description": "Python SDK for interacting with the 0G Compute Network - a decentralized AI inference marketplace.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mandatedisrael/0g-py-sdk.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mandatedisrael/0g-py-sdk/issues"
+  },
+  "homepage": "https://github.com/mandatedisrael/0g-py-sdk#readme",
+  "dependencies": {
+    "circomlibjs": "^0.1.7"
+  }
+}
