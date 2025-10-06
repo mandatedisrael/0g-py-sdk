@@ -83,7 +83,8 @@ class ZGServingBroker:
             self.serving_contract,
             self.account,
             self.web3,
-            self._auth_manager
+            self._auth_manager,
+            self._ledger_manager  # Pass ledger manager for account creation
         )
     
     @property
@@ -158,15 +159,19 @@ def create_broker(
     try:
         # Initialize Web3
         web3 = Web3(Web3.HTTPProvider(rpc_url))
-        
+
         # Check connection
         if not web3.is_connected():
             raise ConfigurationError(f"Failed to connect to RPC endpoint: {rpc_url}")
-        
+
+        # Validate private key
+        if not private_key:
+            raise ConfigurationError("Private key is required")
+
         # Create account from private key
         if not private_key.startswith('0x'):
             private_key = '0x' + private_key
-        
+
         account = Account.from_key(private_key)
         
         # Create and return broker

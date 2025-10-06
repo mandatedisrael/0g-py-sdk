@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/mandatedisrael/0g-py-sdk#readme",
   "dependencies": {
+    "@0glabs/0g-serving-broker": "^0.4.4",
     "circomlibjs": "^0.1.7"
   }
 }

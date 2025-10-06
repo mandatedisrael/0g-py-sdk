@@ -40,21 +40,24 @@ class InferenceManager:
         contract: Contract,
         account: LocalAccount,
         web3: Web3,
-        auth_manager: Any  # Avoid circular import, type will be AuthManager
+        auth_manager: Any,  # Avoid circular import, type will be AuthManager
+        ledger_manager: Any = None  # Add ledger manager for account creation
     ):
         """
         Initialize the InferenceManager.
-        
+
         Args:
             contract: Web3 contract instance
             account: Local account for signing transactions
             web3: Web3 instance
             auth_manager: AuthManager instance for header generation
+            ledger_manager: LedgerManager instance for fund transfers
         """
         self.contract = contract
         self.account = account
         self.web3 = web3
         self.auth_manager = auth_manager
+        self.ledger_manager = ledger_manager
         self._acknowledged_providers = set()
     
     def list_service(self) -> List[ServiceMetadata]:
@@ -141,18 +144,31 @@ class InferenceManager:
         """Acknowledge a provider's TEE signer."""
         try:
             provider_address = format_address(provider_address)
-            
-            # Step 1: Check if account exists on InferenceServing contract
+
+            # Step 0: Ensure main ledger exists
+            if self.ledger_manager:
+                try:
+                    ledger = self.ledger_manager.get_ledger()
+                    # Check if ledger actually has balance (not just a zero-initialized struct)
+                    if ledger.total_balance > 0:
+                        print("✅ Main ledger exists")
+                    else:
+                        print("Ledger exists but empty, adding funds...")
+                        self.ledger_manager.add_ledger("0.01")
+                except:
+                    print("Creating main ledger...")
+                    self.ledger_manager.add_ledger("0.01")  # Create with 0.01 OG
+
+            # Step 1: Check if account exists (but don't create it)
+            # The acknowledgeTEESigner call will create it if needed
             try:
                 account = self.contract.functions.getAccount(
                     self.account.address,
                     provider_address
                 ).call()
-                print("Account exists")
-            except:
-                print("Account doesn't exist, creating with transferFund...")
-                # This needs to be implemented properly - for now skip
-                pass
+                print("✅ Account exists for provider")
+            except Exception as e:
+                print(f"ℹ️  Account doesn't exist (acknowledgeTEESigner will handle it)")
             
             # Step 2: Get quote
             service = self.get_service(provider_address)
@@ -211,6 +227,41 @@ class InferenceManager:
             traceback.print_exc()
             raise ContractError("acknowledge", str(e))
 
+    def _create_provider_account(self, provider_address: str):
+        """
+        Create an account on InferenceServing contract.
+
+        This is called when getAccount fails, indicating no account exists.
+        We use addAccount with minimal parameters.
+        """
+        try:
+            # addAccount(user, provider, signer[2], additionalInfo) payable
+            # Use empty signer and info for now
+            tx = self.contract.functions.addAccount(
+                self.account.address,  # user
+                provider_address,      # provider
+                [0, 0],               # signer (empty uint256[2])
+                ""                    # additionalInfo (empty string)
+            ).build_transaction({
+                'from': self.account.address,
+                'value': 0,  # No value needed
+                'gas': 300000,
+                'gasPrice': self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address)
+            })
+
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if receipt['status'] != 1:
+                raise ContractError("addAccount", "Transaction failed")
+
+            print("✅ Account created on InferenceServing")
+
+        except Exception as e:
+            raise ContractError("addAccount", str(e))
+
     def _verify_quote_with_automata(self, quote: str) -> bool:
         """
         Verify TEE quote using Automata contract.
@@ -262,9 +313,9 @@ class InferenceManager:
             >>> print(metadata['model'])
         """
         service = self.get_service(provider_address)
-        
+
         return {
-            "endpoint": service.url,
+            "endpoint": f"{service.url}/v1/proxy",
             "model": service.model
         }
     

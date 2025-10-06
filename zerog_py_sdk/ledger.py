@@ -149,7 +149,7 @@ class LedgerManager:
             # Ledger struct: (user, availableBalance, totalBalance, inferenceSigner, additionalInfo, inferenceProviders, fineTuningProviders)
             available_balance = ledger_data[1] / 10**18  # availableBalance field
             total_balance = ledger_data[2] / 10**18  # totalBalance field
-            locked_balance = ( total_balance - available_balance ) / 10**18
+            locked_balance = total_balance - available_balance  # Already in OG, don't divide again!
             
             return LedgerAccount(
                 balance=available_balance,
@@ -260,10 +260,10 @@ class LedgerManager:
     def transfer_fund(self, provider_address: str, service_type: str, amount: int = 0) -> Dict[str, Any]:
         """
         Transfer funds to provider (creates account on InferenceServing if amount is 0).
-        
+
         Args:
             provider_address: Provider address
-            service_type: "inference" or "fineTuning"  
+            service_type: "inference" or "fineTuning"
             amount: Amount in wei (0 to just create account)
         """
         try:
@@ -274,54 +274,19 @@ class LedgerManager:
                 amount
             ).build_transaction({
                 'from': self.account.address,
-                'gas': 200000,
+                'gas': 300000,  # Increased gas limit
                 'gasPrice': self.web3.eth.gas_price,
                 'nonce': self.web3.eth.get_transaction_count(self.account.address)
             })
-            
+
             signed_tx = self.account.sign_transaction(tx)
             tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
             receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
-            
+
             if receipt['status'] != 1:
                 raise ContractError("transferFund", "Transaction failed")
-            
+
             return parse_transaction_receipt(receipt)
-        
+
         except Exception as e:
             raise ContractError("transferFund", str(e))
-            """
-            Transfer funds to provider (creates account if amount is 0).
-            
-            Args:
-                provider_address: Provider address
-                service_type: "inference" or "fineTuning"
-                amount: Amount in wei (0 to just create account)
-            """
-            try:
-                if not self.serving_contract:
-                    raise ContractError("transferFund", "Serving contract not initialized")
-                
-                # Call transferFund on ledger contract
-                tx = self.contract.functions.transferFund(
-                    provider_address,
-                    service_type,
-                    amount
-                ).build_transaction({
-                    'from': self.account.address,
-                    'gas': 200000,
-                    'gasPrice': self.web3.eth.gas_price,
-                    'nonce': self.web3.eth.get_transaction_count(self.account.address)
-                })
-                
-                signed_tx = self.account.sign_transaction(tx)
-                tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
-                
-                if receipt['status'] != 1:
-                    raise ContractError("transferFund", "Transaction failed")
-                
-                return parse_transaction_receipt(receipt)
-                
-            except Exception as e:
-                raise ContractError("transferFund", str(e))
