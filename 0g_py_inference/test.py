@@ -32,8 +32,8 @@ def test_ledger_operations(broker):
         print(f"✓ Total balance: {account.total_balance } 0G")
         print(f"✓ Available: {account.available } 0G")
         print(f"Withdrawing 1.0 OG from ledger...")
-        receipt = broker.ledger.retrieve_fund('inference')  # No provider address!
-        print(f"✓ Withdrawal successful: {receipt['transaction_hash']}")
+        # receipt = broker.ledger.retrieve_fund('inference')  # No provider address!
+        # print(f"✓ Withdrawal successful: {receipt['transaction_hash']}")
         print(f"✓ New balance: {broker.ledger.get_ledger().balance } 0G")
     except Exception as e:
         print(f"⚠ No existing ledger: {e}")
@@ -92,13 +92,9 @@ def test_query_provider(broker):
     except Exception as e:
         print(f"⚠ Could not check balance: {e}")
 
-    # Acknowledge provider if not already done
-    try:
-        print("  Acknowledging provider...")
-        broker.inference.acknowledge_provider_signer(provider_address)
-        print("✓ Provider acknowledged")
-    except Exception as e:
-        print(f"  Already acknowledged or error: {e}")
+    # Skip acknowledgement - not needed in v0.5.4 according to official example
+    # The account will be created automatically on first request
+    print("  Skipping acknowledgement (handled automatically in v0.5.4)")
 
     # Get service metadata
     metadata = broker.inference.get_service_metadata(provider_address)

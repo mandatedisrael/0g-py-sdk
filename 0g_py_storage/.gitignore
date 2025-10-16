@@ -1,0 +1,8 @@
+dev_order.py
+__pycache__/
+project_structure.md
+.env
+.DS_Store
+.vscode/
+.idea/
+*.pyc

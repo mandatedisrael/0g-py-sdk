@@ -159,16 +159,39 @@ class InferenceManager:
                     print("Creating main ledger...")
                     self.ledger_manager.add_ledger("0.01")  # Create with 0.01 OG
 
-            # Step 1: Check if account exists (but don't create it)
-            # The acknowledgeTEESigner call will create it if needed
+            # Step 1: Check if account exists, create it via transferFund if needed
+            # This matches the official TS SDK's handleFirstRound logic
+            need_transfer = False
             try:
                 account = self.contract.functions.getAccount(
                     self.account.address,
                     provider_address
                 ).call()
-                print("✅ Account exists for provider")
+                current_tee_signer = account[9]  # teeSignerAddress field
+                print(f"✅ Account exists for provider (TEE signer: {current_tee_signer})")
+                # Check if balance is too low (less than threshold)
+                balance = account[3]  # balance field
+                pending_refund = account[4]  # pendingRefund field
+                locked_fund = balance - pending_refund
+                # If balance is very low, we need to top up
+                if locked_fund < 100000000000:  # Arbitrary small threshold
+                    need_transfer = True
             except Exception as e:
-                print(f"ℹ️  Account doesn't exist (acknowledgeTEESigner will handle it)")
+                print(f"ℹ️  Account doesn't exist yet, will create via transferFund...")
+                need_transfer = True
+
+            # Transfer funds to create account or top up if needed
+            # Use a reasonable initial amount: 0.001 OG = 1000000000000000 wei
+            if need_transfer and self.ledger_manager:
+                print("Transferring funds to create/top-up account...")
+                try:
+                    from .utils import og_to_wei
+                    initial_amount = og_to_wei("0.001")  # 0.001 OG
+                    self.ledger_manager.transfer_fund(provider_address, "inference", initial_amount)
+                    print("✅ Account created/topped-up via transferFund")
+                except Exception as transfer_error:
+                    print(f"⚠️  transferFund failed: {transfer_error}")
+                    # Continue anyway - maybe account was created by another process
             
             # Step 2: Get quote
             service = self.get_service(provider_address)
@@ -203,22 +226,25 @@ class InferenceManager:
                 pass
             
             # Step 4: Use acknowledgeTEESigner, NOT acknowledgeProviderSigner!
+            print(f"Calling acknowledgeTEESigner({provider_address}, {provider_signer})")
             tx = self.contract.functions.acknowledgeTEESigner(
                 provider_address,
                 provider_signer  # Just pass the address directly
             ).build_transaction({
                 'from': self.account.address,
-                'gas': 150000,
+                'gas': 300000,  # Increased gas
                 'gasPrice': self.web3.eth.gas_price,
                 'nonce': self.web3.eth.get_transaction_count(self.account.address)
             })
-            
+
             signed_tx = self.account.sign_transaction(tx)
             tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            print(f"Transaction hash: {tx_hash.hex()}")
             receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
-            
+            print(f"Receipt: {receipt}")
+
             if receipt['status'] != 1:
-                raise ContractError("acknowledgeTEESigner", "Transaction failed")
+                raise ContractError("acknowledgeTEESigner", f"Transaction failed. Receipt: {receipt}")
             
             return parse_transaction_receipt(receipt)
             
