@@ -1,0 +1,3 @@
+"""0G Storage Python SDK."""
+
+__version__ = "0.1.0"

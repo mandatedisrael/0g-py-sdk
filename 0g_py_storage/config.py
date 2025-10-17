@@ -5,7 +5,10 @@ Constants directly ported from official TypeScript SDK:
 node_modules/@0glabs/0g-ts-sdk/lib.commonjs/constant.js
 """
 
-from .utils.crypto import keccak256_hash
+try:
+    from .utils.crypto import keccak256_hash
+except ImportError:
+    from utils.crypto import keccak256_hash
 
 # Storage constants (from TS SDK)
 DEFAULT_CHUNK_SIZE = 256  # bytes
