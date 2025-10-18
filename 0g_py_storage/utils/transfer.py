@@ -18,7 +18,7 @@ except ImportError:
     from core.node_selector import is_valid_config
 
 
-async def get_shard_configs(nodes: List[StorageNode]) -> Optional[List[Dict[str, Any]]]:
+def get_shard_configs(nodes: List[StorageNode]) -> Optional[List[Dict[str, Any]]]:
     """
     Get shard configurations from storage nodes.
 
@@ -30,22 +30,12 @@ async def get_shard_configs(nodes: List[StorageNode]) -> Optional[List[Dict[str,
     Returns:
         List of shard configs or None if any invalid
     """
-    # TS line 7
     configs = []
-
-    # TS line 8
     for c_node in nodes:
-        # TS line 9
         c_config = c_node.get_shard_config()
-
-        # TS line 10-12
         if not is_valid_config(c_config):
             return None
-
-        # TS line 13
         configs.append(c_config)
-
-    # TS line 15
     return configs
 
 
@@ -62,14 +52,10 @@ def calculate_price(submission: Dict[str, Any], price_per_sector: int) -> int:
     Returns:
         Total price
     """
-    # TS line 18
     sectors = 0
-
-    # TS line 19-21
     for node in submission['nodes']:
         sectors += 1 << int(node['height'])
 
-    # TS line 22
     return sectors * price_per_sector
 
 
@@ -114,7 +100,10 @@ def segment_range(start_chunk_index: int, file_size: int) -> tuple:
     Returns:
         Tuple of (start_segment_index, end_segment_index)
     """
-    from ..config import DEFAULT_CHUNK_SIZE, DEFAULT_SEGMENT_MAX_CHUNKS
+    try:
+        from ..config import DEFAULT_CHUNK_SIZE, DEFAULT_SEGMENT_MAX_CHUNKS
+    except ImportError:
+        from config import DEFAULT_CHUNK_SIZE, DEFAULT_SEGMENT_MAX_CHUNKS
 
     # TS line 51
     total_chunks = get_split_num(file_size, DEFAULT_CHUNK_SIZE)

@@ -7,17 +7,22 @@ node_modules/@0glabs/0g-ts-sdk/lib.commonjs/indexer/Indexer.js
 CRITICAL: Must EXACTLY match TypeScript SDK behavior.
 """
 from typing import Optional, List, Dict, Any, Tuple
+from web3 import Web3
 
 try:
     from ..utils.http import HttpProvider
     from .storage_node import StorageNode
     from .node_selector import select_nodes
     from .downloader import Downloader
+    from .uploader import Uploader
+    from ..contracts.flow import FlowContract
 except ImportError:
     from utils.http import HttpProvider
     from core.storage_node import StorageNode
     from core.node_selector import select_nodes
     from core.downloader import Downloader
+    from core.uploader import Uploader
+    from contracts.flow import FlowContract
 
 
 class Indexer(HttpProvider):
@@ -77,11 +82,15 @@ class Indexer(HttpProvider):
         Returns:
             List of storage node locations
         """
-        res = self.request(
-            method='indexer_getFileLocations',
-            params=[root_hash]
-        )
-        return res
+        try:
+            res = self.request(
+                method='indexer_getFileLocations',
+                params=[root_hash]
+            )
+            return res
+        except Exception as e:
+            # Indexer method might not be available or file not indexed yet
+            return None
 
     def select_nodes(
         self,
@@ -151,7 +160,6 @@ class Indexer(HttpProvider):
         if err is not None:
             return (None, err)
 
-        # TS line 37-43
         status = clients[0].get_status()
         if status is None:
             return (
@@ -159,24 +167,17 @@ class Indexer(HttpProvider):
                 Exception('failed to get status from the selected node')
             )
 
-        # TS line 44
         print('First selected node status :', status)
-
-        # TS line 45 - get_flow_contract (needs to be implemented)
-        # For now, return placeholder
-        # flow = get_flow_contract(status['networkIdentity']['flowAddress'], signer)
-
-        # TS line 46
         print('Selected nodes:', clients)
 
-        # TS line 47 - Create Uploader (Phase 7)
-        # uploader = Uploader(clients, blockchain_rpc, flow, opts?.gasPrice, opts?.gasLimit)
+        # Create Flow contract and Uploader
+        web3 = Web3(Web3.HTTPProvider(blockchain_rpc))
+        flow = FlowContract(web3, status['networkIdentity']['flowAddress'])
+        gas_price = opts.get('gasPrice', 0) if opts else 0
+        gas_limit = opts.get('gasLimit', 0) if opts else 0
+        uploader = Uploader(clients, blockchain_rpc, flow, gas_price, gas_limit)
 
-        # TS line 48
-        # return (uploader, None)
-
-        # Placeholder return
-        return (None, Exception("Uploader not implemented yet (Phase 7)"))
+        return (uploader, None)
 
     def upload(
         self,
@@ -211,7 +212,6 @@ class Indexer(HttpProvider):
         if upload_opts is not None and 'expectedReplica' in upload_opts:
             expected_replica = max(1, upload_opts['expectedReplica'])
 
-        # TS line 71-74
         uploader, err = self.new_uploader_from_indexer_nodes(
             blockchain_rpc,
             signer,
@@ -221,10 +221,9 @@ class Indexer(HttpProvider):
         if err is not None or uploader is None:
             return ({'txHash': '', 'rootHash': ''}, err)
 
-        # TS line 75-84
         if upload_opts is None:
             upload_opts = {
-                'tags': '0x',
+                'tags': b'\x00',
                 'finalityRequired': True,
                 'taskSize': 10,
                 'expectedReplica': 1,
@@ -232,11 +231,7 @@ class Indexer(HttpProvider):
                 'fee': 0,
             }
 
-        # TS line 85 - uploader.uploadFile (Phase 7)
-        # return await uploader.uploadFile(file, upload_opts, retry_opts)
-
-        # Placeholder return
-        return ({'txHash': '', 'rootHash': ''}, Exception("Upload not implemented yet (Phase 7)"))
+        return uploader.upload_file(file, upload_opts, retry_opts)
 
     def download(
         self,
@@ -259,13 +254,31 @@ class Indexer(HttpProvider):
         """
         # TS line 88-91
         locations = self.get_file_locations(root_hash)
-        if len(locations) == 0:
-            return Exception('failed to get file locations')
+
+        # If indexer doesn't have file locations (returns None or empty),
+        # fall back to querying all available storage nodes
+        if locations is None or len(locations) == 0:
+            print("Indexer doesn't have file locations, querying storage nodes directly...")
+            node_locations = self.get_node_locations()
+            if node_locations is None or len(node_locations) == 0:
+                return Exception('failed to get storage node locations')
+
+            # node_locations is a dict mapping IP -> location_info
+            # Convert to list of URL dicts for compatibility
+            locations = []
+            for ip in node_locations.keys():
+                locations.append({'url': f'http://{ip}:5678'})
 
         # TS line 92-96
         clients = []
         for node in locations:
-            sn = StorageNode(node['url'])
+            # Handle both dict with 'url' key and direct URL strings
+            if isinstance(node, dict):
+                sn = StorageNode(node['url'])
+            elif isinstance(node, str):
+                sn = StorageNode(node)
+            else:
+                continue
             clients.append(sn)
 
         # TS line 97

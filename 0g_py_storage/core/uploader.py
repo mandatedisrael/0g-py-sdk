@@ -476,15 +476,23 @@ class Uploader:
         # TS line 247
         upload_tasks = []
 
+        # Check if file is already finalized on any node
+        # If so, no need to upload again - file is already available on the network
+        for client_index in range(len(shard_configs)):
+            c_info = self.nodes[client_index].get_file_info(tree.root_hash(), True)
+            if c_info is not None and c_info['finalized']:
+                print(f"✅ File already finalized on node {self.nodes[client_index].url}")
+                print(f"   Skipping upload - file is already available on the network")
+                return []
+
         # TS line 248
         for client_index in range(len(shard_configs)):
             # TS line 249
             shard_config = shard_configs[client_index]
 
-            # TS line 250-254
+            # TS line 250-254 - Already checked above, but keeping for structure consistency
             c_info = self.nodes[client_index].get_file_info(tree.root_hash(), True)
             if c_info is not None and c_info['finalized']:
-                print(f"File already exists on node {self.nodes[client_index].url} {c_info}")
                 continue
 
             # TS line 255
@@ -683,6 +691,9 @@ class Uploader:
                 if self.is_already_uploaded_error(error):
                     print(f"Segments already uploaded and finalized on node {node_url}")
                     return 0  # Success
+
+                # Note: Fallback is no longer needed since we remove 'root' field above
+                # but keeping for reference in case of other errors
 
                 # TS line 352
                 if self.is_retryable_error(error):

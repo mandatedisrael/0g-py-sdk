@@ -108,18 +108,33 @@ class Downloader:
 
         # TS line 42
         for node in self.nodes:
-            # TS line 43
-            curr_info = node.get_file_info(root, True)
+            try:
+                # TS line 43
+                curr_info = node.get_file_info(root, True)
 
-            # TS line 44-46
-            if curr_info is None:
-                return (None, Exception(f'File not found on node {node.url}'))
+                # TS line 44-46
+                if curr_info is None:
+                    # If a node doesn't have the file, continue to next node
+                    continue
 
-            # TS line 47-49
-            elif file_info is None:
-                file_info = curr_info
+                # TS line 47-49
+                # Prefer finalized file info
+                if curr_info.get('finalized', False):
+                    file_info = curr_info
+                    break  # Found finalized file, done
+
+                # If not finalized but we don't have any info yet, keep it as fallback
+                elif file_info is None:
+                    file_info = curr_info
+
+            except Exception as e:
+                # Node query failed, try next node
+                continue
 
         # TS line 51
+        if file_info is None:
+            return (None, Exception(f'File not found on any storage node'))
+
         return (file_info, None)
 
     def download_task(

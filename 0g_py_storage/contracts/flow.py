@@ -199,6 +199,15 @@ class FlowContract:
         submit_event = self.contract.events.Submit()
         event_signature = submit_event.build_filter().topics[0]
 
+        # Normalize event signature to hex string
+        def _to_hex_str(x):
+            try:
+                return Web3.to_hex(x).lower()
+            except Exception:
+                return (x if isinstance(x, str) else str(x)).lower()
+
+        event_sig_hex = _to_hex_str(event_signature)
+
         tx_seqs = []
 
         for log in receipt['logs']:
@@ -207,7 +216,11 @@ class FlowContract:
                 continue
 
             # Check if this is a Submit event
-            if len(log['topics']) == 0 or log['topics'][0].hex() != event_signature.hex():
+            if len(log['topics']) == 0:
+                continue
+
+            topic0_hex = _to_hex_str(log['topics'][0])
+            if topic0_hex != event_sig_hex:
                 continue
 
             try:
@@ -215,10 +228,9 @@ class FlowContract:
                 parsed_log = submit_event.process_log(log)
 
                 # Extract submissionIndex from event args
-                # Event structure: Submit(address sender, bytes32 identity, uint256 submissionIndex, ...)
                 if 'submissionIndex' in parsed_log['args']:
                     tx_seqs.append(parsed_log['args']['submissionIndex'])
-            except Exception as e:
+            except Exception:
                 # If parsing fails, skip this log
                 continue
 
