@@ -12,10 +12,12 @@ try:
     from ..utils.http import HttpProvider
     from .storage_node import StorageNode
     from .node_selector import select_nodes
+    from .downloader import Downloader
 except ImportError:
     from utils.http import HttpProvider
     from core.storage_node import StorageNode
     from core.node_selector import select_nodes
+    from core.downloader import Downloader
 
 
 class Indexer(HttpProvider):
@@ -247,9 +249,6 @@ class Indexer(HttpProvider):
 
         TS SDK lines 87-99.
 
-        NOTE: Requires Downloader class (Phase 8).
-        This is a placeholder for now.
-
         Args:
             root_hash: File root hash
             file_path: Output file path
@@ -269,11 +268,8 @@ class Indexer(HttpProvider):
             sn = StorageNode(node['url'])
             clients.append(sn)
 
-        # TS line 97 - Create Downloader (Phase 8)
-        # downloader = Downloader(clients)
+        # TS line 97
+        downloader = Downloader(clients)
 
-        # TS line 98 - downloader.downloadFile (Phase 8)
-        # return await downloader.downloadFile(root_hash, file_path, proof)
-
-        # Placeholder return
-        return Exception("Download not implemented yet (Phase 8)")
+        # TS line 98
+        return downloader.download_file(root_hash, file_path, proof)

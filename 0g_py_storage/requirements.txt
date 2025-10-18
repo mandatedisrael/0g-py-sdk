@@ -1,0 +1,16 @@
+# 0G Storage Python SDK Requirements
+#
+# Core dependencies for the Python port of @0glabs/0g-ts-sdk
+
+# Cryptography
+pycryptodome>=3.23.0
+
+# Web3 and Ethereum
+web3>=7.14.0
+eth-account>=0.13.7
+
+# HTTP requests
+requests>=2.32.5
+
+# Testing (development)
+pytest>=8.4.2

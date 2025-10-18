@@ -5,6 +5,7 @@ from .file import ZgFile, AbstractFile
 from .storage_node import StorageNode
 from .indexer import Indexer
 from .uploader import Uploader
+from .downloader import Downloader
 from .node_selector import select_nodes, check_replica, is_valid_config
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "StorageNode",
     "Indexer",
     "Uploader",
+    "Downloader",
     "select_nodes",
     "check_replica",
     "is_valid_config",
