@@ -401,7 +401,7 @@ Same license as the official TypeScript SDK.
 - **TypeScript SDK:** https://github.com/0glabs/0g-ts-sdk
 - **0G Storage Docs:** https://docs.0g.ai
 - **0G Website:** https://0g.ai
-- **Testnet Explorer:** https://chainscan-newton.0g.ai/
+- **Testnet Explorer:** https://chainscan-galileo.0g.ai/
 
 ## 🆘 Support
 

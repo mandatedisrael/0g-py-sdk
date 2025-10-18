@@ -127,6 +127,7 @@ class Indexer(HttpProvider):
         for node in trusted:
             sn = StorageNode(node['url'])
             clients.append(sn)
+            print(f"  - {node['url']} (shard {node['config']['shardId']}/{node['config']['numShard']})")
 
         # TS line 64
         return (clients, None)
@@ -256,23 +257,23 @@ class Indexer(HttpProvider):
         locations = self.get_file_locations(root_hash)
 
         # If indexer doesn't have file locations (returns None or empty),
-        # fall back to querying all available storage nodes
+        # prefer sharded nodes from the indexer to ensure shard coverage
         if locations is None or len(locations) == 0:
             print("Indexer doesn't have file locations, querying storage nodes directly...")
-            node_locations = self.get_node_locations()
-            if node_locations is None or len(node_locations) == 0:
-                return Exception('failed to get storage node locations')
+            sharded = self.get_sharded_nodes()
+            candidates = sharded.get('trusted', [])
+            if len(candidates) == 0:
+                candidates = sharded.get('discovered', [])
+            if candidates is None or len(candidates) == 0:
+                node_locations = self.get_node_locations()
+                if node_locations is None or len(node_locations) == 0:
+                    return Exception('failed to get storage node locations')
+                locations = [{'url': f'http://{ip}:5678'} for ip in node_locations.keys()]
+            else:
+                locations = candidates
 
-            # node_locations is a dict mapping IP -> location_info
-            # Convert to list of URL dicts for compatibility
-            locations = []
-            for ip in node_locations.keys():
-                locations.append({'url': f'http://{ip}:5678'})
-
-        # TS line 92-96
         clients = []
         for node in locations:
-            # Handle both dict with 'url' key and direct URL strings
             if isinstance(node, dict):
                 sn = StorageNode(node['url'])
             elif isinstance(node, str):
@@ -281,8 +282,5 @@ class Indexer(HttpProvider):
                 continue
             clients.append(sn)
 
-        # TS line 97
         downloader = Downloader(clients)
-
-        # TS line 98
         return downloader.download_file(root_hash, file_path, proof)
