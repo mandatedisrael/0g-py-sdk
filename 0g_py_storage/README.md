@@ -134,9 +134,11 @@ file.close()
 **Example Output:**
 ```
 ✅ Upload successful!
-   Transaction Hash: 9f01808921020c29b25e21204bfeb7079ce7cf3dad232e0a6c65451eef82a5f2
+   Transaction Hash: 0x9f01808921020c29b25e21204bfeb7079ce7cf3dad232e0a6c65451eef82a5f2
    Root Hash: 0x11fdd3fd0a6e9594bf4ffe86a5cf095d85ac00f23b4f2e559802d624f6a86b58
 ```
+
+> **Note:** You may see a warning "⚠️ Some direct uploads failed, but file may still propagate via network" - this is normal and the upload succeeds through network propagation.
 
 ### 3. Download File from 0G Storage
 
