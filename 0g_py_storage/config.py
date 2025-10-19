@@ -29,16 +29,22 @@ TIMEOUT_MS = 3000000  # 3000 seconds (from TS SDK)
 ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
 # Network configurations
+# Official network details from https://docs.0g.ai
 NETWORKS = {
     "testnet": {
-        "rpc_url": "https://evmrpc-testnet.0g.ai/",
+        "name": "0G-Galileo-Testnet",
+        "rpc_url": "https://evmrpc-testnet.0g.ai",
         "indexer_url": "https://indexer-storage-testnet-turbo.0g.ai",
-        "chain_id": 16600
+        "chain_id": 16602,  # Official Galileo testnet chain ID
+        "explorer": "https://chainscan-galileo.0g.ai",
+        "faucet": "https://faucet.0g.ai"
     },
     "mainnet": {
-        "rpc_url": "https://evmrpc.0g.ai/",
+        "name": "0G Mainnet",
+        "rpc_url": "https://evmrpc.0g.ai",
         "indexer_url": "https://indexer-storage-turbo.0g.ai",
-        "chain_id": 16601
+        "chain_id": 16661,  # Official mainnet chain ID
+        "explorer": "https://chainscan.0g.ai"
     }
 }
 

@@ -63,7 +63,7 @@ def main():
 
     # Create test file
     print(f"\n📝 Creating test file...")
-    test_file = "./dami.txt"
+    test_file = "./notmartin.txt"
     test_content = f"""
 0G Storage Upload Test
 ======================
