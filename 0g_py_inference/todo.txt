@@ -1,0 +1,21 @@
+Make inference fully Python (remove Node/circomlibjs):
+
+- Implement Python BabyJubJub + Pedersen in zerog_py_sdk/crypto/babyjub.py
+  - gen_key_pair() → returns packedPrivkey[2] and doublePackedPubkey[2] (2×16-byte LE bigints)
+  - sign_data(requests, packedPrivkey) → EdDSA signPedersen + packSignature output (list of 64-byte arrays)
+  - pedersen_hash(buffer_hex) → '0x' + hex; BabyJubJub Pedersen with precomputed bases
+  - Use BN254 field modulus and BabyJubJub constants from ERC-2494
+  - Vendor pedersen bases (window tables) from circomlib calcpedersenbases for exact compatibility
+
+- Replace Node bridge in zerog_py_sdk/auth.py
+  - Remove CircomlibBridge and subprocess usage
+  - Swap to PythonCrypto (babyjub.py) for genKeyPair, signData, pedersenHash
+  - Keep header fields identical to TypeScript SDK (Signature, Nonce, Request-Hash, Fee, etc.)
+
+- Remove Node.js deps and docs
+  - Delete circomlibjs and related deps from package.json
+  - Update README to drop Node requirement and reflect Python-only crypto
+
+- Add deterministic tests (pytest)
+  - Unit tests for gen_key_pair, sign_data, pedersen_hash with fixed vectors
+  - Validate header generation matches known-good values for sample inputs
