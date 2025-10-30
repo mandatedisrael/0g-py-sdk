@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+recursive-include core *.py
+recursive-include contracts *.py
+recursive-include models *.py
+recursive-include utils *.py
+recursive-include tests *.py
