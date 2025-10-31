@@ -254,19 +254,33 @@ class Uploader:
             Tuple of (receipt, error)
         """
         # TS line 87-89 - Market contract for pricing
-        # For now, calculate fee directly
-        # market_addr = self.flow.contract.functions.market().call()
-        # market_contract = get_market_contract(market_addr, self.web3)
-        # price_per_sector = market_contract.functions.pricePerSector().call()
-
-        # TS line 90-96
         fee = 0
         if 'fee' in opts and opts['fee'] > 0:
             fee = opts['fee']
         else:
-            # For now, use simple calculation
-            # fee = calculate_price(submission, price_per_sector)
-            fee = 0  # Placeholder
+            # Calculate storage fee from market contract
+            try:
+                # Get market contract address from flow contract
+                market_addr = self.flow.contract.functions.market().call()
+
+                # Get market contract and call pricePerSector()
+                from .market import get_market_contract
+                market_contract = get_market_contract(market_addr, self.web3)
+                price_per_sector = market_contract.functions.pricePerSector().call()
+
+                # Calculate fee: sectors * pricePerSector
+                # sectors = sum of (1 << node.height) for each node
+                sectors = 0
+                for node in submission['nodes']:
+                    sectors += 1 << int(node['height'])
+
+                fee = sectors * price_per_sector
+                print(f"Calculated storage fee from market contract: {fee}")
+            except Exception as e:
+                # Fallback: if market contract fails, use zero fee
+                # The transaction may still succeed depending on contract state
+                print(f"Warning: Failed to calculate storage fee ({type(e).__name__}): {e}")
+                fee = 0
 
         # TS line 97-113
         account = opts.get('account')

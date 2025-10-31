@@ -211,6 +211,13 @@ FLOW_CONTRACT_ABI = [
         "name": "Submit",
         "type": "event",
     },
+    {
+        "inputs": [],
+        "name": "market",
+        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
 ]
 
 # Contract addresses from official 0G documentation
@@ -221,10 +228,10 @@ TESTNET_FLOW_ADDRESS = "0x22E03a6A89B950F1c82ec5e74F8eCa321a105296"
 TESTNET_MINE_ADDRESS = "0x00A9E9604b0538e06b268Fb297Df333337f9593b"
 TESTNET_REWARD_ADDRESS = "0xA97B57b4BdFEA2D0a25e535bd849ad4e6C440A69"
 
-# Mainnet (placeholder - update when mainnet launches)
-MAINNET_FLOW_ADDRESS = None  # To be announced
-MAINNET_MINE_ADDRESS = None  # To be announced
-MAINNET_REWARD_ADDRESS = None  # To be announced
+# Mainnet 
+MAINNET_FLOW_ADDRESS = "0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526"  
+MAINNET_MINE_ADDRESS = "0xCd01c5Cd953971CE4C2c9bFb95610236a7F414fe"  
+MAINNET_REWARD_ADDRESS = "0x457aC76B58ffcDc118AABD6DbC63ff9072880870"  
 
 # Network configurations
 NETWORK_ADDRESSES = {
@@ -238,7 +245,7 @@ NETWORK_ADDRESSES = {
         "flow": MAINNET_FLOW_ADDRESS,
         "mine": MAINNET_MINE_ADDRESS,
         "reward": MAINNET_REWARD_ADDRESS,
-        "chain_id": 16601,
+        "chain_id": 16661,
     }
 }
 
