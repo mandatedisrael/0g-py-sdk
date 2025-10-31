@@ -1,0 +1,9 @@
+{
+  "info": "Pedersen bases not directly extractable from this circomlibjs version",
+  "note": "Python implementation needs either:",
+  "options": [
+    "1. Direct export from circomlibjs source code",
+    "2. Hardcoding of known bases from reference implementation",
+    "3. Alternative Pedersen hash using SHA256 + point multiplication"
+  ]
+}

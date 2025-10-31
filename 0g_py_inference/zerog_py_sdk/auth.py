@@ -3,11 +3,12 @@ Authentication and signature management for the 0G Compute Network SDK.
 
 This module handles:
 - Request header generation with Baby JubJub signatures
-- Pedersen hash calculation using circomlibjs via Node.js bridge
+- Pedersen hash calculation for cryptographic commitments
 - Fee calculation and billing proofs
 - Response verification for TEE services
 
-Uses circomlibjs cryptographic primitives via Node.js subprocess for compatibility.
+Uses native Python implementation of Baby JubJub + Pedersen + EdDSA cryptography.
+No external dependencies required.
 """
 
 from typing import Dict, Any, Optional, List, Tuple
@@ -15,11 +16,13 @@ from web3 import Web3
 from web3.contract import Contract
 from eth_account.signers.local import LocalAccount
 import json
-import subprocess
-import tempfile
-import os
-from pathlib import Path
 
+from .crypto import (
+    gen_key_pair,
+    sign_pedersen,
+    pack_signature,
+    pedersen_hash,
+)
 from .exceptions import AuthenticationError, InvalidResponseError, ConfigurationError
 
 
@@ -94,175 +97,27 @@ class Request:
         }
 
 
-class CircomlibBridge:
-    """
-    Bridge to circomlibjs via Node.js subprocess.
-    
-    This ensures 100% compatibility with the TypeScript SDK by using
-    the actual circomlibjs library for cryptographic operations.
-    """
-    
-    def __init__(self):
-        self._node_script = self._create_node_script()
-    
-    def _create_node_script(self) -> str:
-        """Create Node.js script that wraps circomlibjs functions."""
-        return """
-const circomlibjs = require('circomlibjs');
-
-async function main() {
-    const operation = process.argv[2];
-    const data = process.argv[3] ? JSON.parse(process.argv[3]) : null;
-    
-    try {
-        let result;
-        
-        if (operation === 'genKeyPair') {
-            result = await genKeyPair();
-        } else if (operation === 'signData') {
-            result = await signData(data.requests, data.privateKey);
-        } else if (operation === 'pedersenHash') {
-            result = await pedersenHash(data.buffer);
-        } else {
-            throw new Error('Unknown operation: ' + operation);
-        }
-        
-        console.log(JSON.stringify(result));
-    } catch (error) {
-        console.error(JSON.stringify({ error: error.message }));
-        process.exit(1);
-    }
-}
-
-async function genKeyPair() {
-    const babyjubjub = await circomlibjs.buildBabyjub();
-    const eddsa = await circomlibjs.buildEddsa();
-    
-    const privkey = babyjubjub.F.random();
-    const pubkey = eddsa.prv2pub(privkey);
-    const packedPubkey = babyjubjub.packPoint(pubkey);
-    
-    const BIGINT_SIZE = 16;
-    const packedPubkey0 = bytesToBigint(packedPubkey.slice(0, BIGINT_SIZE));
-    const packedPubkey1 = bytesToBigint(packedPubkey.slice(BIGINT_SIZE));
-    const packPrivkey0 = bytesToBigint(privkey.slice(0, BIGINT_SIZE));
-    const packPrivkey1 = bytesToBigint(privkey.slice(BIGINT_SIZE));
-    
-    return {
-        packedPrivkey: [packPrivkey0.toString(), packPrivkey1.toString()],
-        doublePackedPubkey: [packedPubkey0.toString(), packedPubkey1.toString()]
-    };
-}
-
-async function signData(requests, packedPrivkey) {
-    const eddsa = await circomlibjs.buildEddsa();
-    const BIGINT_SIZE = 16;
-    const FIELD_SIZE = 32;
-    
-    const packedPrivkey0 = bigintToBytes(BigInt(packedPrivkey[0]), BIGINT_SIZE);
-    const packedPrivkey1 = bigintToBytes(BigInt(packedPrivkey[1]), BIGINT_SIZE);
-    
-    const privateKey = new Uint8Array(FIELD_SIZE);
-    privateKey.set(packedPrivkey0, 0);
-    privateKey.set(packedPrivkey1, BIGINT_SIZE);
-    
-    const signatures = [];
-    for (const request of requests) {
-        const requestBytes = Buffer.from(request, 'hex');
-        const signature = eddsa.signPedersen(privateKey, requestBytes);
-        const packed = eddsa.packSignature(signature);
-        signatures.push(Array.from(packed));
-    }
-    
-    return signatures;
-}
-
-async function pedersenHash(bufferHex) {
-    const h = await circomlibjs.buildPedersenHash();
-    const buffer = Buffer.from(bufferHex, 'hex');
-    const hash = h.hash(buffer);
-    return '0x' + Buffer.from(hash).toString('hex');
-}
-
-function bigintToBytes(bigint, length) {
-    const bytes = new Uint8Array(length);
-    for (let i = 0; i < length; i++) {
-        bytes[i] = Number((bigint >> BigInt(8 * i)) & BigInt(0xff));
-    }
-    return bytes;
-}
-
-function bytesToBigint(bytes) {
-    let bigint = BigInt(0);
-    for (let i = 0; i < bytes.length; i++) {
-        bigint += BigInt(bytes[i]) << BigInt(8 * i);
-    }
-    return bigint;
-}
-
-main();
-"""
-    
-    def call_node(self, operation: str, data: Any = None) -> Any:
-        """Call Node.js script with circomlibjs operation."""
-        try:
-            # Write script to temp file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
-                f.write(self._node_script)
-                script_path = f.name
-            
-            # Prepare command
-            cmd = ['node', script_path, operation]
-            if data:
-                cmd.append(json.dumps(data))
-            
-            # Execute (set NODE_PATH so Node can find node_modules)
-            project_root = Path(__file__).parent.parent
-            node_modules_path = project_root / 'node_modules'
-            env = os.environ.copy()
-            env['NODE_PATH'] = str(node_modules_path)
-
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True,
-                env=env
-            )
-            
-            # Clean up
-            os.unlink(script_path)
-            
-            # Parse result
-            return json.loads(result.stdout)
-            
-        except subprocess.CalledProcessError as e:
-            raise AuthenticationError(f"circomlibjs operation failed: {e.stderr}")
-        except Exception as e:
-            raise AuthenticationError(f"Failed to call circomlibjs: {str(e)}")
-
-
 class AuthManager:
     """
-    Manages authentication using Baby JubJub curve cryptography via circomlibjs.
-    
-    This implements the 0G authentication protocol with full compatibility
+    Manages authentication using Baby JubJub curve cryptography.
+
+    This implements the 0G authentication protocol using native Python
+    implementations of Baby JubJub + Pedersen + EdDSA, with full compatibility
     to the TypeScript SDK.
     """
-    
+
     def __init__(
         self,
         contract: Contract,
         account: LocalAccount,
         web3: Web3
     ):
-        """Initialize the AuthManager."""
+        """Initialize the AuthManager with native Python cryptography."""
         self.contract = contract
         self.account = account
         self.web3 = web3
         self._nonce_counter = 0
         self._settle_signer_keys = {}
-        self._circomlib = CircomlibBridge()
     
     def generate_request_headers(
         self,
@@ -302,13 +157,13 @@ class AuthManager:
             )
             request_bytes = request.serialize()
             
-            # 5. Sign request using circomlibjs
-            signatures = self._circomlib.call_node('signData', {
-                'requests': [request_bytes.hex()],
-                'privateKey': private_key
-            })
-            signature = signatures[0]
-            
+            # 5. Sign request using native Python EdDSA
+            # Convert packed private key back to bytes for signing
+            privkey_bytes = self._packed_privkey_to_bytes(private_key)
+            sig_obj = sign_pedersen(privkey_bytes, request_bytes)
+            sig_packed = pack_signature(sig_obj)
+            signature = list(sig_packed)  # Convert bytes to list for JSON serialization
+
             # 6. Calculate Pedersen hash
             request_hash = self._calculate_pedersen_hash(
                 nonce,
@@ -355,15 +210,14 @@ class AuthManager:
         except Exception as e:
             raise InvalidResponseError(f"Failed to verify response: {str(e)}")
     
-    def _get_settlement_signer_key(self, provider_address: str) -> List[str]:
+    def _get_settlement_signer_key(self, provider_address: str) -> List[int]:
         """Get or generate settlement signer key (2x16 bytes format)."""
         if provider_address in self._settle_signer_keys:
             return self._settle_signer_keys[provider_address]
-        
-        # Generate new key pair using circomlibjs
-        key_pair = self._circomlib.call_node('genKeyPair')
+
+        # Generate new key pair using native Python EdDSA
+        key_pair = gen_key_pair()
         private_key = key_pair['packedPrivkey']
-        
         self._settle_signer_keys[provider_address] = private_key
         return private_key
     
@@ -391,12 +245,32 @@ class AuthManager:
         provider_bytes = Request._bigint_to_bytes_le(provider_int, 20)
         buffer[28:48] = provider_bytes
         
-        # Calculate hash using circomlibjs
-        return self._circomlib.call_node('pedersenHash', {
-            'buffer': buffer.hex()
-        })
+        # Calculate hash using native Python Pedersen hash
+        return pedersen_hash(bytes(buffer))
     
     def _generate_nonce(self) -> int:
         """Generate unique nonce."""
         self._nonce_counter += 1
         return self._nonce_counter
+
+    @staticmethod
+    def _packed_privkey_to_bytes(packed_privkey: List[int]) -> bytes:
+        """
+        Convert packed private key format to 32-byte array.
+
+        Packed format: [upper_16_bytes_as_int, lower_16_bytes_as_int]
+        Returns: 32-byte array (little-endian)
+        """
+        result = bytearray(32)
+
+        # First 16 bytes from packed_privkey[0]
+        upper = packed_privkey[0]
+        for i in range(16):
+            result[i] = (upper >> (8 * i)) & 0xff
+
+        # Second 16 bytes from packed_privkey[1]
+        lower = packed_privkey[1]
+        for i in range(16):
+            result[16 + i] = (lower >> (8 * i)) & 0xff
+
+        return bytes(result)
