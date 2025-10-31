@@ -17,10 +17,17 @@ Complete line-by-line port of the official TypeScript SDK: [`@0glabs/0g-ts-sdk`]
 - All 66 unit tests passing
 - Merkle roots verified to match TypeScript SDK 100%
 
+✅ **Verified on 0G Mainnet**
+- Successfully uploaded files with dynamic storage fee calculation
+- Storage fee calculated from market contract (matches TypeScript SDK)
+- Example TX: `0xeda94ed4698361d5fe61c17d21963e7d2333c15acb190e1b05128272b88882b6`
+- Full feature parity with TypeScript SDK
+
 ✅ **Ready for PyPI Deployment**
 - Standard Python packaging
 - All dependencies available on PyPI
 - Cross-platform compatible (Linux, macOS, Windows)
+- Production-grade - used on mainnet
 
 ## ✨ Features
 
@@ -344,7 +351,17 @@ CHAIN_ID = 16602
 
 ### Mainnet
 
-Coming soon.
+```python
+BLOCKCHAIN_RPC = "https://evmrpc.0g.ai"
+INDEXER_RPC = "https://indexer-storage-turbo.0g.ai"
+FLOW_CONTRACT = "0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526"
+CHAIN_ID = 16661
+```
+
+**Status: ✅ Production Ready**
+- Fully tested and working on mainnet
+- Dynamic storage fee calculation from market contract
+- All 66 unit tests passing
 
 ## 🔬 Development
 
