@@ -20,7 +20,10 @@ Complete line-by-line port of the official TypeScript SDK: [`@0glabs/0g-ts-sdk`]
 ✅ **Verified on 0G Mainnet**
 - Successfully uploaded files with dynamic storage fee calculation
 - Storage fee calculated from market contract (matches TypeScript SDK)
-- Example TX: `0xeda94ed4698361d5fe61c17d21963e7d2333c15acb190e1b05128272b88882b6`
+- **Mainnet Upload Proof:**
+  - File Root Hash: `0x4454572265e0ae600d281a703df306ba7f62e447a9a5526f7f23bf2d4e99cd9d`
+  - Transaction: `0xeda94ed4698361d5fe61c17d21963e7d2333c15acb190e1b05128272b88882b6`
+  - Storage Fee: 30,733,644,962 wei (0.0307 OG)
 - Full feature parity with TypeScript SDK
 
 ✅ **Ready for PyPI Deployment**
@@ -362,6 +365,17 @@ CHAIN_ID = 16661
 - Fully tested and working on mainnet
 - Dynamic storage fee calculation from market contract
 - All 66 unit tests passing
+
+**Real Mainnet Upload Verification:**
+```
+File Root Hash: 0x4454572265e0ae600d281a703df306ba7f62e447a9a5526f7f23bf2d4e99cd9d
+Transaction Hash: 0xeda94ed4698361d5fe61c17d21963e7d2333c15acb190e1b05128272b88882b6
+Block: 10,998,900
+Storage Fee: 30,733,644,962 wei
+Status: ✅ Confirmed
+```
+
+View the transaction: https://chainscan.0g.ai/tx/0xeda94ed4698361d5fe61c17d21963e7d2333c15acb190e1b05128272b88882b6
 
 ## 🔬 Development
 
