@@ -255,3 +255,29 @@ def _be_bytes_to_bigint(data: bytes) -> int:
     for byte in data:
         result = (result << 8) | byte
     return result
+
+
+def _packed_privkey_to_bytes(packed_privkey: list) -> bytes:
+    """
+    Convert packed private key format to 32-byte array.
+
+    Packed format: [upper_16_bytes_as_int, lower_16_bytes_as_int]
+    Returns: 32-byte array (little-endian)
+    """
+    result = bytearray(32)
+
+    # First 16 bytes from packed_privkey[0]
+    upper = packed_privkey[0]
+    for i in range(16):
+        result[i] = (upper >> (8 * i)) & 0xff
+
+    # Second 16 bytes from packed_privkey[1]
+    lower = packed_privkey[1]
+    for i in range(16):
+        result[16 + i] = (lower >> (8 * i)) & 0xff
+
+    return bytes(result)
+
+
+# Add to EdDSA class as static method
+EdDSA._packed_privkey_to_bytes = staticmethod(_packed_privkey_to_bytes)
