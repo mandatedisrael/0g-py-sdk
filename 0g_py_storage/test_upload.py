@@ -33,8 +33,8 @@ load_env()
 
 # Configuration
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
-RPC_URL = os.getenv("RPC_URL", "https://evmrpc-testnet.0g.ai")
-INDEXER_URL = "https://indexer-storage-testnet-turbo.0g.ai"
+RPC_URL = "https://evmrpc.0g.ai"
+INDEXER_URL = "https://indexer-storage-turbo.0g.ai"
 
 if not PRIVATE_KEY:
     print("❌ ERROR: PRIVATE_KEY not found in .env file!")
@@ -71,7 +71,7 @@ def main():
 Timestamp: {time.time()}
 Account: {account.address}
 
-This file was uploaded to 0G Storage using the Python SDK.
+This file was uploaded to 0G Storage using the Python SDK on Mainnet by Notmartin.
 """.encode()
 
     with open(test_file, 'wb') as f:
@@ -132,7 +132,7 @@ This file was uploaded to 0G Storage using the Python SDK.
         print(f"   Segments:         {file.num_segments()}")
 
         print(f"\n🔗 View on Explorer:")
-        print(f"   https://chainscan-galileo.0g.ai/tx/{tx_hash}")
+        print(f"   https://chainscan.0g.ai/tx/{tx_hash}")
 
         print(f"\n💡 To download this file, use:")
         print(f"   python test_download.py {root_hash}")

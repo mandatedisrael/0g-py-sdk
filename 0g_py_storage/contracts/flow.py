@@ -100,6 +100,15 @@ class FlowContract:
         # Gas limit
         if gas_limit is not None and gas_limit > 0:
             tx_params['gas'] = gas_limit
+        else:
+            # Try to estimate gas, but use fallback if estimation fails
+            try:
+                tx_params['gas'] = self.contract.functions.submit(submission).estimate_gas(tx_params)
+            except Exception as e:
+                # Fallback to a safe default gas limit if estimation fails
+                # This can happen if the contract reverts during estimation
+                print(f"Warning: Gas estimation failed ({type(e).__name__}), using default gas limit of 500000")
+                tx_params['gas'] = 500000
 
         # Build transaction
         tx = self.contract.functions.submit(submission).build_transaction(tx_params)
