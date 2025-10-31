@@ -26,4 +26,4 @@ Quick Start:
     result, err = indexer.upload(file, blockchain_rpc, account, opts)
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
