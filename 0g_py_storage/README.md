@@ -41,6 +41,8 @@ Complete line-by-line port of the official TypeScript SDK: [`@0glabs/0g-ts-sdk`]
 - 🌐 **Sharded Storage** - Optimal node selection using segment tree algorithm
 - 🔄 **Automatic Retry Logic** - Handles "too many data writing" errors
 - ✅ **Production Tested** - Real transactions on 0G Storage testnet
+- 🛡️ **Enhanced Error Handling** - Context-aware errors with error codes and retry tracking
+- 📋 **Error Recovery** - Built-in utilities for error handling and logging
 
 ## 📦 Installation
 
@@ -217,6 +219,36 @@ pytest tests/ --cov=core --cov=utils
 ✅ Live network upload successful
 ✅ Live network download successful
 ```
+
+## 🛡️ Error Handling
+
+The SDK includes comprehensive error handling with context, error codes, and retry information:
+
+```python
+from exceptions import UploadRetryableError
+from utils.error_handler import ErrorContext, is_retryable, handle_upload_error
+
+# Enhanced errors with context
+with ErrorContext("upload_operation", verbose=True) as ctx:
+    try:
+        result, err = indexer.upload(file, rpc_url, account, opts)
+        if err:
+            raise err
+    except Exception as e:
+        # Errors include context, error codes, and retry information
+        if is_retryable(e):
+            ctx.add_error(e)
+            # Implement retry logic
+```
+
+**Features:**
+- Context-aware exceptions with error codes
+- Automatic retry tracking for retryable errors
+- Built-in error classification (network, timeout, upload, download, etc.)
+- Error logging and recovery utilities
+- Full backward compatibility
+
+**See [ERROR_HANDLING.md](ERROR_HANDLING.md) for comprehensive error handling guide.**
 
 ## 🔍 Verification Against TypeScript SDK
 
