@@ -8,12 +8,12 @@ This module handles all account and balance operations including:
 - Requesting refunds
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple, Optional
 from web3 import Web3
 from web3.contract import Contract
 from eth_account.signers.local import LocalAccount
 
-from .models import LedgerAccount
+from .models import LedgerAccount, LedgerDetail
 from .exceptions import ContractError
 from .utils import og_to_wei, parse_transaction_receipt
 
@@ -62,11 +62,8 @@ class LedgerManager:
         try:
             amount_wei = og_to_wei(amount)
             
-            # addLedger(inferenceSigner, additionalInfo)
-            # inferenceSigner is [0, 0] as placeholder
-            # additionalInfo is empty string (or encrypted private key)
+            # addLedger(additionalInfo) - just takes additional info string now
             tx = self.contract.functions.addLedger(
-                [0, 0],  # Inference signer placeholder
                 ""  # Additional info (empty for now)
             ).build_transaction({
                 'from': self.account.address,
@@ -128,6 +125,58 @@ class LedgerManager:
         except Exception as e:
             raise ContractError("depositFund", str(e))
     
+    def deposit_fund_for(self, recipient: str, amount: str) -> Dict[str, Any]:
+        """
+        Deposit funds into the ledger for another address.
+        
+        This allows depositing funds on behalf of another wallet address.
+        Useful for funding accounts that will be used by other services
+        or users.
+        
+        Args:
+            recipient: Address to deposit funds for
+            amount: Amount in OG tokens (e.g., "0.5")
+            
+        Returns:
+            Transaction receipt information
+            
+        Raises:
+            ContractError: If the transaction fails
+            
+        Example:
+            >>> # Fund another wallet's ledger
+            >>> receipt = ledger.deposit_fund_for(
+            ...     "0x1234567890123456789012345678901234567890",
+            ...     "0.5"
+            ... )
+        """
+        try:
+            amount_wei = og_to_wei(amount)
+            recipient = self.web3.to_checksum_address(recipient)
+            
+            # depositFundFor(recipient) - recipient as parameter, amount as value
+            tx = self.contract.functions.depositFundFor(
+                recipient
+            ).build_transaction({
+                'from': self.account.address,
+                'value': amount_wei,
+                'gas': 200000,
+                'gasPrice': self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address)
+            })
+            
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            if receipt['status'] != 1:
+                raise ContractError("depositFundFor", "Transaction failed")
+            
+            return parse_transaction_receipt(receipt)
+            
+        except Exception as e:
+            raise ContractError("depositFundFor", str(e))
+    
     def get_ledger(self) -> LedgerAccount:
         """
         Get ledger account information for the current user.
@@ -146,10 +195,10 @@ class LedgerManager:
             # getLedger(user) returns Ledger struct
             ledger_data = self.contract.functions.getLedger(self.account.address).call()
             
-            # Ledger struct: (user, availableBalance, totalBalance, inferenceSigner, additionalInfo, inferenceProviders, fineTuningProviders)
+            # New Ledger struct: (user, availableBalance, totalBalance, additionalInfo)
             available_balance = ledger_data[1] / 10**18  # availableBalance field
             total_balance = ledger_data[2] / 10**18  # totalBalance field
-            locked_balance = total_balance - available_balance  # Already in OG, don't divide again!
+            locked_balance = total_balance - available_balance
             
             return LedgerAccount(
                 balance=available_balance,
@@ -179,16 +228,11 @@ class LedgerManager:
             >>> receipt = ledger.retrieve_fund("inference")
         """
         try:
-            # Get ledger data to extract provider list
-            ledger_data = self.contract.functions.getLedger(self.account.address).call()
-            
-            # Ledger struct: (user, availableBalance, totalBalance, inferenceSigner, additionalInfo, inferenceProviders, fineTuningProviders)
-            if service_type == "inference":
-                providers = ledger_data[5]  # inferenceProviders field
-            elif service_type == "fineTuning":
-                providers = ledger_data[6]  # fineTuningProviders field
-            else:
-                raise ContractError("retrieveFund", f"Invalid service type: {service_type}")
+            # Use getLedgerProviders to get the provider list for this service type
+            providers = self.contract.functions.getLedgerProviders(
+                self.account.address,
+                service_type
+            ).call()
             
             if not providers or len(providers) == 0:
                 raise ContractError("retrieveFund", f"No providers found for service type: {service_type}")
@@ -290,3 +334,131 @@ class LedgerManager:
 
         except Exception as e:
             raise ContractError("transferFund", str(e))
+    
+    def delete_ledger(self) -> Dict[str, Any]:
+        """
+        Delete the ledger for the current wallet address.
+        
+        This removes the ledger account entirely. Any remaining balance
+        should be withdrawn first using retrieve_fund() and refund().
+        
+        WARNING: This is a destructive operation. Make sure to withdraw
+        all funds before deleting the ledger.
+        
+        Returns:
+            Transaction receipt information
+            
+        Raises:
+            ContractError: If the transaction fails
+            
+        Example:
+            >>> # First withdraw all funds
+            >>> ledger.retrieve_fund("inference")
+            >>> ledger.refund("0.5")
+            >>> 
+            >>> # Then delete the ledger
+            >>> receipt = ledger.delete_ledger()
+        """
+        try:
+            tx = self.contract.functions.deleteLedger().build_transaction({
+                'from': self.account.address,
+                'gas': 200000,
+                'gasPrice': self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address)
+            })
+            
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            if receipt['status'] != 1:
+                raise ContractError("deleteLedger", "Transaction failed")
+            
+            return parse_transaction_receipt(receipt)
+            
+        except Exception as e:
+            raise ContractError("deleteLedger", str(e))
+    
+    def get_ledger_with_detail(
+        self,
+        inference_contract: Optional[Contract] = None,
+        fine_tuning_contract: Optional[Contract] = None
+    ) -> LedgerDetail:
+        """
+        Get detailed ledger information with provider breakdowns.
+        
+        Returns comprehensive ledger info including balances for each
+        provider in inference and fine-tuning services.
+        
+        Args:
+            inference_contract: Optional InferenceServing contract for account details
+            fine_tuning_contract: Optional FineTuning contract for account details
+            
+        Returns:
+            LedgerDetail with total/locked/available balances and provider lists
+            
+        Example:
+            >>> detail = ledger.get_ledger_with_detail()
+            >>> print(f"Total: {detail.total_balance}")
+            >>> print(f"Available: {detail.available_balance}")
+            >>> for provider, balance, pending in detail.inference_providers:
+            ...     print(f"Provider {provider}: {balance} (pending: {pending})")
+        """
+        try:
+            # Get base ledger info
+            ledger_data = self.contract.functions.getLedger(self.account.address).call()
+            
+            # Ledger struct: (user, availableBalance, totalBalance, inferenceSigner, additionalInfo, inferenceProviders, fineTuningProviders)
+            available_balance = ledger_data[1]
+            total_balance = ledger_data[2]
+            locked_balance = total_balance - available_balance
+            inference_provider_addresses = ledger_data[5] if len(ledger_data) > 5 else []
+            fine_tuning_provider_addresses = ledger_data[6] if len(ledger_data) > 6 else []
+            
+            # Get inference provider details
+            inference_providers = []
+            if inference_contract and inference_provider_addresses:
+                for provider in inference_provider_addresses:
+                    try:
+                        account = inference_contract.functions.getAccount(
+                            self.account.address,
+                            provider
+                        ).call()
+                        # Account: (user, provider, nonce, balance, pendingRefund, ...)
+                        balance = account[3]
+                        pending_refund = account[4]
+                        inference_providers.append((provider, balance, pending_refund))
+                    except Exception:
+                        # If account doesn't exist, skip
+                        pass
+            else:
+                # Just return addresses without details
+                inference_providers = [(addr, 0, 0) for addr in inference_provider_addresses]
+            
+            # Get fine-tuning provider details
+            fine_tuning_providers = []
+            if fine_tuning_contract and fine_tuning_provider_addresses:
+                for provider in fine_tuning_provider_addresses:
+                    try:
+                        account = fine_tuning_contract.functions.getAccount(
+                            self.account.address,
+                            provider
+                        ).call()
+                        balance = account[3]
+                        pending_refund = account[4]
+                        fine_tuning_providers.append((provider, balance, pending_refund))
+                    except Exception:
+                        pass
+            else:
+                fine_tuning_providers = [(addr, 0, 0) for addr in fine_tuning_provider_addresses]
+            
+            return LedgerDetail(
+                total_balance=total_balance,
+                locked_balance=locked_balance,
+                available_balance=available_balance,
+                inference_providers=inference_providers,
+                fine_tuning_providers=fine_tuning_providers
+            )
+            
+        except Exception as e:
+            raise ContractError("getLedgerWithDetail", str(e))

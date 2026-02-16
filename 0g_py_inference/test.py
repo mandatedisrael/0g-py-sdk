@@ -68,7 +68,7 @@ def test_query_provider(broker):
         print("❌ No services available")
         return None
     
-    service = services[1]
+    service = services[0]
     provider_address = service.provider
 
     print(f"✓ Using provider: {provider_address}")
@@ -92,9 +92,13 @@ def test_query_provider(broker):
     except Exception as e:
         print(f"⚠ Could not check balance: {e}")
 
-    # Skip acknowledgement - not needed in v0.5.4 according to official example
-    # The account will be created automatically on first request
-    print("  Skipping acknowledgement (handled automatically in v0.5.4)")
+    # Acknowledge the provider (one-time setup)
+    try:
+        print("  Acknowledging provider...")
+        receipt = broker.inference.acknowledge_provider_signer(provider_address)
+        print(f"✓ Provider acknowledged: {receipt['transaction_hash']}")
+    except Exception as e:
+        print(f"  Provider already acknowledged or error: {e}")
 
     # Get service metadata
     metadata = broker.inference.get_service_metadata(provider_address)
@@ -102,7 +106,7 @@ def test_query_provider(broker):
     model = metadata['model']
 
     # Generate auth headers
-    question = "Who owns the largest number of football World Cups?"
+    question = "What is the man of the match for the last FIFA World Cup?"
     messages = [{"role": "user", "content": question}]
 
     headers = broker.inference.get_request_headers(

@@ -5,15 +5,29 @@ This module contains the Application Binary Interface (ABI) definitions
 for interacting with 0G smart contracts.
 """
 
-# Contract Addresses on Testnet (Updated for 0g-serving-broker v0.5.4)
-LEDGER_ADDRESS = "0x09D00A2B31067da09bf0e873E58746d1285174Cc"
-INFERENCE_SERVING_ADDRESS = "0x4f850eb2abc036096999882b54e92ecd63aec13d"
-FINETUNING_SERVING_ADDRESS = "0x677AB02CA1DAffEf7521858d3264E4574BEf7aA7"
-AUTOMATA_CONTRACT_ADDRESS = "0xE26E11B257856B0bEBc4C759aaBDdea72B64351F"
+from ..constants import (
+    CONTRACT_ADDRESSES,
+    AUTOMATA_CONTRACT_ADDRESS,
+    DEFAULT_LEDGER_ADDRESS,
+    DEFAULT_SERVING_ADDRESS,
+    DEFAULT_FINETUNING_ADDRESS,
+)
 
-# Default contract addresses
-DEFAULT_LEDGER_ADDRESS = LEDGER_ADDRESS
-DEFAULT_SERVING_ADDRESS = INFERENCE_SERVING_ADDRESS
+# Re-export for backward compatibility
+__all__ = [
+    "CONTRACT_ADDRESSES",
+    "AUTOMATA_CONTRACT_ADDRESS", 
+    "DEFAULT_LEDGER_ADDRESS",
+    "DEFAULT_SERVING_ADDRESS",
+    "DEFAULT_FINETUNING_ADDRESS",
+    "LEDGER_CONTRACT_ABI",
+    "SERVING_CONTRACT_ABI",
+]
+
+# Legacy aliases (deprecated - use constants module directly)
+LEDGER_ADDRESS = DEFAULT_LEDGER_ADDRESS
+INFERENCE_SERVING_ADDRESS = DEFAULT_SERVING_ADDRESS
+FINETUNING_SERVING_ADDRESS = DEFAULT_FINETUNING_ADDRESS
 
 # ABI for the LedgerManager Contract
 LEDGER_CONTRACT_ABI = [
@@ -24,12 +38,18 @@ LEDGER_CONTRACT_ABI = [
     {"inputs": [{"internalType": "uint256", "name": "requested", "type": "uint256"}, {"internalType": "uint256", "name": "maximum", "type": "uint256"}], "name": "TooManyProviders", "type": "error"},
     {"anonymous": False, "inputs": [{"indexed": True, "internalType": "address", "name": "previousOwner", "type": "address"}, {"indexed": True, "internalType": "address", "name": "newOwner", "type": "address"}], "name": "OwnershipTransferred", "type": "event"},
     {"inputs": [], "name": "MAX_PROVIDERS_PER_BATCH", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [{"internalType": "uint256[2]", "name": "inferenceSigner", "type": "uint256[2]"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}], "name": "addLedger", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}, {"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "payable", "type": "function"},
+    # Updated addLedger - now takes just additionalInfo string
+    {"inputs": [{"internalType": "string", "name": "additionalInfo", "type": "string"}], "name": "addLedger", "outputs": [], "stateMutability": "payable", "type": "function"},
     {"inputs": [], "name": "deleteLedger", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
     {"inputs": [], "name": "depositFund", "outputs": [], "stateMutability": "payable", "type": "function"},
+    {"inputs": [{"internalType": "address", "name": "recipient", "type": "address"}], "name": "depositFundFor", "outputs": [], "stateMutability": "payable", "type": "function"},
     {"inputs": [], "name": "fineTuningAddress", "outputs": [{"internalType": "address payable", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [{"internalType": "uint256", "name": "offset", "type": "uint256"}, {"internalType": "uint256", "name": "limit", "type": "uint256"}], "name": "getAllLedgers", "outputs": [{"components": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint256", "name": "availableBalance", "type": "uint256"}, {"internalType": "uint256", "name": "totalBalance", "type": "uint256"}, {"internalType": "uint256[2]", "name": "inferenceSigner", "type": "uint256[2]"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}, {"internalType": "address[]", "name": "inferenceProviders", "type": "address[]"}, {"internalType": "address[]", "name": "fineTuningProviders", "type": "address[]"}], "internalType": "struct Ledger[]", "name": "ledgers", "type": "tuple[]"}, {"internalType": "uint256", "name": "total", "type": "uint256"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [{"internalType": "address", "name": "user", "type": "address"}], "name": "getLedger", "outputs": [{"components": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint256", "name": "availableBalance", "type": "uint256"}, {"internalType": "uint256", "name": "totalBalance", "type": "uint256"}, {"internalType": "uint256[2]", "name": "inferenceSigner", "type": "uint256[2]"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}, {"internalType": "address[]", "name": "inferenceProviders", "type": "address[]"}, {"internalType": "address[]", "name": "fineTuningProviders", "type": "address[]"}], "internalType": "struct Ledger", "name": "", "type": "tuple"}], "stateMutability": "view", "type": "function"},
+    # Updated getAllLedgers with new Ledger struct
+    {"inputs": [{"internalType": "uint256", "name": "offset", "type": "uint256"}, {"internalType": "uint256", "name": "limit", "type": "uint256"}], "name": "getAllLedgers", "outputs": [{"components": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint256", "name": "availableBalance", "type": "uint256"}, {"internalType": "uint256", "name": "totalBalance", "type": "uint256"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}], "internalType": "struct Ledger[]", "name": "ledgers", "type": "tuple[]"}, {"internalType": "uint256", "name": "total", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+    # Updated getLedger with new Ledger struct (user, availableBalance, totalBalance, additionalInfo)
+    {"inputs": [{"internalType": "address", "name": "user", "type": "address"}], "name": "getLedger", "outputs": [{"components": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint256", "name": "availableBalance", "type": "uint256"}, {"internalType": "uint256", "name": "totalBalance", "type": "uint256"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}], "internalType": "struct Ledger", "name": "", "type": "tuple"}], "stateMutability": "view", "type": "function"},
+    # getLedgerProviders for getting provider lists
+    {"inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "string", "name": "serviceType", "type": "string"}], "name": "getLedgerProviders", "outputs": [{"internalType": "address[]", "name": "", "type": "address[]"}], "stateMutability": "view", "type": "function"},
     {"inputs": [], "name": "inferenceAddress", "outputs": [{"internalType": "address payable", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"},
     {"inputs": [{"internalType": "address", "name": "_inferenceAddress", "type": "address"}, {"internalType": "address", "name": "_fineTuningAddress", "type": "address"}, {"internalType": "address", "name": "owner", "type": "address"}], "name": "initialize", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
     {"inputs": [], "name": "initialized", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"},
@@ -65,7 +85,10 @@ SERVING_CONTRACT_ABI = [
     {"inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "address", "name": "provider", "type": "address"}, {"internalType": "uint256", "name": "cancelRetrievingAmount", "type": "uint256"}], "name": "depositFund", "outputs": [], "stateMutability": "payable", "type": "function"},
     {"inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "address", "name": "provider", "type": "address"}], "name": "getAccount", "outputs": [{"components": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "address", "name": "provider", "type": "address"}, {"internalType": "uint256", "name": "nonce", "type": "uint256"}, {"internalType": "uint256", "name": "balance", "type": "uint256"}, {"internalType": "uint256", "name": "pendingRefund", "type": "uint256"}, {"internalType": "uint256[2]", "name": "signer", "type": "uint256[2]"}, {"components": [{"internalType": "uint256", "name": "index", "type": "uint256"}, {"internalType": "uint256", "name": "amount", "type": "uint256"}, {"internalType": "uint256", "name": "createdAt", "type": "uint256"}, {"internalType": "bool", "name": "processed", "type": "bool"}], "internalType": "struct Refund[]", "name": "refunds", "type": "tuple[]"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}, {"internalType": "uint256[2]", "name": "providerPubKey", "type": "uint256[2]"}, {"internalType": "address", "name": "teeSignerAddress", "type": "address"}, {"internalType": "uint256", "name": "validRefundsLength", "type": "uint256"}], "internalType": "struct Account", "name": "", "type": "tuple"}], "stateMutability": "view", "type": "function"},
     {"inputs": [], "name": "getAllServices", "outputs": [{"components": [{"internalType": "address", "name": "provider", "type": "address"}, {"internalType": "string", "name": "serviceType", "type": "string"}, {"internalType": "string", "name": "url", "type": "string"}, {"internalType": "uint256", "name": "inputPrice", "type": "uint256"}, {"internalType": "uint256", "name": "outputPrice", "type": "uint256"}, {"internalType": "uint256", "name": "updatedAt", "type": "uint256"}, {"internalType": "string", "name": "model", "type": "string"}, {"internalType": "string", "name": "verifiability", "type": "string"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}], "internalType": "struct Service[]", "name": "services", "type": "tuple[]"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [{"internalType": "uint256", "name": "offset", "type": "uint256"}, {"internalType": "uint256", "name": "limit", "type": "uint256"}], "name": "getAllServices", "outputs": [{"components": [{"internalType": "address", "name": "provider", "type": "address"}, {"internalType": "string", "name": "serviceType", "type": "string"}, {"internalType": "string", "name": "url", "type": "string"}, {"internalType": "uint256", "name": "inputPrice", "type": "uint256"}, {"internalType": "uint256", "name": "outputPrice", "type": "uint256"}, {"internalType": "uint256", "name": "updatedAt", "type": "uint256"}, {"internalType": "string", "name": "model", "type": "string"}, {"internalType": "string", "name": "verifiability", "type": "string"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}, {"internalType": "address", "name": "teeSignerAddress", "type": "address"}, {"internalType": "bool", "name": "teeSignerAcknowledged", "type": "bool"}], "internalType": "struct Service[]", "name": "services", "type": "tuple[]"}, {"internalType": "uint256", "name": "total", "type": "uint256"}], "stateMutability": "view", "type": "function"},
     {"inputs": [{"internalType": "address", "name": "provider", "type": "address"}], "name": "getService", "outputs": [{"components": [{"internalType": "address", "name": "provider", "type": "address"}, {"internalType": "string", "name": "serviceType", "type": "string"}, {"internalType": "string", "name": "url", "type": "string"}, {"internalType": "uint256", "name": "inputPrice", "type": "uint256"}, {"internalType": "uint256", "name": "outputPrice", "type": "uint256"}, {"internalType": "uint256", "name": "updatedAt", "type": "uint256"}, {"internalType": "string", "name": "model", "type": "string"}, {"internalType": "string", "name": "verifiability", "type": "string"}, {"internalType": "string", "name": "additionalInfo", "type": "string"}], "internalType": "struct Service", "name": "service", "type": "tuple"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [{"internalType": "address", "name": "provider", "type": "address"}, {"internalType": "uint8", "name": "tokenId", "type": "uint8"}], "name": "revokeToken", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"internalType": "address", "name": "provider", "type": "address"}], "name": "revokeAllTokens", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
     {"inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "address", "name": "provider", "type": "address"}], "name": "requestRefundAll", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
     {"inputs": [], "name": "removeService", "outputs": [], "stateMutability": "nonpayable", "type": "function"}
 ]

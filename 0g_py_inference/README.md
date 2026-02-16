@@ -1,7 +1,6 @@
 # 0G Compute Network Python SDK
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Node.js 16+](https://img.shields.io/badge/node.js-16+-green.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Python SDK for interacting with the 0G Compute Network - a decentralized AI inference marketplace where you pay for AI model access using blockchain tokens.
@@ -18,12 +17,16 @@ Python SDK for interacting with the 0G Compute Network - a decentralized AI infe
 
 ## Features
 
+- ✅ **Session Token Auth**: New simplified authorization system (no complex headers)
 - ✅ **Account Management**: Fund and manage prepaid accounts for AI services
 - ✅ **Service Discovery**: List and query available AI providers on-chain
-- ✅ **Authenticated Requests**: Generate cryptographic signatures for pay-per-use billing
+- ✅ **Read-Only Mode**: Browse services without wallet connection
+- ✅ **Multi-Network Support**: Mainnet and testnet with auto-detection
+- ✅ **API Key Management**: Create persistent, revocable API keys
 - ✅ **Provider Integration**: OpenAI-compatible API interface
 - ✅ **Verifiable Computing**: TEE (Trusted Execution Environment) attestation support
-- ✅ **Hybrid Architecture**: Python + Node.js for zero-knowledge cryptography
+- ✅ **Response Verification**: Verify TEE-signed responses
+- ✅ **Caching System**: Built-in caching for performance
 
 ## How It Works
 
@@ -41,12 +44,12 @@ Python SDK for interacting with the 0G Compute Network - a decentralized AI infe
        ├───────────────────────────────>│<───────────────────────────────┤
        │  (verify TEE signer)           │  (get TEE attestation)         │
        │                                │                                │
-       │  3. Generate auth headers      │                                │
-       │  (cryptographic signature)     │                                │
+       │  3. Get session token          │                                │
+       │  (auto-generated & cached)     │                                │
        │                                │                                │
        │  4. Make inference request     │                                │
        ├────────────────────────────────┼───────────────────────────────>│
-       │  (with signed headers)         │                                │
+       │  (with Authorization header)   │                                │
        │                                │                                │
        │  5. Get AI response            │                                │
        │<────────────────────────────────────────────────────────────────┤
@@ -60,7 +63,6 @@ Python SDK for interacting with the 0G Compute Network - a decentralized AI infe
 ## System Requirements
 
 - **Python**: 3.8 or higher
-- **Node.js**: 16.x or higher (required for cryptographic operations)
 
 ## Installation
 
@@ -70,32 +72,10 @@ Python SDK for interacting with the 0G Compute Network - a decentralized AI infe
 
 ```bash
 git clone https://github.com/yourusername/og-py-sdk.git
-cd og-py-sdk
+cd og-py-sdk/0g_py_inference
 ```
 
-### 2. Install Node.js
-
-If you don't have Node.js installed:
-- Download from [nodejs.org](https://nodejs.org/)
-- Or use a package manager:
-  ```bash
-  # macOS
-  brew install node
-
-  # Ubuntu/Debian
-  sudo apt install nodejs npm
-
-  # Windows
-  # Download installer from nodejs.org
-  ```
-
-### 3. Install circomlibjs
-
-```bash
-npm install -g circomlibjs
-```
-
-### 4. Set Up Python Environment
+### 2. Set Up Python Environment
 
 ```bash
 # Create virtual environment
@@ -110,7 +90,7 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-### 5. Configure Environment Variables
+### 3. Configure Environment Variables
 
 Create a `.env` file in the project root:
 
@@ -169,15 +149,12 @@ metadata = broker.inference.get_service_metadata(provider_address)
 endpoint = metadata['endpoint']  # Automatically appends /v1/proxy
 model = metadata['model']
 
-# 7. Generate authentication headers
-question = "What is 2+2?"
-messages = [{"role": "user", "content": question}]
-headers = broker.inference.get_request_headers(
-    provider_address,
-    json.dumps(messages)
-)
+# 7. Get authentication headers (NEW: simplified session token auth)
+headers = broker.inference.get_request_headers(provider_address)
+# Returns: {"Authorization": "Bearer app-sk-..."}
 
 # 8. Make inference request
+messages = [{"role": "user", "content": "What is 2+2?"}]
 response = requests.post(
     f"{endpoint}/chat/completions",
     headers={"Content-Type": "application/json", **headers},
@@ -195,11 +172,77 @@ else:
 **Output:**
 ```
 Provider: 0xf07240Efa67755B5311bc75784a061eDB47165Dd
-Model: phala/gpt-oss-120b
+Model: qwen/qwen-2.5-7b-instruct
 ✓ Added funds. New balance: 2.0 OG
 ✓ Provider acknowledged
 ✓ Transferred 0.5 OG to provider
 Answer: 2 + 2 = 4.
+```
+
+---
+
+## Browse Services Without Wallet (Read-Only Mode)
+
+You can list available AI providers without connecting a wallet:
+
+```python
+from zerog_py_sdk import create_read_only_broker
+
+# Create read-only broker (no private key needed)
+broker = create_read_only_broker()
+
+# List all available services
+services = broker.list_service()
+for svc in services:
+    print(f"{svc.model} - {svc.provider}")
+    print(f"  URL: {svc.url}")
+    print(f"  Input: {svc.input_price} wei/token")
+    print(f"  Output: {svc.output_price} wei/token")
+
+# Get services with health metrics
+detailed = broker.list_service_with_detail()
+for svc in detailed:
+    if svc.health_metrics:
+        print(f"{svc.model}: {svc.health_metrics.uptime}% uptime")
+
+# Use mainnet instead of testnet
+mainnet_broker = create_read_only_broker(network="mainnet")
+```
+
+---
+
+## Network Configuration
+
+The SDK supports multiple networks with auto-detection:
+
+```python
+from zerog_py_sdk import (
+    create_broker,
+    get_contract_addresses,
+    get_rpc_url,
+    MAINNET_CHAIN_ID,  # 16661
+    TESTNET_CHAIN_ID,  # 16602
+)
+
+# Testnet (default)
+broker = create_broker(
+    private_key="0x...",
+    rpc_url="https://evmrpc-testnet.0g.ai"
+)
+
+# Mainnet
+broker = create_broker(
+    private_key="0x...",
+    rpc_url="https://evmrpc.0g.ai"
+)
+
+# Get contract addresses for a network
+addrs = get_contract_addresses("mainnet")
+print(f"Inference: {addrs.inference}")
+print(f"Ledger: {addrs.ledger}")
+
+# Auto-detect from chain ID
+addrs = get_contract_addresses(chain_id=16661)
 ```
 
 ## SDK Architecture
@@ -211,10 +254,20 @@ zerog_py_sdk/
 ├── broker.py          # Main entry point - ZGServingBroker class
 ├── ledger.py          # Account & balance management (LedgerManager)
 ├── inference.py       # Service discovery & request signing (InferenceManager)
-├── auth.py            # Cryptographic operations via Node.js subprocess
+├── session.py         # Session token management (NEW)
+├── read_only.py       # Read-only broker for wallet-less operations (NEW)
+├── constants.py       # Network constants & contract addresses (NEW)
+├── extractors.py      # Service type extractors (chatbot, image, etc.) (NEW)
+├── cache.py           # Built-in caching system (NEW)
+├── verifier.py        # Response verification for TEE (NEW)
+├── auth.py            # Cryptographic operations (native Python)
 ├── models.py          # Data structures (ServiceMetadata, LedgerAccount, etc.)
 ├── exceptions.py      # Custom error types
-└── utils.py           # Helper functions (og_to_wei, parse receipts, etc.)
+├── utils.py           # Helper functions (og_to_wei, parse receipts, etc.)
+└── crypto/            # Native Python crypto (no Node.js dependency)
+    ├── eddsa.py       # EdDSA signatures on Baby JubJub curve
+    ├── pedersen.py    # Pedersen hash function
+    └── baby_jubjub.py # Baby JubJub elliptic curve
 ```
 
 ### Component Breakdown
@@ -320,7 +373,7 @@ class InferenceManager:
     Handles AI inference operations:
     - Finding available providers
     - Verifying TEE attestations
-    - Generating cryptographic signatures
+    - Generating session tokens for authentication
     """
 
     def list_service() -> List[ServiceMetadata]:
@@ -352,29 +405,20 @@ class InferenceManager:
         Returns:
             {
                 "endpoint": "http://provider.com:8080/v1/proxy",
-                "model": "phala/gpt-oss-120b"
+                "model": "qwen/qwen-2.5-7b-instruct"
             }
         """
 
-    def get_request_headers(provider_address, content) -> dict:
+    def get_request_headers(provider_address) -> dict:
         """
-        Generate cryptographic auth headers for request.
-
-        Creates signature using:
-        - Your private key
-        - Request content hash
-        - Nonce (request counter)
-        - Fee estimation
+        Generate session token auth headers for request.
+        
+        NEW: No content parameter needed! Session tokens are
+        provider-scoped and auto-cached for 24 hours.
 
         Returns headers like:
             {
-                "X-Phala-Signature-Type": "StandaloneApi",
-                "Address": "0xYourAddress",
-                "Nonce": "123",
-                "Request-Hash": "0xABC...",
-                "Signature": [R, S] (EdDSA signature),
-                "Fee": "1000000000",
-                "Input-Fee": "500000000"
+                "Authorization": "Bearer app-sk-..."
             }
         """
 ```
@@ -388,7 +432,7 @@ services = broker.inference.list_service()
 # 2. ServiceMetadata object contains:
 service = services[0]
 service.provider         # "0xf07240..."
-service.model           # "phala/gpt-oss-120b"
+service.model           # "qwen/qwen-2.5-7b-instruct"
 service.url             # "http://50.145.48.92:30081"
 service.input_price     # 100000000000 (wei per token)
 service.output_price    # 400000000000 (wei per token)
@@ -398,41 +442,73 @@ service.is_verifiable() # True
 
 ---
 
-#### 4. **AuthManager** (`auth.py`)
+#### 4. **SessionManager** (`session.py`) - NEW
 
-Bridges Python and Node.js for cryptographic operations.
+Manages session tokens for the new authorization system.
 
 ```python
-class AuthManager:
+from zerog_py_sdk import SessionManager, SessionMode
+
+class SessionManager:
     """
-    Executes Node.js subprocess for zero-knowledge cryptography.
-
-    Uses circomlibjs for:
-    - Baby JubJub elliptic curve
-    - EdDSA signatures
-    - Pedersen hash
-    - Poseidon hash
-
-    These are ZK-friendly primitives that can be
-    efficiently verified on-chain or in ZK circuits.
+    Manages session tokens for the 0G Compute Network.
+    
+    Replaces the old header-based authentication with the new
+    session token system. Supports both ephemeral (SDK usage) 
+    and persistent (API keys) tokens.
     """
-
-    def sign_message(private_key, message):
+    
+    def get_request_headers(provider_address) -> dict:
         """
-        Generate EdDSA signature using Baby JubJub curve.
-        This is NOT standard ECDSA - it's ZK-optimized.
+        Get request headers with session token authorization.
+        Auto-generates and caches ephemeral tokens (24h).
+        
+        Returns:
+            {"Authorization": "Bearer app-sk-..."}
+        """
+    
+    def create_api_key(provider_address, expires_in=None) -> ApiKeyInfo:
+        """
+        Create a persistent API key (tokenId 0-254).
+        Can be individually revoked. Great for server applications.
+        
+        Args:
+            provider_address: Provider's wallet address
+            expires_in: Expiration in milliseconds (0 = never)
+        
+        Returns:
+            ApiKeyInfo with raw_token for use in requests
         """
 ```
 
-**Why Node.js?**
-- Python lacks mature ZK crypto libraries
-- circomlibjs is the reference implementation
-- Matches TypeScript SDK exactly
-- Ensures signature compatibility
+**Token Types:**
+- **Ephemeral (tokenId=255)**: Auto-generated, 24h max, can't be individually revoked
+- **Persistent (tokenId 0-254)**: Manually created, individually revocable API keys
 
 ---
 
-#### 5. **Models** (`models.py`)
+#### 5. **Native Crypto** (`crypto/`) - No Node.js Required!
+
+The SDK now includes pure Python implementations of ZK-friendly cryptography:
+
+```python
+# Internally used - you don't need to call these directly
+from zerog_py_sdk.crypto import (
+    eddsa_sign,           # EdDSA signatures on Baby JubJub
+    pedersen_hash,        # Pedersen hash function
+    BabyJubJubPoint,      # Baby JubJub curve operations
+)
+```
+
+**Why native Python?**
+- No Node.js/npm dependency
+- Easier installation
+- Works in any Python environment
+- Same cryptographic guarantees as TypeScript SDK
+
+---
+
+#### 6. **Models** (`models.py`)
 
 Data structures for type safety.
 
@@ -462,7 +538,7 @@ class RequestHeaders:
 
 ---
 
-#### 6. **Utilities** (`utils.py`)
+#### 7. **Utilities** (`utils.py`)
 
 Helper functions for common operations.
 
@@ -489,47 +565,37 @@ def parse_transaction_receipt(receipt):
 
 ### Request Flow (Detailed)
 
-Here's what happens when you make an inference request:
+Here's what happens when you make an inference request with the new session token system:
 
 ```python
-# Step 1: Generate headers
-headers = broker.inference.get_request_headers(provider, content)
+# Step 1: Get session token headers
+headers = broker.inference.get_request_headers(provider)
+# Returns: {"Authorization": "Bearer app-sk-..."}
 
 # Internally:
-# 1.1: Hash the request content
-content_hash = hash_content(content)
+# 1.1: Check session cache for valid token
+cached = session_cache.get(provider)
+if cached and cached.expires_at > now + 1_hour:
+    return cached.headers
 
-# 1.2: Get account nonce (request counter)
-account = inference_contract.getAccount(provider)
-nonce = account.nonce + 1
-
-# 1.3: Estimate fees
-service = get_service(provider)
-estimated_tokens = estimate_input_tokens(content)
-fee = estimated_tokens * service.input_price
-
-# 1.4: Create signature payload
-message = {
+# 1.2: Create session token
+token = {
+    "address": user_address,
     "provider": provider,
-    "nonce": nonce,
-    "content_hash": content_hash,
-    "fee": fee
+    "timestamp": current_time_ms,
+    "expiresAt": current_time_ms + 24_hours,
+    "nonce": random_hex(16),
+    "generation": account.generation,
+    "tokenId": 255  # Ephemeral
 }
 
-# 1.5: Sign with Node.js (EdDSA)
-signature = auth_manager.sign_message(private_key, message)
+# 1.3: Sign token (native Python EdDSA)
+message_hash = keccak256(json.dumps(token))
+signature = eth_sign(private_key, message_hash)
 
-# 1.6: Return headers
-return {
-    "X-Phala-Signature-Type": "StandaloneApi",
-    "Address": user_address,
-    "Nonce": nonce,
-    "Request-Hash": content_hash,
-    "Signature": signature,  # [R, S]
-    "Fee": fee,
-    "Input-Fee": fee,
-    "VLLM-Proxy": "true"
-}
+# 1.4: Encode as Authorization header
+encoded = base64(json.dumps(token) + "|" + signature)
+return {"Authorization": f"Bearer app-sk-{encoded}"}
 
 # Step 2: Make HTTP request to provider
 response = requests.post(
@@ -538,11 +604,12 @@ response = requests.post(
     json={"messages": [...], "model": model}
 )
 
-# Step 3: Provider verifies signature
+# Step 3: Provider validates session token
 # Provider checks:
-# ✓ Signature matches user address
-# ✓ Nonce is correct (prevents replay)
-# ✓ Fee is sufficient
+# ✓ Signature matches address in token
+# ✓ Token not expired
+# ✓ Token generation matches account (not batch-revoked)
+# ✓ TokenId not individually revoked (for persistent tokens)
 # ✓ User has balance in contract
 
 # Step 4: Provider processes request
@@ -552,7 +619,6 @@ response = requests.post(
 # Step 5: Provider settles billing (async)
 # ✓ Calls contract.settleAccounts([user_address])
 # ✓ Deducts actual tokens used from user balance
-# ✓ Increments nonce on-chain
 ```
 
 ---
@@ -675,15 +741,11 @@ metadata = broker.inference.get_service_metadata(provider_address)
 endpoint = metadata['endpoint']  # Already includes /v1/proxy
 model = metadata['model']
 
-# 3. Generate auth headers
-question = "What is the capital of France?"
-messages = [{"role": "user", "content": question}]
-headers = broker.inference.get_request_headers(
-    provider_address,
-    json.dumps(messages)
-)
+# 3. Get auth headers (NEW: no content parameter needed!)
+headers = broker.inference.get_request_headers(provider_address)
 
 # 4. Make request
+messages = [{"role": "user", "content": "What is the capital of France?"}]
 response = requests.post(
     f"{endpoint}/chat/completions",
     headers={"Content-Type": "application/json", **headers},
@@ -696,6 +758,31 @@ if response.status_code == 200:
     print(f"Answer: {answer}")
 ```
 
+### Creating Persistent API Keys
+
+For server applications that need long-lived credentials:
+
+```python
+from zerog_py_sdk import SessionMode
+
+# Create an API key that never expires
+api_key_info = broker.inference.session_manager.create_api_key(
+    provider_address,
+    expires_in=0  # 0 = never expires
+)
+
+print(f"API Key: {api_key_info.raw_token}")
+print(f"Token ID: {api_key_info.token_id}")
+
+# Use the API key in requests
+headers = {"Authorization": f"Bearer {api_key_info.raw_token}"}
+response = requests.post(
+    f"{endpoint}/chat/completions",
+    headers={"Content-Type": "application/json", **headers},
+    json={"messages": messages, "model": model}
+)
+```
+
 ### Using with OpenAI SDK
 
 ```python
@@ -704,16 +791,13 @@ from openai import OpenAI
 # Get metadata
 metadata = broker.inference.get_service_metadata(provider_address)
 
-# Generate headers (OpenAI SDK will add these to every request)
-headers = broker.inference.get_request_headers(
-    provider_address,
-    json.dumps([{"role": "user", "content": "Hello"}])
-)
+# Get session token headers (NEW: no content needed!)
+headers = broker.inference.get_request_headers(provider_address)
 
-# Create client
+# Create client with Authorization header
 client = OpenAI(
     base_url=metadata['endpoint'],
-    api_key="",  # Empty string (auth via headers)
+    api_key="not-used",  # Auth via headers
     default_headers=headers
 )
 
@@ -738,10 +822,11 @@ for s in services:
     print(f"{s.model} - {s.provider}")
 ```
 
-**Example providers:**
-- `phala/gpt-oss-120b` - 120B parameter model
-- `phala/deepseek-chat-v3-0324` - DeepSeek v3 model
-- `phala/qwen2.5-vl-72b-instruct` - Qwen 2.5 vision-language model
+**Example providers (as of Feb 2026):**
+- `qwen/qwen-2.5-7b-instruct` - Qwen 2.5 7B chat model
+- `openai/gpt-oss-20b` - GPT-compatible 20B model
+- `google/gemma-3-27b-it` - Gemma 3 27B instruction-tuned
+- `qwen/qwen-image-edit-2511` - Image editing model
 
 All providers use **TeeML** (TEE-verified compute) for security.
 
@@ -780,6 +865,10 @@ except NetworkError as e:
 **Cause:** Missing `/v1/proxy` in endpoint URL.
 **Fix:** Use `get_service_metadata()` - it adds the proxy path automatically.
 
+### "401 Unauthorized" from provider
+**Cause:** Invalid or expired session token.
+**Fix:** Session tokens are auto-refreshed. If using API keys, check expiration.
+
 ### "Insufficient balance"
 **Cause:** No funds in account or not transferred to provider.
 **Fix:**
@@ -792,38 +881,54 @@ from zerog_py_sdk.utils import og_to_wei
 broker.ledger.transfer_fund(provider, "inference", og_to_wei("0.5"))
 ```
 
-### "Module not found: circomlibjs"
-**Cause:** Node.js dependency not installed.
-**Fix:** `npm install -g circomlibjs`
+### "Provider not found" or empty service list
+**Cause:** Wrong network or no providers registered.
+**Fix:** Ensure you're connected to the correct network (testnet vs mainnet).
+
+```python
+# Check which network you're on
+chain_id = broker.web3.eth.chain_id
+print(f"Chain ID: {chain_id}")  # 16602 = testnet, 16661 = mainnet
+```
 
 ---
 
 ## Architecture Deep Dive
 
-### Why Hybrid Python + Node.js?
+### Pure Python Implementation
+
+The SDK is now 100% Python with native cryptographic implementations:
 
 **Python Benefits:**
+- ✅ No Node.js/npm dependency
 - ✅ Rich ML/AI ecosystem
 - ✅ Web3.py for Ethereum
 - ✅ Easy HTTP requests
 - ✅ Familiar to AI engineers
 
-**Node.js Benefits:**
-- ✅ circomlibjs (reference ZK crypto library)
-- ✅ Signature compatibility with TypeScript SDK
-- ✅ Baby JubJub + EdDSA support
-- ✅ Faster cryptographic operations
+**Native Crypto:**
+- ✅ Baby JubJub elliptic curve
+- ✅ EdDSA signatures
+- ✅ Pedersen hash
+- ✅ Compatible with TypeScript SDK
 
-**How they communicate:**
+**Architecture:**
 ```
-Python (main SDK)
+Python SDK
     │
     ├── Web3.py ────────> Blockchain (RPC)
-    ├── Requests ───────> AI Provider (HTTP)
+    │                         │
+    │                         ├── LedgerManager contract
+    │                         └── InferenceServing contract
     │
-    └── Subprocess ─────> Node.js (circomlibjs)
-                            │
-                            └── EdDSA signatures
+    ├── Requests ───────> AI Provider (HTTP)
+    │                         │
+    │                         └── OpenAI-compatible API
+    │
+    └── crypto/ ────────> Native Python
+                              │
+                              ├── EdDSA signatures
+                              └── Pedersen hash
 ```
 
 ### Smart Contract Interaction
@@ -881,18 +986,29 @@ python3 your_script.py
 ### Project Structure
 
 ```
-og-py-sdk/
+0g_py_inference/
 ├── zerog_py_sdk/          # Main SDK package
 │   ├── __init__.py        # Public API exports
 │   ├── broker.py          # Broker implementation
 │   ├── ledger.py          # Ledger manager
 │   ├── inference.py       # Inference manager
-│   ├── auth.py            # Cryptography via Node.js
+│   ├── session.py         # Session token management (NEW)
+│   ├── read_only.py       # Read-only broker (NEW)
+│   ├── constants.py       # Network constants (NEW)
+│   ├── extractors.py      # Service type extractors (NEW)
+│   ├── cache.py           # Caching system (NEW)
+│   ├── verifier.py        # Response verification (NEW)
+│   ├── auth.py            # Authentication utilities
 │   ├── models.py          # Data models
 │   ├── exceptions.py      # Custom exceptions
-│   └── utils.py           # Helper functions
+│   ├── utils.py           # Helper functions
+│   ├── crypto/            # Native Python crypto (NEW)
+│   │   ├── eddsa.py       # EdDSA signatures
+│   │   ├── pedersen.py    # Pedersen hash
+│   │   └── baby_jubjub.py # Baby JubJub curve
+│   └── contracts/         # Contract ABIs
+│       └── abis.py        # Updated ABI definitions
 ├── test.py                # Working example script
-├── queryProvider.py       # Provider query example
 ├── requirements.txt       # Python dependencies
 ├── .env                   # Environment variables (create this)
 └── README.md              # This file
@@ -926,7 +1042,18 @@ For issues and questions:
 
 ## Changelog
 
-### v0.1.0 (Latest)
+### v0.2.0 (Latest - Feb 2026)
+- ✅ **Session Token Auth**: New simplified authorization system (no content parameter needed)
+- ✅ **No Node.js Dependency**: Native Python crypto implementation
+- ✅ **Read-Only Broker**: Browse services without wallet connection
+- ✅ **Multi-Network Support**: Mainnet/testnet with auto-detection
+- ✅ **API Key Management**: Create persistent, revocable API keys
+- ✅ **Response Verification**: Verify TEE-signed responses
+- ✅ **Caching System**: Built-in caching for performance
+- ✅ **Service Extractors**: Support for chatbot, image, speech services
+- ✅ **Updated ABIs**: Compatible with latest 0G contracts
+
+### v0.1.0
 - ✅ Fixed endpoint URL - now correctly appends `/v1/proxy`
 - ✅ Auto-creates accounts when acknowledging providers
 - ✅ Improved error handling

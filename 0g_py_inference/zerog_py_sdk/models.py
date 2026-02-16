@@ -4,8 +4,8 @@ Data models for the 0G Compute Network SDK.
 This module contains all data classes and type definitions used throughout the SDK.
 """
 
-from dataclasses import dataclass
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Dict, Optional, List
 from typing_extensions import TypedDict
 
 
@@ -125,3 +125,150 @@ class ChatResponse:
     content: str
     model: str
     provider: str
+
+
+@dataclass
+class Refund:
+    """
+    Refund request information.
+    
+    Attributes:
+        index: Refund index
+        amount: Refund amount in wei
+        created_at: Unix timestamp when refund was requested
+        processed: Whether the refund has been processed
+    """
+    index: int
+    amount: int
+    created_at: int
+    processed: bool
+
+
+@dataclass
+class RefundDetail:
+    """
+    Refund detail with remaining time calculation.
+    
+    Attributes:
+        amount: Refund amount in wei
+        remain_time: Seconds until refund can be processed
+    """
+    amount: int
+    remain_time: int
+
+
+@dataclass
+class Account:
+    """
+    User account with a specific provider.
+    
+    Attributes:
+        user: User's wallet address
+        provider: Provider's wallet address
+        nonce: Current nonce for request signing
+        balance: Current balance in wei
+        pending_refund: Amount pending refund in wei
+        signer: User's signing key (2 x uint256)
+        refunds: List of refund requests
+        additional_info: Additional account metadata
+        provider_pub_key: Provider's public key (2 x uint256)
+        tee_signer_address: TEE signer address
+        valid_refunds_length: Number of valid refunds
+        generation: Token generation number
+        revoked_bitmap: Bitmap of revoked token IDs
+    """
+    user: str
+    provider: str
+    nonce: int
+    balance: int
+    pending_refund: int
+    signer: List[int] = field(default_factory=lambda: [0, 0])
+    refunds: List[Refund] = field(default_factory=list)
+    additional_info: str = ""
+    provider_pub_key: List[int] = field(default_factory=lambda: [0, 0])
+    tee_signer_address: str = ""
+    valid_refunds_length: int = 0
+    generation: int = 0
+    revoked_bitmap: int = 0
+    
+    @property
+    def locked_balance(self) -> int:
+        """Get locked balance (balance - pending_refund)."""
+        return self.balance - self.pending_refund
+    
+    @property
+    def acknowledged(self) -> bool:
+        """Check if provider's TEE signer is acknowledged."""
+        return bool(self.tee_signer_address and self.tee_signer_address != "0x" + "0" * 40)
+
+
+@dataclass
+class AccountWithDetail:
+    """
+    Account with refund details including remaining time.
+    
+    Attributes:
+        account: The base account information
+        refund_details: List of refunds with remaining time
+    """
+    account: Account
+    refund_details: List[RefundDetail] = field(default_factory=list)
+
+
+@dataclass
+class LedgerDetail:
+    """
+    Detailed ledger information with provider breakdowns.
+    
+    Attributes:
+        total_balance: Total balance in wei
+        locked_balance: Locked balance in wei
+        available_balance: Available balance in wei
+        inference_providers: List of (provider, balance, pending_refund) for inference
+        fine_tuning_providers: List of (provider, balance, pending_refund) for fine-tuning
+    """
+    total_balance: int
+    locked_balance: int
+    available_balance: int
+    inference_providers: List[tuple] = field(default_factory=list)  # (provider, balance, pending_refund)
+    fine_tuning_providers: List[tuple] = field(default_factory=list)
+
+
+@dataclass
+class AdditionalInfo:
+    """
+    Parsed additional info from service metadata.
+    
+    Used for determining TEE architecture and signing address.
+    
+    Attributes:
+        verifier_url: URL for TEE verification
+        target_separated: Whether broker and LLM run in separate TEE nodes
+        tee_verifier: TEE verifier type
+        target_tee_address: Override signing address for separated architecture
+        image_name: Docker image name
+        image_digest: Docker image digest
+    """
+    verifier_url: Optional[str] = None
+    target_separated: bool = False
+    tee_verifier: Optional[str] = None
+    target_tee_address: Optional[str] = None
+    image_name: Optional[str] = None
+    image_digest: Optional[str] = None
+    
+    @classmethod
+    def from_json(cls, json_str: str) -> 'AdditionalInfo':
+        """Parse additional info from JSON string."""
+        import json
+        try:
+            data = json.loads(json_str)
+            return cls(
+                verifier_url=data.get('VerifierURL'),
+                target_separated=data.get('TargetSeparated', False),
+                tee_verifier=data.get('TEEVerifier'),
+                target_tee_address=data.get('TargetTeeAddress'),
+                image_name=data.get('ImageName'),
+                image_digest=data.get('ImageDigest'),
+            )
+        except (json.JSONDecodeError, TypeError):
+            return cls()
