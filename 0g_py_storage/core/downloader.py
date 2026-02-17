@@ -46,6 +46,105 @@ class Downloader:
         self.start_segment_index = 0
         self.end_segment_index = 0
 
+    def download(
+        self,
+        root_or_roots,
+        file_path: str,
+        proof: bool = False
+    ) -> Optional[Exception]:
+        """
+        Download file(s) from storage network.
+        
+        TS SDK Downloader.ts lines 27-55.
+        
+        Supports both single file download and multiple fragment download.
+        
+        Args:
+            root_or_roots: Single root hash (str) or list of root hashes (List[str])
+            file_path: Output file path
+            proof: Whether to download with proof verification
+            
+        Returns:
+            Error if download failed, None otherwise
+        """
+        if isinstance(root_or_roots, list):
+            return self.download_fragments(root_or_roots, file_path, proof)
+        else:
+            return self.download_file(root_or_roots, file_path, proof)
+
+    def download_fragments(
+        self,
+        roots: List[str],
+        filename: str,
+        with_proof: bool = False
+    ) -> Optional[Exception]:
+        """
+        Download multiple files by their root hashes and concatenate them.
+        
+        TS SDK Downloader.ts lines 94-191.
+        
+        Args:
+            roots: List of root hashes to download
+            filename: Output file path where concatenated data will be written
+            with_proof: Whether to include proof verification during download
+            
+        Returns:
+            Error if any operation fails, None on success
+        """
+        # Check if output file already exists
+        if os.path.exists(filename):
+            return Exception('Output file already exists. Provide a file path which does not exist.')
+        
+        # Ensure output directory exists
+        output_dir = os.path.dirname(filename)
+        if output_dir and not os.path.exists(output_dir):
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+            except Exception as err:
+                return Exception(f'Failed to create output directory: {err}')
+        
+        temp_files: List[str] = []
+        
+        try:
+            # Create/open output file
+            with open(filename, 'wb') as out_file:
+                for root in roots:
+                    # Generate temporary file name
+                    temp_file = os.path.join(output_dir or '.', f'{root}.temp')
+                    temp_files.append(temp_file)
+                    
+                    # Download individual file
+                    download_err = self.download_file(root, temp_file, with_proof)
+                    if download_err is not None:
+                        return Exception(f'Failed to download file with root {root}: {download_err}')
+                    
+                    # Read and append temp file content to output file
+                    try:
+                        with open(temp_file, 'rb') as temp_f:
+                            data = temp_f.read()
+                            out_file.write(data)
+                    except Exception as err:
+                        return Exception(f'Failed to copy content from temp file {temp_file}: {err}')
+                    
+                    # Clean up temp file immediately after processing
+                    try:
+                        os.unlink(temp_file)
+                        temp_files.remove(temp_file)  # Remove from cleanup list
+                    except Exception as err:
+                        print(f'Warning: failed to delete temp file {temp_file}: {err}')
+            
+            return None
+        except Exception as err:
+            return Exception(f'Unexpected error during download fragments: {err}')
+        finally:
+            # Clean up any remaining temp files
+            for temp_file in temp_files:
+                try:
+                    if os.path.exists(temp_file):
+                        os.unlink(temp_file)
+                except Exception as err:
+                    print(f'Warning: failed to clean up temp file {temp_file}: {err}')
+
     def download_file(
         self,
         root: str,
@@ -293,7 +392,8 @@ class Downloader:
         """
         # TS line 25-28
         dir_name = os.path.dirname(input_path)
-        if not os.path.exists(dir_name):
+        # Handle relative paths in current directory (empty dir_name)
+        if dir_name and not os.path.exists(dir_name):
             return True
 
         # TS line 29-31

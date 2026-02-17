@@ -67,3 +67,26 @@ def compute_padded_size(chunks: int) -> tuple:
 
     padded_chunks = num_splits(chunks, min_chunk) * min_chunk
     return (padded_chunks, chunks_next_pow2)
+
+
+def iterator_padded_size(data_size: int, flow_padding: bool, chunk_size: int = 256) -> int:
+    """
+    Calculate padded size for iterator.
+    
+    TS SDK file/utils.ts lines 47-60.
+    
+    Args:
+        data_size: Size of data in bytes
+        flow_padding: Whether to use flow padding
+        chunk_size: Chunk size (default 256)
+        
+    Returns:
+        Padded size in bytes
+    """
+    chunks = num_splits(data_size, chunk_size)
+    if flow_padding:
+        padded_chunks, _ = compute_padded_size(chunks)
+        padded_size = padded_chunks * chunk_size
+    else:
+        padded_size = chunks * chunk_size
+    return padded_size

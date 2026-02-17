@@ -9,38 +9,52 @@ NOTE: Contract addresses sourced from https://docs.0g.ai/developer-hub/testnet/t
 
 # Flow contract ABI - Key functions extracted from TS SDK
 # Full ABI available in FixedPriceFlow__factory.js
+# Updated to match new contract structure with data+submitter wrapper
 FLOW_CONTRACT_ABI = [
     # submit function - Main function for uploading files
+    # New structure: Submission { data: SubmissionData, submitter: address }
     {
         "inputs": [
             {
                 "components": [
                     {
-                        "internalType": "uint256",
-                        "name": "length",
-                        "type": "uint256",
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "tags",
-                        "type": "bytes",
-                    },
-                    {
                         "components": [
                             {
-                                "internalType": "bytes32",
-                                "name": "root",
-                                "type": "bytes32",
-                            },
-                            {
                                 "internalType": "uint256",
-                                "name": "height",
+                                "name": "length",
                                 "type": "uint256",
                             },
+                            {
+                                "internalType": "bytes",
+                                "name": "tags",
+                                "type": "bytes",
+                            },
+                            {
+                                "components": [
+                                    {
+                                        "internalType": "bytes32",
+                                        "name": "root",
+                                        "type": "bytes32",
+                                    },
+                                    {
+                                        "internalType": "uint256",
+                                        "name": "height",
+                                        "type": "uint256",
+                                    },
+                                ],
+                                "internalType": "struct SubmissionNode[]",
+                                "name": "nodes",
+                                "type": "tuple[]",
+                            },
                         ],
-                        "internalType": "struct SubmissionNode[]",
-                        "name": "nodes",
-                        "type": "tuple[]",
+                        "internalType": "struct SubmissionData",
+                        "name": "data",
+                        "type": "tuple",
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "submitter",
+                        "type": "address",
                     },
                 ],
                 "internalType": "struct Submission",
@@ -52,22 +66,22 @@ FLOW_CONTRACT_ABI = [
         "outputs": [
             {
                 "internalType": "uint256",
-                "name": "",
+                "name": "index",
                 "type": "uint256",
             },
             {
                 "internalType": "bytes32",
-                "name": "",
+                "name": "digest",
                 "type": "bytes32",
             },
             {
                 "internalType": "uint256",
-                "name": "",
+                "name": "startIndex",
                 "type": "uint256",
             },
             {
                 "internalType": "uint256",
-                "name": "",
+                "name": "length",
                 "type": "uint256",
             },
         ],
@@ -75,36 +89,49 @@ FLOW_CONTRACT_ABI = [
         "type": "function",
     },
     # batchSubmit function - For batch uploads
+    # New structure: Submission[] with data+submitter wrapper
     {
         "inputs": [
             {
                 "components": [
                     {
-                        "internalType": "uint256",
-                        "name": "length",
-                        "type": "uint256",
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "tags",
-                        "type": "bytes",
-                    },
-                    {
                         "components": [
                             {
-                                "internalType": "bytes32",
-                                "name": "root",
-                                "type": "bytes32",
-                            },
-                            {
                                 "internalType": "uint256",
-                                "name": "height",
+                                "name": "length",
                                 "type": "uint256",
                             },
+                            {
+                                "internalType": "bytes",
+                                "name": "tags",
+                                "type": "bytes",
+                            },
+                            {
+                                "components": [
+                                    {
+                                        "internalType": "bytes32",
+                                        "name": "root",
+                                        "type": "bytes32",
+                                    },
+                                    {
+                                        "internalType": "uint256",
+                                        "name": "height",
+                                        "type": "uint256",
+                                    },
+                                ],
+                                "internalType": "struct SubmissionNode[]",
+                                "name": "nodes",
+                                "type": "tuple[]",
+                            },
                         ],
-                        "internalType": "struct SubmissionNode[]",
-                        "name": "nodes",
-                        "type": "tuple[]",
+                        "internalType": "struct SubmissionData",
+                        "name": "data",
+                        "type": "tuple",
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "submitter",
+                        "type": "address",
                     },
                 ],
                 "internalType": "struct Submission[]",
@@ -239,7 +266,7 @@ NETWORK_ADDRESSES = {
         "flow": TESTNET_FLOW_ADDRESS,
         "mine": TESTNET_MINE_ADDRESS,
         "reward": TESTNET_REWARD_ADDRESS,
-        "chain_id": 16600,
+        "chain_id": 16602,
     },
     "mainnet": {
         "flow": MAINNET_FLOW_ADDRESS,

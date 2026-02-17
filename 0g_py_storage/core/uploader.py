@@ -143,7 +143,15 @@ class Uploader:
         # TS line 35
         if not opts.get('skipTx', False) or info is None:
             # TS line 36-41
-            submission, err = file.create_submission(opts.get('tags', b'\x00'))
+            # Get submitter address from options or account
+            account = opts.get('account')
+            submitter = opts.get('submitter', '')
+            if not submitter and account:
+                submitter = account.address
+            if not submitter:
+                submitter = "0x0000000000000000000000000000000000000000"
+            
+            submission, err = file.create_submission(opts.get('tags', b'\x00'), submitter)
             if err is not None or submission is None:
                 return (
                     {'txHash': '', 'rootHash': root_hash},
@@ -234,6 +242,69 @@ class Uploader:
         # Return success even if direct uploads failed, as network propagates files
         return ({'txHash': tx_hash, 'rootHash': root_hash}, None)
 
+    def splitable_upload(
+        self,
+        file: ZgFile,
+        opts: Dict[str, Any],
+        retry_opts: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, list], Optional[Exception]]:
+        """
+        Upload file with automatic splitting into fragments if it exceeds fragmentSize.
+        
+        TS SDK Uploader.ts lines 172-231.
+        
+        Args:
+            file: File to upload
+            opts: Upload options (should include 'fragmentSize' for max fragment size)
+            retry_opts: Retry options
+            
+        Returns:
+            Tuple of ({txHashes: [], rootHashes: []}, error)
+        """
+        from ..utils.file_utils import next_pow2
+        from ..config import DEFAULT_CHUNK_SIZE, DEFAULT_BATCH_SIZE
+        
+        # Get fragment size from options, default to 4GB
+        fragment_size = opts.get('fragmentSize', 4 * 1024 * 1024 * 1024)
+        
+        # Ensure fragment size is at least chunk size
+        if fragment_size < DEFAULT_CHUNK_SIZE:
+            fragment_size = DEFAULT_CHUNK_SIZE
+        
+        # Align size of fragment to power of 2
+        fragment_size = next_pow2(fragment_size)
+        
+        tx_hashes: list = []
+        root_hashes: list = []
+        
+        if file.size() <= fragment_size:
+            # Single file upload
+            result, err = self.upload_file(file, opts, retry_opts)
+            if err is not None:
+                return ({'txHashes': tx_hashes, 'rootHashes': root_hashes}, err)
+            tx_hashes.append(result['txHash'])
+            root_hashes.append(result['rootHash'])
+        else:
+            # Split and batch upload
+            fragments = file.split(fragment_size)
+            print(f"Split origin file into {len(fragments)} fragments, {fragment_size} bytes each.")
+            
+            batch_size = opts.get('batchSize', DEFAULT_BATCH_SIZE)
+            
+            for l in range(0, len(fragments), batch_size):
+                r = min(l + batch_size, len(fragments))
+                print(f"Batch uploading fragments {l} to {r}...")
+                
+                # Process fragments sequentially to maintain order
+                for i in range(l, r):
+                    result, err = self.upload_file(fragments[i], opts, retry_opts)
+                    if err is not None:
+                        return ({'txHashes': tx_hashes, 'rootHashes': root_hashes}, err)
+                    tx_hashes.append(result['txHash'])
+                    root_hashes.append(result['rootHash'])
+        
+        return ({'txHashes': tx_hashes, 'rootHashes': root_hashes}, None)
+
     def submit_transaction(
         self,
         submission: Dict[str, Any],
@@ -270,8 +341,10 @@ class Uploader:
 
                 # Calculate fee: sectors * pricePerSector
                 # sectors = sum of (1 << node.height) for each node
+                # Note: submission has new structure with 'data' wrapper
                 sectors = 0
-                for node in submission['nodes']:
+                nodes = submission.get('data', submission).get('nodes', submission.get('nodes', []))
+                for node in nodes:
                     sectors += 1 << int(node['height'])
 
                 fee = sectors * price_per_sector
@@ -491,7 +564,7 @@ class Uploader:
             return None
 
         # TS line 241-244
-        if not check_replica(shard_configs, opts['expectedReplica']):
+        if not check_replica(shard_configs, opts.get('expectedReplica', 1)):
             print('Not enough replicas')
             return None
 
@@ -565,13 +638,13 @@ class Uploader:
                 # TS line 258-264
                 tasks.append({
                     'clientIndex': client_index,
-                    'taskSize': opts['taskSize'],
+                    'taskSize': opts.get('taskSize', 1),
                     'segIndex': seg_index - start_segment_index,
                     'numShard': shard_config['numShard'],
                     'txSeq': tx_seq,
                 })
                 # TS line 265
-                seg_index += shard_config['numShard'] * opts['taskSize']
+                seg_index += shard_config['numShard'] * opts.get('taskSize', 1)
 
             # TS line 267-269
             if len(tasks) > 0:

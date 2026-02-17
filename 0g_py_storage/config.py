@@ -28,6 +28,12 @@ TIMEOUT_MS = 3000000  # 3000 seconds (from TS SDK)
 # Zero hash
 ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
+# Default batch size for fragment uploads
+DEFAULT_BATCH_SIZE = 10
+
+# Default fragment size for splitable uploads (4GB)
+DEFAULT_FRAGMENT_SIZE = 4 * 1024 * 1024 * 1024  # 4GB
+
 # Network configurations
 # Official network details from https://docs.0g.ai
 NETWORKS = {

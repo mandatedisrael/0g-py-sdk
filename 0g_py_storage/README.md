@@ -5,17 +5,40 @@
 [![Production Ready](https://img.shields.io/badge/status-production--ready-brightgreen.svg)]()
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)]()
 [![Tests Passing](https://img.shields.io/badge/tests-66%2F66%20passing-success.svg)]()
-[![TypeScript Parity](https://img.shields.io/badge/TypeScript%20SDK-100%25%20parity-blue.svg)]()
+[![TypeScript Parity](https://img.shields.io/badge/TypeScript%20SDK-95%25%20parity-blue.svg)]()
+[![PyPI version](https://img.shields.io/badge/pypi-v0.3.0-blue.svg)]()
 
 Complete line-by-line port of the official TypeScript SDK: [`@0glabs/0g-ts-sdk`](https://github.com/0glabs/0g-ts-sdk)
 
+## 📋 Changelog
+
+### v0.3.0 (February 2026)
+- **BREAKING**: Updated Flow contract ABI to new structure with `data` + `submitter` wrapper
+- **BREAKING**: Updated `batchSubmit` ABI to match new contract structure
+- Fixed fee calculation in `submit_transaction()` for new contract structure
+- Fixed missing option defaults (`expectedReplica`, `taskSize`)
+- Fixed `check_exist()` for relative file paths in current directory
+- Added KV Storage module (`core/kv/`) - full implementation
+- Added `StorageKv` node class for KV operations
+- Added `splitable_upload()` method for large file uploads
+- Added `download_fragments()` method for partial downloads
+- Added `tx_with_gas_adjustment()` utility for gas optimization
+- Updated testnet chain ID from 16600 to 16602
+- Verified working on testnet (Feb 2026)
+
+### v0.2.1 (October 2025)
+- Initial PyPI release
+- Core upload/download functionality
+- Merkle tree implementation
+
 ## 🎯 Production Status
 
-✅ **Verified on 0G Testnet**
-- Successfully uploaded files (TX: `9f01808921020c29b25e21204bfeb7079ce7cf3dad232e0a6c65451eef82a5f2`)
+✅ **Verified on 0G Testnet (February 2026)**
+- Successfully uploaded files (TX: `0xb07f49eb50145149e9a69bb199ce8ccffd9147650a5ed4307d4ffcf8d701bfc5`)
 - Successfully downloaded and verified files
-- All 66 unit tests passing
-- Merkle roots verified to match TypeScript SDK 100%
+- Root Hash: `0x8c3ef9778a93cc1201cc5b136b9da749da43c6d1d8e987772350c7cd050f4ea8`
+- All unit tests passing
+- Merkle roots verified to match TypeScript SDK
 
 ✅ **Verified on 0G Mainnet**
 - Successfully uploaded files with dynamic storage fee calculation
@@ -40,13 +63,15 @@ Complete line-by-line port of the official TypeScript SDK: [`@0glabs/0g-ts-sdk`]
 - 🔗 **Smart Contract Integration** - Flow contract for on-chain submissions
 - 🌐 **Sharded Storage** - Optimal node selection using segment tree algorithm
 - 🔄 **Automatic Retry Logic** - Handles "too many data writing" errors
-- ✅ **Production Tested** - Real transactions on 0G Storage testnet
-- 🛡️ **Enhanced Error Handling** - Context-aware errors with error codes and retry tracking
-- 📋 **Error Recovery** - Built-in utilities for error handling and logging
+- ✅ **Production Tested** - Real transactions on 0G Storage testnet and mainnet
+- 🗄️ **KV Storage** - Key-value storage with batching and streaming support
+- 📦 **Splitable Upload** - Large file upload with chunking
+- 🧩 **Fragment Download** - Partial file downloads
+- ⛽ **Gas Optimization** - Automatic gas adjustment utilities
 
 ## 📦 Installation
 
-### From PyPI (Coming Soon)
+### From PyPI
 
 ```bash
 pip install 0g-storage-sdk

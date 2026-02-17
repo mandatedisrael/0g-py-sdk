@@ -18,3 +18,19 @@ try:
 except ImportError:
     # Error handler utilities not available, but this is optional
     pass
+
+try:
+    from .transfer import (
+        RetryOpts,
+        get_shard_configs,
+        calculate_price,
+        delay,
+        get_split_num,
+        segment_range,
+        wait_for_receipt,
+        tx_with_gas_adjustment,
+        submit_with_gas_adjustment
+    )
+except ImportError:
+    # Transfer utilities not available - may be due to missing dependencies
+    pass

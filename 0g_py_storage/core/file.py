@@ -22,7 +22,7 @@ try:
         EMPTY_CHUNK_HASH,
         ZERO_HASH
     )
-    from ..utils.file_utils import num_splits, compute_padded_size
+    from ..utils.file_utils import num_splits, compute_padded_size, iterator_padded_size
 except ImportError:
     from core.merkle import MerkleTree
     from config import (
@@ -32,7 +32,7 @@ except ImportError:
         EMPTY_CHUNK_HASH,
         ZERO_HASH
     )
-    from utils.file_utils import num_splits, compute_padded_size
+    from utils.file_utils import num_splits, compute_padded_size, iterator_padded_size
 
 
 # ============================================================================
@@ -286,6 +286,59 @@ class AbstractFile(ABC):
     def __init__(self):
         """Initialize abstract file."""
         self.file_size = 0  # TS line 8
+        self.offset = 0  # TS SDK AbstractFile.ts line 20
+        self.padded_size_ = 0  # TS SDK AbstractFile.ts line 19
+
+    def padded_size(self) -> int:
+        """
+        Get padded file size.
+        
+        TS SDK lines 111-113.
+        """
+        return self.padded_size_
+
+    def split(self, fragment_size: int) -> List['AbstractFile']:
+        """
+        Split file into fragments of specified size.
+        
+        TS SDK AbstractFile.ts lines 124-143.
+        
+        Args:
+            fragment_size: Size of each fragment in bytes
+            
+        Returns:
+            List of file fragments
+        """
+        fragments: List['AbstractFile'] = []
+        
+        offset = self.offset
+        while offset < self.offset + self.size():
+            size = min(self.size() - (offset - self.offset), fragment_size)
+            fragment_padded_size = iterator_padded_size(size, True, DEFAULT_CHUNK_SIZE)
+            fragment = self.create_fragment(offset, size, fragment_padded_size)
+            fragments.append(fragment)
+            offset += fragment_size
+        
+        return fragments
+
+    @abstractmethod
+    def create_fragment(self, offset: int, size: int, padded_size: int) -> 'AbstractFile':
+        """
+        Create a fragment of this file with given offset and size.
+        
+        TS SDK AbstractFile.ts lines 149-153.
+        
+        Must be implemented by subclasses.
+        
+        Args:
+            offset: Starting offset in the original file
+            size: Size of the fragment
+            padded_size: Padded size for the fragment
+            
+        Returns:
+            A new AbstractFile representing the fragment
+        """
+        pass
 
     @staticmethod
     def segment_root(segment: bytes, empty_chunks_padded: int = 0) -> str:
@@ -404,7 +457,7 @@ class AbstractFile(ABC):
         """
         return num_splits(self.size(), DEFAULT_SEGMENT_SIZE)
 
-    def create_submission(self, tags: bytes) -> Tuple[Optional[Dict[str, Any]], Optional[Exception]]:
+    def create_submission(self, tags: bytes, submitter: str = "0x0000000000000000000000000000000000000000") -> Tuple[Optional[Dict[str, Any]], Optional[Exception]]:
         """
         Create submission structure for contract.
 
@@ -412,12 +465,13 @@ class AbstractFile(ABC):
 
         Args:
             tags: Additional metadata bytes
+            submitter: Submitter address (defaults to zero address)
 
         Returns:
             Tuple of (submission, error)
         """
-        # TS line 59-63
-        submission = {
+        # TS line 59-63 - Now wrapped in 'data' field
+        data = {
             'length': self.size(),
             'tags': tags,
             'nodes': [],
@@ -435,10 +489,14 @@ class AbstractFile(ABC):
                 return (None, err)
 
             # TS line 71-72
-            submission['nodes'].append(node)
+            data['nodes'].append(node)
             offset += chunks * DEFAULT_CHUNK_SIZE
 
-        # TS line 74
+        # TS line 74 - New structure with data and submitter
+        submission = {
+            'data': data,
+            'submitter': submitter,
+        }
         return (submission, None)
 
     def split_nodes(self) -> List[int]:
@@ -630,6 +688,58 @@ class ZgFile(AbstractFile):
                 self.is_memory = True
 
         return ZgFile(BytesFile(data), len(data))
+
+    def create_fragment(self, offset: int, size: int, padded_size: int) -> 'ZgFile':
+        """
+        Create a fragment of this file.
+        
+        TS SDK ZgFile.ts createFragment method.
+        
+        Args:
+            offset: Starting offset in the original file
+            size: Size of the fragment
+            padded_size: Padded size for the fragment
+            
+        Returns:
+            A new ZgFile representing the fragment
+        """
+        # For memory-based files
+        if hasattr(self.fd, 'is_memory'):
+            # Create a view into the data
+            fragment_data = self.fd.data[offset:offset + size]
+            
+            class BytesFile:
+                def __init__(self, data, is_fragment=True):
+                    self.data = data
+                    self.is_memory = True
+                    self.is_fragment = is_fragment
+            
+            fragment = ZgFile(BytesFile(fragment_data), size)
+            fragment.offset = offset
+            fragment.padded_size_ = padded_size
+            return fragment
+        else:
+            # For file-based files, create a wrapper that reads from the right offset
+            class FileFragment:
+                def __init__(self, fd, offset, size):
+                    self.fd = fd
+                    self.fragment_offset = offset
+                    self.fragment_size = size
+                    self.is_file_fragment = True
+                
+                def seek(self, pos):
+                    self.fd.seek(self.fragment_offset + pos)
+                
+                def read(self, size):
+                    # Ensure we don't read past the fragment boundary
+                    remaining = self.fragment_size - (self.fd.tell() - self.fragment_offset)
+                    actual_size = min(size, remaining)
+                    return self.fd.read(actual_size)
+            
+            fragment = ZgFile(FileFragment(self.fd, offset, size), size)
+            fragment.offset = offset
+            fragment.padded_size_ = padded_size
+            return fragment
 
     def close(self):
         """

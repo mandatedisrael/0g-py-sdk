@@ -111,13 +111,16 @@ class TestZgFileFromBytes:
 
         assert err is None
         assert submission is not None
-        assert submission['length'] == len(data)
-        assert submission['tags'] == tags
-        assert 'nodes' in submission
-        assert len(submission['nodes']) > 0
+        # New structure: submission has 'data' wrapper and 'submitter' field
+        assert 'data' in submission
+        assert 'submitter' in submission
+        assert submission['data']['length'] == len(data)
+        assert submission['data']['tags'] == tags
+        assert 'nodes' in submission['data']
+        assert len(submission['data']['nodes']) > 0
 
         # Check node structure
-        for node in submission['nodes']:
+        for node in submission['data']['nodes']:
             assert 'root' in node
             assert 'height' in node
             assert node['root'].startswith('0x')
@@ -237,7 +240,8 @@ class TestZgFileFromPath:
 
             assert err is None
             assert submission is not None
-            assert submission['length'] == len(test_data)
+            # New structure: submission has 'data' wrapper
+            assert submission['data']['length'] == len(test_data)
 
             file.close()
         finally:
