@@ -19,7 +19,7 @@ setup(
     name="0g-inference-sdk",
     version="0.2.0",
     author="notMartin",
-    author_email="https://x.com/damiclone",
+    author_email="damiclone@example.com",
     description="Python SDK for the 0G Compute Network - AI inference services on decentralized infrastructure",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -56,7 +56,7 @@ setup(
     },
     include_package_data=True,
     package_data={
-        "og_compute_sdk": ["py.typed"],
+        "zerog_py_sdk": ["py.typed"],
     },
     keywords="0g blockchain ai inference decentralized llm crypto web3",
     zip_safe=False,

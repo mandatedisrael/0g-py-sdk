@@ -5,7 +5,7 @@
 
 Python SDK for interacting with the 0G Compute Network - a decentralized AI inference marketplace where you pay for AI model access using blockchain tokens.
 
-> **⚠️ Note:** This SDK is not yet published to PyPI. Clone the repository to use it.
+> **✅ Available on PyPI:** `pip install 0g-py-sdk`
 
 ## What is 0G Compute Network?
 
@@ -68,31 +68,34 @@ Python SDK for interacting with the 0G Compute Network - a decentralized AI infe
 
 > **Quick Start:** For a condensed setup guide, see [SETUP.md](SETUP.md)
 
-### 1. Clone the Repository
+### Install from PyPI (Recommended)
 
 ```bash
-git clone https://github.com/yourusername/og-py-sdk.git
-cd og-py-sdk/0g_py_inference
+pip install 0g-py-sdk
 ```
 
-### 2. Set Up Python Environment
+### Development Setup (Optional)
+
+If you want to contribute or modify the SDK:
 
 ```bash
+# Clone the repository
+git clone https://github.com/mandatedisrael/0g-py-sdk.git
+cd 0g-py-sdk/0g_py_inference
+
 # Create virtual environment
 python3 -m venv venv
-
-# Activate virtual environment
 source venv/bin/activate  # macOS/Linux
 # OR
 venv\Scripts\activate  # Windows
 
-# Install Python dependencies
-pip install -r requirements.txt
+# Install in development mode
+pip install -e .
 ```
 
-### 3. Configure Environment Variables
+### Configure Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in your project directory:
 
 ```bash
 PRIVATE_KEY=your_private_key_without_0x_prefix
@@ -760,13 +763,50 @@ if response.status_code == 200:
 
 ### Creating Persistent API Keys
 
+#### Using get_secret() (NEW - Recommended, matches TypeScript SDK)
+
+```python
+# Generate a permanent API key (never expires)
+secret = broker.inference.get_secret(provider_address)
+print(f"API Key: {secret}")
+# Output: app-sk-eyJhZGRyZXNzIjoiMHhCM0FEM2ExMGQxODdjYmM...
+
+# Use directly in HTTP requests
+headers = {"Authorization": f"Bearer {secret}"}
+response = requests.post(
+    f"{endpoint}/chat/completions",
+    headers={"Content-Type": "application/json", **headers},
+    json={"messages": messages, "model": model}
+)
+
+# Generate API key with expiration (7 days)
+secret_7d = broker.inference.get_secret(
+    provider_address,
+    expires_in=7*24*60*60*1000  # milliseconds
+)
+
+# Generate API key with specific token ID
+secret_with_id = broker.inference.get_secret(
+    provider_address,
+    token_id=10  # 0-254 available
+)
+
+# Revoke specific API key
+broker.inference.revoke_api_key(provider_address, token_id=10)
+
+# Revoke all API keys for a provider
+broker.inference.revoke_all_tokens(provider_address)
+```
+
+#### Using create_api_key() (Alternative method)
+
 For server applications that need long-lived credentials:
 
 ```python
 from zerog_py_sdk import SessionMode
 
 # Create an API key that never expires
-api_key_info = broker.inference.session_manager.create_api_key(
+api_key_info = broker.inference.create_api_key(
     provider_address,
     expires_in=0  # 0 = never expires
 )

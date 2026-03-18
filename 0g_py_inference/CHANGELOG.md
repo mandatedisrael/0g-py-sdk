@@ -2,6 +2,125 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-03-17
+
+### 🎉 NEW: verify_service() Method (Comprehensive TEE Verification)
+
+This release adds comprehensive service verification capabilities matching the TypeScript SDK.
+
+### ✅ Added
+
+- **`verify_service(provider_address, output_dir?)` method**
+  - Comprehensive TEE service verification
+  - Fetches and validates TEE quotes
+  - Verifies attestation via Automata contract
+  - Checks provider signer status
+  - Generates detailed verification reports
+  - Returns structured results with error tracking
+  - Example:
+    ```python
+    result = broker.inference.verify_service(provider_address)
+    print(f"Valid: {result['is_valid']}")
+    print(f"TEE Signer: {result['tee_signer']}")
+
+    # With report generation
+    result = broker.inference.verify_service(
+        provider_address,
+        output_dir="./reports"
+    )
+    print(f"Report: {result['report_path']}")
+    ```
+
+- **Comprehensive test suite** (`test_verify_service.py`)
+  - Tests basic verification
+  - Tests report generation
+  - Tests multi-provider verification
+  - Tests error handling
+  - All tests passing
+
+- **Usage example** (`example_verify_service.py`)
+  - Basic verification workflow
+  - Report generation
+  - Batch verification
+  - Practical integration examples
+
+### 📝 Features
+
+- **Quote Fetching**: Retrieves TEE quotes from provider endpoints
+- **Attestation Verification**: Validates quotes using Automata contract
+- **Provider Status**: Checks contract acknowledgment status
+- **Error Tracking**: Collects all errors in results array
+- **Report Generation**: Optional JSON report with full details
+- **Graceful Degradation**: Handles provider unavailability
+- **Comprehensive Output**: Returns 15+ data points about service
+
+### 🔧 Technical Details
+
+- Integrates with existing `_verify_quote_with_automata()` method
+- Uses Pathlib for cross-platform report saving
+- Includes timestamp for audit trails
+- Non-blocking - doesn't fail on individual errors
+- Returns detailed error messages for troubleshooting
+
+---
+
+## [0.2.1] - 2026-03-17
+
+### 🎉 NEW: get_secret() Method (TypeScript SDK Parity)
+
+This release adds the `get_secret()` method to match the TypeScript SDK's `getSecret()` functionality.
+
+### ✅ Added
+
+- **`get_secret(provider_address, token_id?, expires_in?)` method**
+  - Generate persistent API keys for direct HTTP usage
+  - Returns raw token string in format: `app-sk-<base64_encoded_token>`
+  - Supports custom token IDs (0-254)
+  - Supports expiration times (milliseconds)
+  - Fully compatible with TypeScript SDK token format
+  - Example:
+    ```python
+    secret = broker.inference.get_secret(provider_address)
+    headers = {"Authorization": f"Bearer {secret}"}
+    ```
+
+- **Comprehensive test suite** (`test_get_secret.py`)
+  - Validates token generation with default settings
+  - Tests token ID assignment
+  - Tests expiration handling
+  - Validates against real API requests
+  - Compares with `get_request_headers()` output
+
+- **Usage example** (`example_get_secret.py`)
+  - Simple demonstration of API key generation
+  - Shows advanced usage patterns
+  - Includes revocation examples
+
+### 📝 Documentation
+
+- Updated README with `get_secret()` usage examples
+- Added API key management section
+- Documented token ID ranges (0-254 for persistent, 255 for ephemeral)
+- Added comparison between `get_secret()` and `create_api_key()`
+
+### ✅ Verified
+
+- Token format matches TypeScript SDK exactly
+- Successfully tested with live providers on testnet
+- API keys work in real inference requests
+- Token structure validated (JSON + signature)
+- Compatible with existing session token infrastructure
+
+### 🔧 Technical Details
+
+- Wraps existing `SessionManager.create_api_key()` functionality
+- Returns raw token string for convenience
+- Auto-assigns token IDs if not specified
+- Validates token IDs and checks revocation bitmap
+- No breaking changes to existing API
+
+---
+
 ## [0.1.0] - 2025-10-06
 
 ### 🎉 Initial Working Release
