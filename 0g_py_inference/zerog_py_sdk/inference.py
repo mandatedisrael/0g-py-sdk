@@ -9,10 +9,11 @@ from typing import List, Dict, Any, Optional
 from web3 import Web3
 from web3.contract import Contract
 from eth_account.signers.local import LocalAccount
+import threading
 import requests
 
 
-from .models import ServiceMetadata, Account, AccountWithDetail, Refund, RefundDetail, AdditionalInfo
+from .models import ServiceMetadata, Account, AccountWithDetail, Refund, RefundDetail, AdditionalInfo, AutoFundingConfig
 from .exceptions import (
     ContractError,
     ServiceNotFoundError,
@@ -69,34 +70,37 @@ class InferenceManager:
         self.auth_manager = auth_manager
         self.ledger_manager = ledger_manager
         self._acknowledged_providers = set()
-        
+        self._auto_funding_stops: Dict[str, threading.Event] = {}
+
         # Initialize session manager for new authorization system
         self._session_manager = SessionManager(account, web3, contract)
     
     def list_service(
         self,
         offset: int = 0,
-        limit: int = 20
+        limit: int = 20,
+        include_unacknowledged: bool = True,
     ) -> List[ServiceMetadata]:
         """
         Retrieve a list of available services from the contract.
-        
+
         Args:
             offset: Pagination offset (default: 0)
-            limit: Maximum number of services to return (default: 50)
-        
+            limit: Maximum number of services to return (default: 20)
+            include_unacknowledged: Include services whose TEE signer has not been
+                acknowledged by any user (default: True). Set to False to return
+                only services with a verified, acknowledged TEE signer.
+
         Returns:
             List of ServiceMetadata objects
-            
+
         Raises:
             ContractError: If the contract call fails
-            
+
         Example:
-            >>> # Get first 50 services
             >>> services = inference.list_service()
-            >>> 
-            >>> # Get next 50 services
-            >>> services = inference.list_service(offset=50, limit=50)
+            >>> # Only acknowledged providers
+            >>> services = inference.list_service(include_unacknowledged=False)
         """
         try:
             # Try paginated version first (new contract)
@@ -113,7 +117,11 @@ class InferenceManager:
 
             services = []
             for service in services_data:
-                # Service struct: (provider, serviceType, url, inputPrice, outputPrice, updatedAt, model, verifiability, additionalInfo, ...)
+                # Paginated struct has teeSignerAcknowledged at index 10
+                tee_acknowledged = service[10] if len(service) > 10 else True
+                if not include_unacknowledged and not tee_acknowledged:
+                    continue
+
                 services.append(ServiceMetadata(
                     provider=service[0],
                     service_type=service[1],
@@ -124,9 +132,9 @@ class InferenceManager:
                     model=service[6],
                     verifiability=service[7]
                 ))
-            
+
             return services
-            
+
         except Exception as e:
             raise ContractError("getAllServices", str(e))
     
@@ -173,7 +181,12 @@ class InferenceManager:
             raise ServiceNotFoundError(provider_address)
 
     def acknowledge_provider_signer(self, provider_address: str) -> Dict[str, Any]:
-        """Acknowledge a provider's TEE signer."""
+        """Acknowledge a provider's TEE signer.
+
+        In the updated contract, acknowledgeTEESigner takes (provider, bool).
+        The TEE signer address is now set by the provider via addOrUpdateService,
+        so users just acknowledge (set to True) or revoke acknowledgement.
+        """
         try:
             provider_address = format_address(provider_address)
 
@@ -181,7 +194,6 @@ class InferenceManager:
             if self.ledger_manager:
                 try:
                     ledger = self.ledger_manager.get_ledger()
-                    # Check if ledger actually has balance (not just a zero-initialized struct)
                     if ledger.total_balance > 0:
                         print("✅ Main ledger exists")
                     else:
@@ -189,82 +201,52 @@ class InferenceManager:
                         self.ledger_manager.add_ledger("0.01")
                 except:
                     print("Creating main ledger...")
-                    self.ledger_manager.add_ledger("0.01")  # Create with 0.01 OG
+                    self.ledger_manager.add_ledger("0.01")
 
-            # Step 1: Check if account exists, create it via transferFund if needed
-            # This matches the official TS SDK's handleFirstRound logic
-            need_transfer = False
+            # Step 1: Check if account exists, create via transferFund if needed
+            account_exists = False
+            already_acknowledged = False
             try:
                 account = self.contract.functions.getAccount(
                     self.account.address,
                     provider_address
                 ).call()
-                current_tee_signer = account[9]  # teeSignerAddress field
-                print(f"✅ Account exists for provider (TEE signer: {current_tee_signer})")
-                # Check if balance is too low (less than threshold)
-                balance = account[3]  # balance field
-                pending_refund = account[4]  # pendingRefund field
+                account_exists = True
+                # New Account struct: [user, provider, nonce, balance, pendingRefund,
+                #                      refunds[], additionalInfo, acknowledged, validRefundsLength,
+                #                      generation, revokedBitmap]
+                already_acknowledged = account[7]  # acknowledged (bool)
+                balance = account[3]
+                pending_refund = account[4]
                 locked_fund = balance - pending_refund
-                # If balance is very low, we need to top up
-                if locked_fund < 100000000000:  # Arbitrary small threshold
-                    need_transfer = True
+                print(f"✅ Account exists (acknowledged: {already_acknowledged}, locked: {locked_fund / 10**18:.6f} OG)")
             except Exception as e:
                 print(f"ℹ️  Account doesn't exist yet, will create via transferFund...")
-                need_transfer = True
 
-            # Transfer funds to create account or top up if needed
-            # Use a reasonable initial amount: 0.001 OG = 1000000000000000 wei
-            if need_transfer and self.ledger_manager:
-                print("Transferring funds to create/top-up account...")
+            # Create account if needed
+            if not account_exists and self.ledger_manager:
+                print("Transferring funds to create account...")
                 try:
                     from .utils import og_to_wei
-                    initial_amount = og_to_wei("0.001")  # 0.001 OG
-                    self.ledger_manager.transfer_fund(provider_address, "inference", initial_amount)
-                    print("✅ Account created/topped-up via transferFund")
+                    initial_amount = og_to_wei("0.001")
+                    self.ledger_manager.transfer_fund(provider_address, "inference-v1.0", initial_amount)
+                    print("✅ Account created via transferFund")
                 except Exception as transfer_error:
                     print(f"⚠️  transferFund failed: {transfer_error}")
-                    # Continue anyway - maybe account was created by another process
-            
-            # Step 2: Get quote
-            service = self.get_service(provider_address)
-            quote_endpoint = f"{service.url}/v1/quote"
-            
-            print(f"Getting quote from: {quote_endpoint}")
-            quote_response = requests.get(quote_endpoint, timeout=10)
-            
-            if quote_response.status_code != 200:
-                raise ContractError("acknowledge", f"Failed to get quote: {quote_response.status_code}")
-            
-            quote_data = quote_response.json()
-            provider_signer = quote_data.get('provider_signer')  # This is an ADDRESS
-            
-            if not provider_signer:
-                raise ContractError("acknowledge", "No provider_signer in quote")
-            
-            print(f"Got provider signer (TEE address): {provider_signer}")
-            
-            # Step 3: Check if already acknowledged
-            try:
-                account = self.contract.functions.getAccount(
-                    self.account.address,
-                    provider_address
-                ).call()
-                current_tee_signer = account[9]  # teeSignerAddress field
-                
-                if current_tee_signer.lower() == provider_signer.lower():
-                    print("TEE signer already acknowledged")
-                    return {"status": "already_acknowledged"}
-            except:
-                pass
-            
-            # Step 4: Use acknowledgeTEESigner, NOT acknowledgeProviderSigner!
-            print(f"Calling acknowledgeTEESigner({provider_address}, {provider_signer})")
+
+            # Step 2: Check if already acknowledged
+            if already_acknowledged:
+                print("TEE signer already acknowledged")
+                return {"status": "already_acknowledged"}
+
+            # Step 3: Acknowledge TEE signer (new API: just pass True)
+            print(f"Calling acknowledgeTEESigner({provider_address}, True)")
             tx = self.contract.functions.acknowledgeTEESigner(
                 provider_address,
-                provider_signer  # Just pass the address directly
+                True  # Acknowledge = True
             ).build_transaction({
                 'from': self.account.address,
-                'gas': 300000,  # Increased gas
+                'gas': 300000,
                 'gasPrice': self.web3.eth.gas_price,
                 'nonce': self.web3.eth.get_transaction_count(self.account.address)
             })
@@ -273,13 +255,13 @@ class InferenceManager:
             tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
             print(f"Transaction hash: {tx_hash.hex()}")
             receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
-            print(f"Receipt: {receipt}")
 
             if receipt['status'] != 1:
                 raise ContractError("acknowledgeTEESigner", f"Transaction failed. Receipt: {receipt}")
-            
+
+            print("✅ TEE signer acknowledged successfully")
             return parse_transaction_receipt(receipt)
-            
+
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -290,19 +272,17 @@ class InferenceManager:
         Create an account on InferenceServing contract.
 
         This is called when getAccount fails, indicating no account exists.
-        We use addAccount with minimal parameters.
+        Updated: addAccount no longer takes signer param.
         """
         try:
-            # addAccount(user, provider, signer[2], additionalInfo) payable
-            # Use empty signer and info for now
+            # addAccount(user, provider, additionalInfo) payable
             tx = self.contract.functions.addAccount(
                 self.account.address,  # user
                 provider_address,      # provider
-                [0, 0],               # signer (empty uint256[2])
-                ""                    # additionalInfo (empty string)
+                ""                     # additionalInfo (empty string)
             ).build_transaction({
                 'from': self.account.address,
-                'value': 0,  # No value needed
+                'value': 0,
                 'gas': 300000,
                 'gasPrice': self.web3.eth.gas_price,
                 'nonce': self.web3.eth.get_transaction_count(self.account.address)
@@ -364,7 +344,7 @@ class InferenceManager:
         2. DStack format (compose_content + evidence)
         3. GPU attestation format (gpu_evidence)
 
-        Ported from TypeScript SDK: verifier.ts extractTeeSignerAddress()
+        Extract TEE signer from attestation report with format detection
 
         Args:
             report: Attestation report dictionary
@@ -564,7 +544,7 @@ class InferenceManager:
         """
         Generate authentication secret (API key) for direct API usage.
 
-        This method matches the TypeScript SDK's getSecret() functionality.
+        Generate authentication secret (API key) for direct API usage.
         It creates a persistent API key that can be used directly in HTTP
         requests without going through get_request_headers().
 
@@ -615,7 +595,7 @@ class InferenceManager:
             token_id=token_id
         )
 
-        # Return the raw token string (matches TypeScript SDK format)
+        # Return the raw token string
         return api_key_info.raw_token
     
     def verify_service(
@@ -626,7 +606,6 @@ class InferenceManager:
         """
         Comprehensively verify a provider's TEE service and attestation.
 
-        This method performs complete service verification matching the TypeScript SDK approach:
         1. Fetch TEE quote from provider's /v1/quote endpoint
         2. Extract TEE signer address from report_data (base64 decoded)
         3. Compare extracted signer with expected signer from contract
@@ -672,9 +651,7 @@ class InferenceManager:
             >>> print(f"Report saved to: {result['report_path']}")
 
         Note:
-            - Verification is based on signer match (like TypeScript SDK)
             - Automata contract verification is optional and non-blocking
-            - TypeScript SDK doesn't use Automata contract verification
         """
         import time
         import json
@@ -727,7 +704,6 @@ class InferenceManager:
                     result["quote_data"] = quote_data
 
                     # Extract TEE signer - supports multiple formats with automatic fallback
-                    # TypeScript reference: verifier.ts extractTeeSignerAddress()
                     tee_signer, attestation_format = self._extract_tee_signer_address(quote_data)
 
                     result["attestation_format"] = attestation_format
@@ -759,7 +735,7 @@ class InferenceManager:
                 result["errors"].append(f"Quote fetch error: {str(e)}")
                 print(f"   ✗ Quote fetch error: {e}")
 
-            # Step 3: Try Automata attestation verification (optional - TypeScript doesn't use this)
+            # Step 3: Try Automata attestation verification (optional
             if result["quote_available"] and "quote" in result["quote_data"]:
                 print(f"   ⟳ Attempting Automata contract verification (optional)...")
                 try:
@@ -780,7 +756,6 @@ class InferenceManager:
                     print(f"   ℹ️  Automata verification skipped (TypeScript doesn't use this): {str(e)[:100]}")
 
             # Step 4: Try to get expected signer from contract (optional)
-            # Note: TypeScript SDK gets this from service.teeSignerAddress
             # For now, we try getAccount() but make it completely optional
             current_tee_signer = None
             try:
@@ -789,9 +764,9 @@ class InferenceManager:
                     provider_address
                 ).call()
 
-                current_tee_signer = account[9] if len(account) > 9 else None
-                result["contract_tee_signer"] = current_tee_signer
-                result["is_acknowledged"] = bool(current_tee_signer and current_tee_signer != "0x0000000000000000000000000000000000000000")
+                # New Account struct: index 7 = acknowledged (bool)
+                is_acknowledged = account[7] if len(account) > 7 else False
+                result["is_acknowledged"] = bool(is_acknowledged)
 
                 if result["is_acknowledged"]:
                     print(f"   ✓ Provider acknowledged in contract")
@@ -803,7 +778,7 @@ class InferenceManager:
                 # Contract check is optional - don't fail verification if it doesn't work
                 print(f"   ℹ️  Contract signer check unavailable (this is optional)")
 
-            # Step 5: Compare TEE signer with expected signer (TypeScript approach)
+            # Step 5: Compare TEE signer with expected signer
             if result["tee_signer"] and current_tee_signer:
                 # Normalize addresses for comparison (lowercase, strip 0x)
                 extracted_signer = result["tee_signer"].lower().replace("0x", "")
@@ -826,7 +801,6 @@ class InferenceManager:
                 # This is still valid - TypeScript also just extracts and displays the signer
                 result["signer_match"] = True  # Pass verification if we extracted the signer
                 print(f"   ✓ TEE signer successfully extracted (contract comparison unavailable)")
-                print(f"   ℹ️  TypeScript SDK also primarily extracts and displays the signer")
             elif result.get("attestation_format") in ("dstack", "gpu"):
                 # DStack/GPU format - uses different verification method (no traditional signer)
                 result["signer_match"] = True  # Pass verification for valid attestation format
@@ -1230,18 +1204,314 @@ class InferenceManager:
                 processed=ref[3]
             ))
         
+        # New Account struct order:
+        # [0] user, [1] provider, [2] nonce, [3] balance, [4] pendingRefund,
+        # [5] refunds[], [6] additionalInfo, [7] acknowledged (bool),
+        # [8] validRefundsLength, [9] generation, [10] revokedBitmap
         return Account(
             user=account_data[0],
             provider=account_data[1],
             nonce=account_data[2],
             balance=account_data[3],
             pending_refund=account_data[4],
-            signer=list(account_data[5]) if len(account_data) > 5 else [0, 0],
             refunds=refunds,
-            additional_info=account_data[7] if len(account_data) > 7 else "",
-            provider_pub_key=list(account_data[8]) if len(account_data) > 8 else [0, 0],
-            tee_signer_address=account_data[9] if len(account_data) > 9 else "",
-            valid_refunds_length=account_data[10] if len(account_data) > 10 else 0,
-            generation=account_data[11] if len(account_data) > 11 else 0,
-            revoked_bitmap=account_data[12] if len(account_data) > 12 else 0,
+            additional_info=account_data[6] if len(account_data) > 6 else "",
+            acknowledged=account_data[7] if len(account_data) > 7 else False,
+            valid_refunds_length=account_data[8] if len(account_data) > 8 else 0,
+            generation=account_data[9] if len(account_data) > 9 else 0,
+            revoked_bitmap=account_data[10] if len(account_data) > 10 else 0,
         )
+
+    # ==================== TEE Signer Management ====================
+
+    def acknowledged(self, provider_address: str) -> bool:
+        """
+        Check whether the user has acknowledged this provider's TEE signer.
+
+        Args:
+            provider_address: Provider's wallet address
+
+        Returns:
+            True if the TEE signer is acknowledged, False otherwise
+        """
+        return self.get_account(provider_address).acknowledged
+
+    def revoke_provider_tee_signer_acknowledgement(self, provider_address: str) -> Dict[str, Any]:
+        """
+        Revoke acknowledgment of a provider's TEE signer.
+
+        After calling this the provider must be re-acknowledged before
+        generating new request headers.
+
+        Args:
+            provider_address: Provider's wallet address
+
+        Returns:
+            Transaction receipt
+
+        Raises:
+            ContractError: If the transaction fails
+        """
+        provider_address = format_address(provider_address)
+
+        try:
+            tx = self.contract.functions.revokeTEESignerAcknowledgement(
+                provider_address
+            ).build_transaction({
+                'from': self.account.address,
+                'gas': 200000,
+                'gasPrice': self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address),
+            })
+
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if receipt['status'] != 1:
+                raise ContractError("revokeTEESignerAcknowledgement", "Transaction failed")
+
+            return parse_transaction_receipt(receipt)
+
+        except Exception as e:
+            raise ContractError("revokeTEESignerAcknowledgement", str(e))
+
+    # ==================== Provider Service Management ====================
+
+    def remove_service(self) -> Dict[str, Any]:
+        """
+        Remove the caller's own service from the contract (provider operation).
+
+        Returns:
+            Transaction receipt
+
+        Raises:
+            ContractError: If the transaction fails
+        """
+        try:
+            tx = self.contract.functions.removeService().build_transaction({
+                'from': self.account.address,
+                'gas': 200000,
+                'gasPrice': self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address),
+            })
+
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if receipt['status'] != 1:
+                raise ContractError("removeService", "Transaction failed")
+
+            return parse_transaction_receipt(receipt)
+
+        except Exception as e:
+            raise ContractError("removeService", str(e))
+
+    def update_service(
+        self,
+        url: Optional[str] = None,
+        model: Optional[str] = None,
+        input_price: Optional[int] = None,
+        output_price: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update the caller's own service parameters (provider operation).
+
+        Unspecified fields are preserved from the current on-chain values.
+
+        Args:
+            url: New service endpoint URL
+            model: New model identifier
+            input_price: New input price in wei
+            output_price: New output price in wei
+
+        Returns:
+            Transaction receipt
+
+        Raises:
+            ContractError: If the transaction fails
+        """
+        # Fetch current service to fill in any fields not provided
+        try:
+            current = self.get_service(self.account.address)
+        except Exception:
+            current = None
+
+        params = (
+            current.service_type if current else "",
+            url if url is not None else (current.url if current else ""),
+            model if model is not None else (current.model if current else ""),
+            current.verifiability if current else "",
+            input_price if input_price is not None else (current.input_price if current else 0),
+            output_price if output_price is not None else (current.output_price if current else 0),
+            "",  # additionalInfo — preserve existing; pass empty to leave unchanged
+        )
+
+        try:
+            tx = self.contract.functions.addOrUpdateService(params).build_transaction({
+                'from': self.account.address,
+                'gas': 300000,
+                'gasPrice': self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address),
+            })
+
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if receipt['status'] != 1:
+                raise ContractError("addOrUpdateService", "Transaction failed")
+
+            return parse_transaction_receipt(receipt)
+
+        except Exception as e:
+            raise ContractError("addOrUpdateService", str(e))
+
+    # ==================== Attestation Download ====================
+
+    def download_quote_report(self, provider_address: str, output_path: str) -> None:
+        """
+        Download the TEE attestation report for a provider and save it to disk.
+
+        Args:
+            provider_address: Provider's wallet address
+            output_path: File path to write the JSON report
+
+        Raises:
+            NetworkError: If the quote endpoint is unreachable or returns an error
+        """
+        import json
+
+        service = self.get_service(provider_address)
+        url = f"{service.url}/v1/quote"
+
+        try:
+            response = requests.get(url, timeout=15)
+        except requests.RequestException as e:
+            raise NetworkError(f"Failed to reach quote endpoint: {e}", url)
+
+        if response.status_code != 200:
+            raise NetworkError(
+                f"Quote endpoint returned HTTP {response.status_code}",
+                url,
+            )
+
+        with open(output_path, "w") as f:
+            json.dump(response.json(), f, indent=2)
+
+    def get_signer_ra_download_link(self, provider_address: str) -> str:
+        """
+        Return the URL to download the TEE signer remote-attestation report.
+
+        Args:
+            provider_address: Provider's wallet address
+
+        Returns:
+            Full URL string for the attestation report
+        """
+        service = self.get_service(provider_address)
+        return f"{service.url}/v1/proxy/attestation/report"
+
+    def get_chat_signature_download_link(self, provider_address: str, chat_id: str) -> str:
+        """
+        Return the URL to download the TEE-signed signature for a specific chat.
+
+        Args:
+            provider_address: Provider's wallet address
+            chat_id: Chat completion ID (e.g. "chatcmpl-abc123")
+
+        Returns:
+            Full URL string for the chat signature
+        """
+        service = self.get_service(provider_address)
+        return f"{service.url}/v1/proxy/signature/{chat_id}"
+
+    # ==================== Auto-Funding ====================
+
+    # Minimum locked balance threshold (in wei) — mirrors TS SDK constant
+    _MIN_LOCKED_BALANCE = 500
+
+    def start_auto_funding(
+        self,
+        provider_address: str,
+        config: Optional[AutoFundingConfig] = None,
+    ) -> None:
+        """
+        Start a background thread that automatically tops up the provider
+        sub-account balance when it falls below the required threshold.
+
+        The thread runs immediately on start, then repeats every
+        ``config.interval_ms`` milliseconds.  It is a daemon thread and will
+        not prevent the process from exiting.
+
+        Args:
+            provider_address: Provider's wallet address
+            config: AutoFundingConfig with interval_ms and buffer_multiplier.
+                    Defaults to AutoFundingConfig() (30 s interval, 2x buffer).
+
+        Raises:
+            RuntimeError: If ledger_manager is not available
+        """
+        if self.ledger_manager is None:
+            raise RuntimeError("ledger_manager is required for auto-funding")
+
+        if config is None:
+            config = AutoFundingConfig()
+
+        provider_address = format_address(provider_address)
+
+        # Stop any existing auto-funding for this provider
+        self.stop_auto_funding(provider_address)
+
+        stop_event = threading.Event()
+        self._auto_funding_stops[provider_address] = stop_event
+
+        required = config.buffer_multiplier * self._MIN_LOCKED_BALANCE
+
+        def _check_and_fund() -> None:
+            try:
+                account_data = self.contract.functions.getAccount(
+                    self.account.address,
+                    provider_address,
+                ).call()
+                balance = account_data[3]
+                pending_refund = account_data[4]
+                available = balance - pending_refund
+
+                if available < required:
+                    top_up = required - available
+                    self.ledger_manager.transfer_fund(provider_address, "inference-v1.0", top_up)
+            except Exception:
+                pass  # Never crash the background thread
+
+        def _loop() -> None:
+            _check_and_fund()
+            while not stop_event.wait(timeout=config.interval_ms / 1000):
+                _check_and_fund()
+
+        thread = threading.Thread(target=_loop, daemon=True, name=f"auto-fund-{provider_address[:8]}")
+        thread.start()
+
+    def stop_auto_funding(self, provider_address: Optional[str] = None) -> None:
+        """
+        Stop the auto-funding background thread.
+
+        Args:
+            provider_address: Stop funding for this provider only.
+                              If None, stop all active auto-funding threads.
+        """
+        if provider_address is None:
+            for event in list(self._auto_funding_stops.values()):
+                event.set()
+            self._auto_funding_stops.clear()
+        else:
+            provider_address = format_address(provider_address)
+            event = self._auto_funding_stops.pop(provider_address, None)
+            if event:
+                event.set()
+
+    def has_auto_funding(self, provider_address: str) -> bool:
+        """Return True if auto-funding is active for the given provider."""
+        provider_address = format_address(provider_address)
+        return provider_address in self._auto_funding_stops

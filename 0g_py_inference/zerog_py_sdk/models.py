@@ -161,18 +161,20 @@ class RefundDetail:
 class Account:
     """
     User account with a specific provider.
-    
+
+    Updated to match current contract struct (March 2026):
+    (user, provider, nonce, balance, pendingRefund, refunds[], additionalInfo,
+     acknowledged, validRefundsLength, generation, revokedBitmap)
+
     Attributes:
         user: User's wallet address
         provider: Provider's wallet address
         nonce: Current nonce for request signing
         balance: Current balance in wei
         pending_refund: Amount pending refund in wei
-        signer: User's signing key (2 x uint256)
         refunds: List of refund requests
         additional_info: Additional account metadata
-        provider_pub_key: Provider's public key (2 x uint256)
-        tee_signer_address: TEE signer address
+        acknowledged: Whether TEE signer is acknowledged
         valid_refunds_length: Number of valid refunds
         generation: Token generation number
         revoked_bitmap: Bitmap of revoked token IDs
@@ -182,24 +184,17 @@ class Account:
     nonce: int
     balance: int
     pending_refund: int
-    signer: List[int] = field(default_factory=lambda: [0, 0])
     refunds: List[Refund] = field(default_factory=list)
     additional_info: str = ""
-    provider_pub_key: List[int] = field(default_factory=lambda: [0, 0])
-    tee_signer_address: str = ""
+    acknowledged: bool = False
     valid_refunds_length: int = 0
     generation: int = 0
     revoked_bitmap: int = 0
-    
+
     @property
     def locked_balance(self) -> int:
         """Get locked balance (balance - pending_refund)."""
         return self.balance - self.pending_refund
-    
-    @property
-    def acknowledged(self) -> bool:
-        """Check if provider's TEE signer is acknowledged."""
-        return bool(self.tee_signer_address and self.tee_signer_address != "0x" + "0" * 40)
 
 
 @dataclass
@@ -232,6 +227,19 @@ class LedgerDetail:
     available_balance: int
     inference_providers: List[tuple] = field(default_factory=list)  # (provider, balance, pending_refund)
     fine_tuning_providers: List[tuple] = field(default_factory=list)
+
+
+@dataclass
+class AutoFundingConfig:
+    """
+    Configuration for automatic provider sub-account funding.
+
+    Attributes:
+        interval_ms: How often to check balance (milliseconds, default 30s)
+        buffer_multiplier: Multiplier over MIN_LOCKED_BALANCE to maintain (default 2)
+    """
+    interval_ms: int = 30000
+    buffer_multiplier: int = 2
 
 
 @dataclass

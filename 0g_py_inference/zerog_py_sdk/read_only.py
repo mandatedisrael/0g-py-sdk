@@ -111,39 +111,45 @@ class ReadOnlyInferenceBroker:
     def list_service(
         self,
         offset: int = 0,
-        limit: int = 20
+        limit: int = 20,
+        include_unacknowledged: bool = True,
     ) -> List[ServiceWithDetail]:
         """
         Retrieve a list of all available services.
-        
+
         Args:
             offset: Pagination offset (default: 0)
             limit: Maximum number of services to return (default: 20)
-        
+            include_unacknowledged: Include services whose TEE signer has not been
+                acknowledged (default: True). Set False to only return services
+                with a verified, acknowledged TEE signer.
+
         Returns:
             List of ServiceWithDetail objects (without health metrics)
-            
+
         Example:
             >>> services = broker.list_service()
-            >>> for svc in services:
-            ...     print(f"{svc.model} at {svc.url}")
+            >>> # Acknowledged-only
+            >>> services = broker.list_service(include_unacknowledged=False)
         """
         try:
-            # Use paginated getAllServices(offset, limit)
-            # The non-paginated version is not available on current contracts
             result = self.contract.functions.getAllServices(offset, limit).call()
-            
+
             # Returns [services[], total] or (services[], total)
             if isinstance(result, (list, tuple)) and len(result) == 2:
                 services_data = result[0]
             else:
                 services_data = result
-            
+
             services = []
             for service in services_data:
-                # Service struct: (provider, serviceType, url, inputPrice, outputPrice, 
-                #                  updatedAt, model, verifiability, additionalInfo, 
-                #                  teeSignerAddress, teeSignerAcknowledged)
+                # Paginated struct: (provider, serviceType, url, inputPrice, outputPrice,
+                #   updatedAt, model, verifiability, additionalInfo,
+                #   teeSignerAddress[9], teeSignerAcknowledged[10])
+                tee_acknowledged = service[10] if len(service) > 10 else True
+                if not include_unacknowledged and not tee_acknowledged:
+                    continue
+
                 services.append(ServiceWithDetail(
                     provider=service[0],
                     service_type=service[1],
@@ -155,40 +161,52 @@ class ReadOnlyInferenceBroker:
                     verifiability=service[7],
                     additional_info=service[8] if len(service) > 8 else "",
                 ))
-            
+
             return services
-            
+
         except Exception as e:
             raise Exception(f"Failed to list services: {str(e)}")
-    
-    def list_service_with_detail(self) -> List[ServiceWithDetail]:
+
+    def list_service_with_detail(
+        self,
+        offset: int = 0,
+        limit: int = 20,
+        include_unacknowledged: bool = True,
+    ) -> List[ServiceWithDetail]:
         """
         Retrieve services with health metrics from monitoring API.
-        
+
         This combines on-chain service data with real-time health metrics
         including uptime percentage and average response time.
-        
+
+        Args:
+            offset: Pagination offset (default: 0)
+            limit: Maximum number of services to return (default: 20)
+            include_unacknowledged: Include services whose TEE signer has not been
+                acknowledged (default: True).
+
         Returns:
             List of ServiceWithDetail objects with health_metrics populated
-            
+
         Example:
             >>> services = broker.list_service_with_detail()
             >>> for svc in services:
             ...     if svc.health_metrics:
             ...         print(f"{svc.model}: {svc.health_metrics.uptime}% uptime")
         """
-        # Get services from blockchain
-        services = self.list_service()
-        
-        # Fetch health metrics from API
+        services = self.list_service(
+            offset=offset,
+            limit=limit,
+            include_unacknowledged=include_unacknowledged,
+        )
+
         health_map = self._fetch_health_metrics()
-        
-        # Merge health metrics with services
+
         for service in services:
             health = health_map.get(service.provider.lower())
             if health:
                 service.health_metrics = health
-        
+
         return services
     
     def _fetch_health_metrics(self) -> Dict[str, HealthMetrics]:

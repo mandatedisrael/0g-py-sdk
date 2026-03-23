@@ -199,9 +199,10 @@ class AuthManager:
                 provider_address
             ).call()
             
-            tee_signer_address = account_data[9]
-            
-            if not tee_signer_address or tee_signer_address == "0x" + "0" * 40:
+            # New Account struct: index 7 = acknowledged (bool)
+            is_acknowledged = account_data[7]
+
+            if not is_acknowledged:
                 return False
             
             # TODO: Implement actual TEE signature verification

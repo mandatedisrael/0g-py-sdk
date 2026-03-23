@@ -39,6 +39,7 @@ from .models import (
     RefundDetail,
     LedgerDetail,
     AdditionalInfo,
+    AutoFundingConfig,
 )
 from .session import (
     SessionMode,
@@ -97,7 +98,7 @@ from .exceptions import (
     ConfigurationError
 )
 
-__version__ = "0.2.0"
+__version__ = "0.5.0"
 
 __all__ = [
     # Main classes
@@ -126,7 +127,8 @@ __all__ = [
     "RefundDetail",
     "LedgerDetail",
     "AdditionalInfo",
-    
+    "AutoFundingConfig",
+
     # Session (new auth system)
     "SessionMode",
     "SessionToken",

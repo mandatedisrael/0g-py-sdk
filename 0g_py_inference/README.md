@@ -507,7 +507,6 @@ from zerog_py_sdk.crypto import (
 - No Node.js/npm dependency
 - Easier installation
 - Works in any Python environment
-- Same cryptographic guarantees as TypeScript SDK
 
 ---
 
@@ -763,7 +762,7 @@ if response.status_code == 200:
 
 ### Creating Persistent API Keys
 
-#### Using get_secret() (NEW - Recommended, matches TypeScript SDK)
+#### Using get_secret() (Recommended)
 
 ```python
 # Generate a permanent API key (never expires)
@@ -950,7 +949,6 @@ The SDK is now 100% Python with native cryptographic implementations:
 - ✅ Baby JubJub elliptic curve
 - ✅ EdDSA signatures
 - ✅ Pedersen hash
-- ✅ Compatible with TypeScript SDK
 
 **Architecture:**
 ```
@@ -1065,7 +1063,6 @@ MIT License - see LICENSE file for details.
 ## Links
 
 - [0G Documentation](https://docs.0g.ai/)
-- [TypeScript SDK](https://github.com/0glabs/0g-serving-broker)
 - [Compute Network Docs](https://docs.0g.ai/developer-hub/building-on-0g/compute-network/sdk)
 - [Author Twitter/X](https://x.com/damiclone)
 

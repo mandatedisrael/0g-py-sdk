@@ -379,6 +379,72 @@ class LedgerManager:
         except Exception as e:
             raise ContractError("deleteLedger", str(e))
     
+    def get_providers_with_balance(self, service_type: str = "inference") -> List[str]:
+        """
+        Return the list of provider addresses that the user has a sub-account with
+        for the given service type.
+
+        Args:
+            service_type: "inference" or "fineTuning"
+
+        Returns:
+            List of provider addresses (checksummed)
+
+        Raises:
+            ContractError: If the contract call fails
+        """
+        try:
+            providers = self.contract.functions.getLedgerProviders(
+                self.account.address,
+                service_type,
+            ).call()
+            return [self.web3.to_checksum_address(p) for p in providers]
+        except Exception as e:
+            raise ContractError("getLedgerProviders", str(e))
+
+    def retrieve_fund_from_provider(
+        self,
+        provider_address: str,
+        service_type: str = "inference",
+    ) -> Dict[str, Any]:
+        """
+        Retrieve funds from a single specific provider sub-account.
+
+        Args:
+            provider_address: Provider's wallet address
+            service_type: "inference" or "fineTuning"
+
+        Returns:
+            Transaction receipt information
+
+        Raises:
+            ContractError: If the transaction fails
+        """
+        try:
+            provider_address = self.web3.to_checksum_address(provider_address)
+
+            tx = self.contract.functions.retrieveFund(
+                [provider_address],
+                service_type,
+            ).build_transaction({
+                'from': self.account.address,
+                'gas': 200000,
+                'gasPrice': self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address),
+            })
+
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if receipt['status'] != 1:
+                raise ContractError("retrieveFund", "Transaction failed")
+
+            return parse_transaction_receipt(receipt)
+
+        except Exception as e:
+            raise ContractError("retrieveFundFromProvider", str(e))
+
     def get_ledger_with_detail(
         self,
         inference_contract: Optional[Contract] = None,

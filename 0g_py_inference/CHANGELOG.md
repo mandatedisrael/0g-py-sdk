@@ -2,11 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-03-23
+
+### Breaking Changes - Contract ABI Update
+
+Updated SDK to match current 0G testnet/mainnet contract ABIs. The deployed contracts have changed significantly since v0.4.0.
+
+### Fixed
+- **`acknowledgeTEESigner`** now takes `(provider, bool)` instead of `(provider, address)` to match updated contract
+- **`addAccount`** removed obsolete `signer` (uint256[2]) parameter
+- **`getAccount`** Account struct updated: removed `signer`/`providerPubKey`/`teeSignerAddress`, added `acknowledged` (bool), `generation`, `revokedBitmap`
+- **`transferFund`** service name changed from `"inference"` to `"inference-v1.0"` to match new ledger service registry
+- Fixed Account struct index references in `auth.py` and `inference.py`
+
+### Changed
+- Updated `SERVING_CONTRACT_ABI` with new function signatures and Account/Service structs
+- Added new contract functions: `serviceExists`, `isTokenRevoked`, `getPendingRefund`, `processRefund`, `revokeTokens`
+- Updated `Account` model dataclass to match new on-chain struct
+
 ## [0.2.2] - 2026-03-17
 
 ### 🎉 NEW: verify_service() Method (Comprehensive TEE Verification)
 
-This release adds comprehensive service verification capabilities matching the TypeScript SDK.
+This release adds comprehensive service verification capabilities .
 
 ### ✅ Added
 
@@ -66,7 +84,7 @@ This release adds comprehensive service verification capabilities matching the T
 
 ## [0.2.1] - 2026-03-17
 
-### 🎉 NEW: get_secret() Method (TypeScript SDK Parity)
+### 🎉 NEW: get_secret() Method
 
 This release adds the `get_secret()` method to match the TypeScript SDK's `getSecret()` functionality.
 
@@ -77,7 +95,7 @@ This release adds the `get_secret()` method to match the TypeScript SDK's `getSe
   - Returns raw token string in format: `app-sk-<base64_encoded_token>`
   - Supports custom token IDs (0-254)
   - Supports expiration times (milliseconds)
-  - Fully compatible with TypeScript SDK token format
+  - Standard token format
   - Example:
     ```python
     secret = broker.inference.get_secret(provider_address)
@@ -105,7 +123,7 @@ This release adds the `get_secret()` method to match the TypeScript SDK's `getSe
 
 ### ✅ Verified
 
-- Token format matches TypeScript SDK exactly
+- Standard token format
 - Successfully tested with live providers on testnet
 - API keys work in real inference requests
 - Token structure validated (JSON + signature)
@@ -133,7 +151,6 @@ This is the first fully functional version of the 0G Python SDK.
   - Before: `http://provider.com:8080`
   - After: `http://provider.com:8080/v1/proxy`
   - This was causing 403 Forbidden errors from providers
-  - Found by comparing with TypeScript SDK implementation
 
 - **Account Creation** - Provider acknowledgment now auto-creates accounts
   - Previously would fail if account didn't exist
@@ -204,7 +221,6 @@ None currently identified.
 
 ### 🙏 Credits
 
-- TypeScript SDK reference: [@0glabs/0g-serving-broker](https://github.com/0glabs/0g-serving-broker)
 - Python implementation: [@damiclone](https://x.com/damiclone)
 
 ---
