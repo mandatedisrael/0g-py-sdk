@@ -53,6 +53,10 @@ setup(
             "flake8>=6.0.0",
             "mypy>=1.0.0",
         ],
+        "fine-tuning": [
+            "eciespy>=0.4.0",
+            "cryptography>=41.0.0",
+        ],
     },
     include_package_data=True,
     package_data={

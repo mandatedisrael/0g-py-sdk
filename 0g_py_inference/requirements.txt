@@ -7,5 +7,9 @@ requests>=2.31.0
 # Optional dependencies
 python-dotenv>=1.0.0
 
+# Optional: required for fine-tuning model decryption
+# eciespy>=0.4.0
+# cryptography>=41.0.0
+
 # Type hints support (for Python < 3.10)
 typing-extensions>=4.0.0

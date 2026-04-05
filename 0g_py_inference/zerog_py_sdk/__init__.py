@@ -97,6 +97,21 @@ from .exceptions import (
     AuthenticationError,
     ConfigurationError
 )
+from .fine_tuning.broker import (
+    FineTuningBroker,
+    ReadOnlyFineTuningBroker,
+    create_read_only_fine_tuning_broker,
+)
+from .fine_tuning.contract.types import (
+    Quota,
+    Deliverable,
+    FineTuningAccountDetails,
+    FineTuningAccountDetail,
+    FineTuningService,
+    Task as FineTuningTask,
+    CustomizedModel,
+    TdxQuoteResponse,
+)
 
 __version__ = "0.5.0"
 
@@ -184,4 +199,17 @@ __all__ = [
     "NetworkError",
     "AuthenticationError",
     "ConfigurationError",
+
+    # Fine-tuning
+    "FineTuningBroker",
+    "ReadOnlyFineTuningBroker",
+    "create_read_only_fine_tuning_broker",
+    "Quota",
+    "Deliverable",
+    "FineTuningAccountDetails",
+    "FineTuningAccountDetail",
+    "FineTuningService",
+    "FineTuningTask",
+    "CustomizedModel",
+    "TdxQuoteResponse",
 ]

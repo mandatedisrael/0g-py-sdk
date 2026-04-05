@@ -13,6 +13,7 @@ from eth_account.signers.local import LocalAccount
 from .ledger import LedgerManager
 from .inference import InferenceManager
 from .auth import AuthManager
+from .fine_tuning.broker import FineTuningBroker
 from .contracts.abis import SERVING_CONTRACT_ABI, LEDGER_CONTRACT_ABI
 from .constants import (
     get_contract_addresses,
@@ -57,37 +58,40 @@ class ZGServingBroker:
         web3: Web3,
         inference_address: Optional[str] = None,
         ledger_address: Optional[str] = None,
+        fine_tuning_address: Optional[str] = None,
     ):
         """
         Initialize the broker.
-        
+
         Args:
             account: Local account for signing transactions
             web3: Web3 instance connected to 0G network
             inference_address: Inference contract address (auto-detected if None)
             ledger_address: Ledger contract address (auto-detected if None)
+            fine_tuning_address: Fine-tuning contract address (auto-detected if None)
         """
         self.account = account
         self.web3 = web3
-        
+
         # Auto-detect network from chain ID if addresses not provided
-        if inference_address is None or ledger_address is None:
+        if inference_address is None or ledger_address is None or fine_tuning_address is None:
             chain_id = self.web3.eth.chain_id
             addresses = get_contract_addresses(chain_id=chain_id)
             inference_address = inference_address or addresses.inference
             ledger_address = ledger_address or addresses.ledger
-        
+            fine_tuning_address = fine_tuning_address or addresses.fine_tuning
+
         # Initialize contracts
         self.serving_contract = self.web3.eth.contract(
             address=Web3.to_checksum_address(inference_address),
             abi=SERVING_CONTRACT_ABI
         )
-        
+
         self.ledger_contract = self.web3.eth.contract(
             address=Web3.to_checksum_address(ledger_address),
             abi=LEDGER_CONTRACT_ABI
         )
-        
+
         # Initialize managers
         self._auth_manager = AuthManager(self.serving_contract, self.account, self.web3)
         self._ledger_manager = LedgerManager(self.ledger_contract, self.account, self.web3)
@@ -97,6 +101,12 @@ class ZGServingBroker:
             self.web3,
             self._auth_manager,
             self._ledger_manager
+        )
+        self._fine_tuning_broker = FineTuningBroker(
+            account=self.account,
+            web3=self.web3,
+            contract_address=fine_tuning_address,
+            ledger_manager=self._ledger_manager,
         )
     
     @property
@@ -118,16 +128,30 @@ class ZGServingBroker:
     def inference(self) -> InferenceManager:
         """
         Access inference operations.
-        
+
         Returns:
             InferenceManager instance
-            
+
         Example:
             >>> services = broker.inference.list_service()
             >>> headers = broker.inference.get_request_headers(provider)
         """
         return self._inference_manager
-    
+
+    @property
+    def fine_tuning(self) -> FineTuningBroker:
+        """
+        Access fine-tuning operations.
+
+        Returns:
+            FineTuningBroker instance
+
+        Example:
+            >>> broker.fine_tuning.acknowledge_provider_signer(provider)
+            >>> task_id = broker.fine_tuning.create_task(provider, model, hash, path)
+        """
+        return self._fine_tuning_broker
+
     def get_address(self) -> str:
         """
         Get the user's wallet address.
@@ -144,6 +168,7 @@ def create_broker(
     rpc_url: Optional[str] = None,
     inference_address: Optional[str] = None,
     ledger_address: Optional[str] = None,
+    fine_tuning_address: Optional[str] = None,
 ) -> ZGServingBroker:
     """
     Factory function to create a broker instance.
@@ -202,23 +227,25 @@ def create_broker(
         account = Account.from_key(private_key)
         
         # Get contract addresses if not provided
-        if inference_address is None or ledger_address is None:
+        if inference_address is None or ledger_address is None or fine_tuning_address is None:
             if network:
                 addresses = get_contract_addresses(network=network)
             else:
                 # Auto-detect from chain ID
                 chain_id = web3.eth.chain_id
                 addresses = get_contract_addresses(chain_id=chain_id)
-            
+
             inference_address = inference_address or addresses.inference
             ledger_address = ledger_address or addresses.ledger
-        
+            fine_tuning_address = fine_tuning_address or addresses.fine_tuning
+
         # Create and return broker
         return ZGServingBroker(
             account=account,
             web3=web3,
             inference_address=inference_address,
             ledger_address=ledger_address,
+            fine_tuning_address=fine_tuning_address,
         )
         
     except ConfigurationError:
