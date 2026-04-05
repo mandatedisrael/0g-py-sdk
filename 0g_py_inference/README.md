@@ -27,6 +27,7 @@ Python SDK for interacting with the 0G Compute Network - a decentralized AI infe
 - ✅ **Verifiable Computing**: TEE (Trusted Execution Environment) attestation support
 - ✅ **Response Verification**: Verify TEE-signed responses
 - ✅ **Caching System**: Built-in caching for performance
+- ✅ **Fine-Tuning Support**: Upload datasets and fine-tune models on 0G Compute Network
 
 ## How It Works
 
