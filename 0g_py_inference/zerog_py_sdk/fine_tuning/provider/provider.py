@@ -60,9 +60,16 @@ class FineTuningProvider:
                 headers={"Content-Type": "application/json"},
                 timeout=REQUEST_TIMEOUT,
             )
-            resp.raise_for_status()
+            if not resp.ok:
+                detail = resp.text
+                raise NetworkError(
+                    f"{resp.status_code}: {detail}",
+                    endpoint=f"{url}/v1/user/{user_addr}/task",
+                )
             data = resp.json()
             return data.get("id", "")
+        except NetworkError:
+            raise
         except requests.RequestException as e:
             raise NetworkError(str(e), endpoint=f"{url}/v1/user/{user_addr}/task")
 
