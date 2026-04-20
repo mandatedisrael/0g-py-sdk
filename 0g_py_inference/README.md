@@ -137,16 +137,16 @@ print(f"Model: {services[0].model}")
 # Skip if you already have funds
 account = broker.ledger.get_ledger()
 if account.balance < 0.1:
-    broker.ledger.deposit_fund("2")  # Add 2 OG tokens
+    broker.ledger.deposit_fund("2")  # Add 2 OG tokens (ledger must already exist)
     print(f"✓ Added funds. New balance: {broker.ledger.get_ledger().balance} OG")
 
 # 4. Acknowledge provider (one-time per provider)
 broker.inference.acknowledge_provider_signer(provider_address)
 print("✓ Provider acknowledged")
 
-# 5. Transfer funds to provider sub-account
-broker.ledger.transfer_fund(provider_address, "inference", og_to_wei("0.5"))
-print("✓ Transferred 0.5 OG to provider")
+# 5. Transfer funds to provider sub-account (recommended minimum: 1 OG)
+broker.ledger.transfer_fund(provider_address, "inference", og_to_wei("1"))
+print("✓ Transferred 1 OG to provider")
 
 # 6. Get service metadata
 metadata = broker.inference.get_service_metadata(provider_address)
@@ -693,15 +693,15 @@ broker = create_broker(
 ### Ledger Operations
 
 ```python
-# Add funds to create account or top up
-receipt = broker.ledger.add_ledger("0.1")
+# Create ledger account (contract minimum: 3 0G)
+receipt = broker.ledger.add_ledger("3")
 
-# Deposit more funds
+# Top up an existing ledger (any positive amount)
 receipt = broker.ledger.deposit_fund("0.5")
 
-# Transfer to provider sub-account
+# Transfer to provider sub-account (recommended minimum: 1 0G)
 from zerog_py_sdk.utils import og_to_wei
-broker.ledger.transfer_fund(provider_address, "inference", og_to_wei("0.5"))
+broker.ledger.transfer_fund(provider_address, "inference", og_to_wei("1"))
 
 # Check balance
 account = broker.ledger.get_ledger()
@@ -884,7 +884,7 @@ from zerog_py_sdk import (
 )
 
 try:
-    broker.ledger.add_ledger("0.1")
+    broker.ledger.add_ledger("3")
 except InsufficientBalanceError as e:
     print(f"Not enough OG tokens in wallet: {e}")
 except ContractError as e:
@@ -913,12 +913,12 @@ except NetworkError as e:
 **Cause:** No funds in account or not transferred to provider.
 **Fix:**
 ```python
-# Add to main ledger
+# Add to main ledger (or create one with add_ledger("3"))
 broker.ledger.deposit_fund("2")
 
-# Transfer to provider
+# Transfer to provider (recommended minimum: 1 0G)
 from zerog_py_sdk.utils import og_to_wei
-broker.ledger.transfer_fund(provider, "inference", og_to_wei("0.5"))
+broker.ledger.transfer_fund(provider, "inference", og_to_wei("1"))
 ```
 
 ### "Provider not found" or empty service list

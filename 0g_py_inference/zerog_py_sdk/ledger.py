@@ -8,6 +8,7 @@ This module handles all account and balance operations including:
 - Requesting refunds
 """
 
+import logging
 from typing import Dict, Any, List, Tuple, Optional
 from web3 import Web3
 from web3.contract import Contract
@@ -16,6 +17,8 @@ from eth_account.signers.local import LocalAccount
 from .models import LedgerAccount, LedgerDetail
 from .exceptions import ContractError
 from .utils import og_to_wei, parse_transaction_receipt
+
+logger = logging.getLogger(__name__)
 
 
 class LedgerManager:
@@ -27,7 +30,17 @@ class LedgerManager:
     
     Note: The ledger is per-user (wallet), not per-provider.
     """
-    
+
+    # Minimum 0G balance required by the LedgerManager contract to create a ledger.
+    # Matches MIN_ACCOUNT_BALANCE on-chain; deposits that would create a new
+    # ledger must meet this threshold.
+    MIN_LEDGER_BALANCE_OG = 3
+
+    # Recommended minimum transfer to a provider sub-account (1 0G in wei).
+    # Matches the broker proxy's MinimumLockedBalance — transfers below this
+    # still succeed on-chain, but requests may be rejected by the provider.
+    MIN_TRANSFER_AMOUNT_WEI = 10 ** 18
+
     def __init__(self, contract: Contract, account: LocalAccount, web3: Web3, ):
         """
         Initialize the LedgerManager.
@@ -57,11 +70,18 @@ class LedgerManager:
             ContractError: If the transaction fails
             
         Example:
-            >>> receipt = ledger.add_ledger("0.1")
+            >>> receipt = ledger.add_ledger("3")
         """
+        amount_wei = og_to_wei(amount)
+        min_wei = self.MIN_LEDGER_BALANCE_OG * 10 ** 18
+        if amount_wei < min_wei:
+            raise ValueError(
+                f"Minimum balance to create a ledger is "
+                f"{self.MIN_LEDGER_BALANCE_OG} 0G, but got {amount} 0G. "
+                f"Please use: broker.ledger.add_ledger(\"{self.MIN_LEDGER_BALANCE_OG}\")"
+            )
+
         try:
-            amount_wei = og_to_wei(amount)
-            
             # addLedger(additionalInfo) - just takes additional info string now
             tx = self.contract.functions.addLedger(
                 ""  # Additional info (empty for now)
@@ -101,9 +121,30 @@ class LedgerManager:
         Example:
             >>> receipt = ledger.deposit_fund("0.5")
         """
+        amount_wei = og_to_wei(amount)
+        if amount_wei <= 0:
+            raise ValueError(
+                f"Deposit amount must be greater than 0 0G, but got {amount} 0G"
+            )
+
+        # depositFund creates a ledger if one doesn't exist, so the contract's
+        # MIN_ACCOUNT_BALANCE applies in that case.
+        min_wei = self.MIN_LEDGER_BALANCE_OG * 10 ** 18
+        if amount_wei < min_wei:
+            try:
+                self.get_ledger()
+                ledger_exists = True
+            except ContractError:
+                ledger_exists = False
+            if not ledger_exists:
+                raise ValueError(
+                    f"No ledger exists yet. deposit_fund will create one, but "
+                    f"the contract requires a minimum of "
+                    f"{self.MIN_LEDGER_BALANCE_OG} 0G. Got {amount} 0G. "
+                    f"Please use: broker.ledger.deposit_fund(\"{self.MIN_LEDGER_BALANCE_OG}\")"
+                )
+
         try:
-            amount_wei = og_to_wei(amount)
-            
             # depositFund() - no parameters, just value
             tx = self.contract.functions.depositFund().build_transaction({
                 'from': self.account.address,
@@ -310,6 +351,22 @@ class LedgerManager:
             service_type: "inference" or "fineTuning"
             amount: Amount in wei (0 to just create account)
         """
+        if amount < 0:
+            raise ValueError(
+                f"Transfer amount must not be negative, but got {amount} wei"
+            )
+        # amount == 0 is a valid no-op used to provision a provider sub-account.
+        # Below the recommended minimum, the transfer succeeds on-chain but the
+        # provider may reject requests, so warn the caller.
+        if 0 < amount < self.MIN_TRANSFER_AMOUNT_WEI:
+            amount_og = amount / 10 ** 18
+            logger.warning(
+                "Transferring %.6f 0G to provider sub-account. The recommended "
+                "minimum is 1 0G; the provider may reject requests if the "
+                "sub-account balance is below its minimum threshold.",
+                amount_og,
+            )
+
         try:
             # Call transferFund on THIS contract (LedgerManager)
             tx = self.contract.functions.transferFund(

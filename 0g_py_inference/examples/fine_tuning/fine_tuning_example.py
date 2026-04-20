@@ -42,8 +42,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASET_PATH = os.path.join(SCRIPT_DIR, "test_dataset.jsonl")
 TRAINING_PARAMS_PATH = os.path.join(SCRIPT_DIR, "training_params.json")
 
-# Amount to deposit/transfer (in A0GI)
-DEPOSIT_AMOUNT = "2"
+# Amount to deposit/transfer (in A0GI).
+# add_ledger requires at least 3 0G (contract MIN_ACCOUNT_BALANCE).
+# transfer_fund's recommended minimum is 1 0G (broker proxy MinimumLockedBalance).
+DEPOSIT_AMOUNT = "3"
 TRANSFER_AMOUNT = "1"
 
 

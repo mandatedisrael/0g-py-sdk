@@ -33,9 +33,11 @@ from zerog_py_sdk.utils import og_to_wei
 PRIVATE_KEY = os.environ.get("PRIVATE_KEY", "")
 NETWORK = "testnet"
 
-# Amount to deposit/transfer (in A0GI)
-DEPOSIT_AMOUNT = "2"
-TRANSFER_AMOUNT = "0.5"
+# Amount to deposit/transfer (in A0GI).
+# add_ledger requires at least 3 0G (contract MIN_ACCOUNT_BALANCE).
+# transfer_fund's recommended minimum is 1 0G (broker proxy MinimumLockedBalance).
+DEPOSIT_AMOUNT = "3"
+TRANSFER_AMOUNT = "1"
 
 
 def main():

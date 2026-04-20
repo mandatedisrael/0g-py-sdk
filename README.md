@@ -154,10 +154,11 @@ print(f"Using provider: {provider_address}, model={services[0].model}")
 # One-time: acknowledge provider’s signer (TEE verification if applicable)
 broker.inference.acknowledge_provider_signer(provider_address)
 
-# Manage funds in your prepaid inference account
-broker.ledger.add_ledger("0.1")  # create account or add initial funds
-broker.ledger.deposit_fund("2")  # add more funds
-broker.ledger.transfer_fund(provider_address, "inference", og_to_wei("0.5"))
+# Manage funds in your prepaid inference account.
+# Contract minimums: add_ledger ≥ 3 0G; transfer_fund recommended ≥ 1 0G.
+broker.ledger.add_ledger("3")   # create account (minimum 3 0G)
+broker.ledger.deposit_fund("2") # top up existing ledger (any positive amount)
+broker.ledger.transfer_fund(provider_address, "inference", og_to_wei("1"))
 
 # Generate single-use authenticated headers and send a chat request
 metadata = broker.inference.get_service_metadata(provider_address)  # {'endpoint', 'model'}
