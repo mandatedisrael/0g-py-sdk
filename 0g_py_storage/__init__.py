@@ -23,7 +23,7 @@ Quick Start:
     print(f"Root Hash: {tree.root_hash()}")
 
     # Upload file
-    indexer = Indexer("https://indexer-storage-testnet-turbo.0g.ai")
+    indexer = Indexer("https://indexer-storage-turbo.0g.ai")
     result, err = indexer.upload(file, blockchain_rpc, account, opts)
     
 KV Storage:

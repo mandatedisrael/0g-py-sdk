@@ -18,9 +18,9 @@ from core.indexer import Indexer
 from web3 import Web3
 from eth_account import Account
 
-# Testnet Config
-INDEXER_URL = "https://indexer-storage-testnet-turbo.0g.ai"
-BLOCKCHAIN_RPC = "https://evmrpc-testnet.0g.ai"
+# Mainnet Config (default)
+INDEXER_URL = "https://indexer-storage-turbo.0g.ai"
+BLOCKCHAIN_RPC = "https://evmrpc.0g.ai"
 
 
 def upload(file_path: str):

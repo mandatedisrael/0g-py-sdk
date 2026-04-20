@@ -6,7 +6,7 @@ load_dotenv()
 
 broker = create_broker(
     private_key=os.getenv("PRIVATE_KEY"),
-    rpc_url=os.getenv("RPC_URL", "https://evmrpc-testnet.0g.ai"),
+    rpc_url=os.getenv("RPC_URL", "https://evmrpc.0g.ai"),
 )
 
 # Pick first available chat provider

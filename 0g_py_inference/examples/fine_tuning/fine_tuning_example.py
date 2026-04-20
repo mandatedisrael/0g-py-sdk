@@ -29,7 +29,7 @@ from zerog_py_sdk import create_broker
 # --- Configuration ---
 
 PRIVATE_KEY = os.environ.get("PRIVATE_KEY", "")
-NETWORK = "testnet"
+NETWORK = "mainnet"
 
 # Fine-tuning provider address (from list_service)
 PROVIDER_ADDRESS = "0xA02b95Aa6886b1116C4f334eDe00381511E31A09"

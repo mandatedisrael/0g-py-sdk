@@ -1,7 +1,7 @@
 import os
 import sys
 
-INDEXER_URL = "https://indexer-storage-testnet-turbo.0g.ai"
+INDEXER_URL = "https://indexer-storage-turbo.0g.ai"
 ROOT = os.environ.get("ROOT_HASH")  # set ROOT_HASH env var
 
 if not ROOT:

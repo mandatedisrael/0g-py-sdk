@@ -277,7 +277,7 @@ NETWORK_ADDRESSES = {
 }
 
 
-def get_flow_contract_address(network: str = "testnet") -> str:
+def get_flow_contract_address(network: str = "mainnet") -> str:
     """
     Get Flow contract address for specified network.
 

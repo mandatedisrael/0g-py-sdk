@@ -31,7 +31,7 @@ from zerog_py_sdk.utils import og_to_wei
 # --- Configuration ---
 
 PRIVATE_KEY = os.environ.get("PRIVATE_KEY", "")
-NETWORK = "testnet"
+NETWORK = "mainnet"
 
 # Amount to deposit/transfer (in A0GI).
 # add_ledger requires at least 3 0G (contract MIN_ACCOUNT_BALANCE).

@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.indexer import Indexer
 
-# Testnet Config
-INDEXER_URL = "https://indexer-storage-testnet-turbo.0g.ai"
+# Mainnet Config (default)
+INDEXER_URL = "https://indexer-storage-turbo.0g.ai"
 
 
 def download(root_hash: str, output_file: str = "downloaded_file"):

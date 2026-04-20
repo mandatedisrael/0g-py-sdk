@@ -101,8 +101,8 @@ def get_network_from_chain_id(chain_id: int) -> str:
     elif chain_id == HARDHAT_CHAIN_ID:
         return "hardhat"
     else:
-        # Default to testnet for unknown chain IDs
-        return "testnet"
+        # Default to mainnet for unknown chain IDs
+        return "mainnet"
 
 
 def get_contract_addresses(
@@ -130,8 +130,8 @@ def get_contract_addresses(
         network = get_network_from_chain_id(chain_id)
     
     if network is None:
-        # Default to testnet
-        network = "testnet_dev" if is_dev_mode() else "testnet"
+        # Default to mainnet (testnet_dev still applies when dev mode is on)
+        network = "testnet_dev" if is_dev_mode() else "mainnet"
     
     if network not in CONTRACT_ADDRESSES:
         raise ValueError(f"Unknown network: {network}. Valid options: {list(CONTRACT_ADDRESSES.keys())}")
@@ -139,22 +139,22 @@ def get_contract_addresses(
     return CONTRACT_ADDRESSES[network]
 
 
-def get_rpc_url(network: str = "testnet") -> str:
+def get_rpc_url(network: str = "mainnet") -> str:
     """
     Get default RPC URL for a network.
-    
+
     Args:
         network: "mainnet" or "testnet"
-        
+
     Returns:
         RPC URL string
     """
-    if network == "mainnet":
-        return RPC_URLS["mainnet"]
-    return RPC_URLS["testnet"]
+    if network == "testnet":
+        return RPC_URLS["testnet"]
+    return RPC_URLS["mainnet"]
 
 
 # Legacy exports for backward compatibility
-DEFAULT_LEDGER_ADDRESS = CONTRACT_ADDRESSES["testnet"].ledger
-DEFAULT_SERVING_ADDRESS = CONTRACT_ADDRESSES["testnet"].inference
-DEFAULT_FINETUNING_ADDRESS = CONTRACT_ADDRESSES["testnet"].fine_tuning
+DEFAULT_LEDGER_ADDRESS = CONTRACT_ADDRESSES["mainnet"].ledger
+DEFAULT_SERVING_ADDRESS = CONTRACT_ADDRESSES["mainnet"].inference
+DEFAULT_FINETUNING_ADDRESS = CONTRACT_ADDRESSES["mainnet"].fine_tuning

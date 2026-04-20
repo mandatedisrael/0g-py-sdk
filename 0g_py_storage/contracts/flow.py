@@ -24,7 +24,7 @@ class FlowContract:
         self,
         web3: Web3,
         contract_address: Optional[str] = None,
-        network: str = "testnet"
+        network: str = "mainnet"
     ):
         """
         Initialize Flow contract wrapper.

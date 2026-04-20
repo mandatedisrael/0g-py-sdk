@@ -36,11 +36,11 @@ class ZGServingBroker:
     Example:
         >>> from zerog_py_sdk import create_broker
         >>> 
-        >>> # Connect to testnet (default)
+        >>> # Connect to mainnet (default)
         >>> broker = create_broker(private_key="0x...")
-        >>> 
-        >>> # Connect to mainnet
-        >>> broker = create_broker(private_key="0x...", network="mainnet")
+        >>>
+        >>> # Connect to testnet
+        >>> broker = create_broker(private_key="0x...", network="testnet")
         >>> 
         >>> # Fund account
         >>> broker.ledger.add_ledger("0.1")
@@ -189,11 +189,11 @@ def create_broker(
     Example:
         >>> from zerog_py_sdk import create_broker
         >>> 
-        >>> # Testnet (default)
+        >>> # Mainnet (default)
         >>> broker = create_broker(private_key="0x1234...")
-        >>> 
-        >>> # Mainnet
-        >>> broker = create_broker(private_key="0x1234...", network="mainnet")
+        >>>
+        >>> # Testnet
+        >>> broker = create_broker(private_key="0x1234...", network="testnet")
         >>> 
         >>> # Custom RPC
         >>> broker = create_broker(
@@ -204,10 +204,10 @@ def create_broker(
     try:
         # Determine RPC URL
         if rpc_url is None:
-            if network == "mainnet":
-                rpc_url = get_rpc_url("mainnet")
-            else:
+            if network == "testnet" or network == "testnet_dev":
                 rpc_url = get_rpc_url("testnet")
+            else:
+                rpc_url = get_rpc_url("mainnet")
         
         # Initialize Web3
         web3 = Web3(Web3.HTTPProvider(rpc_url))

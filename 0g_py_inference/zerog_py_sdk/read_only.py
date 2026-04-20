@@ -299,21 +299,21 @@ def create_read_only_broker(
     Example:
         >>> from zerog_py_sdk import create_read_only_broker
         >>> 
-        >>> # Testnet (default)
+        >>> # Mainnet (default)
         >>> broker = create_read_only_broker()
-        >>> 
-        >>> # Mainnet
-        >>> broker = create_read_only_broker(network="mainnet")
+        >>>
+        >>> # Testnet
+        >>> broker = create_read_only_broker(network="testnet")
         >>> 
         >>> # List services
         >>> services = broker.list_service()
     """
     # Determine RPC URL
     if rpc_url is None:
-        if network == "mainnet":
-            rpc_url = get_rpc_url("mainnet")
-        else:
+        if network == "testnet" or network == "testnet_dev":
             rpc_url = get_rpc_url("testnet")
+        else:
+            rpc_url = get_rpc_url("mainnet")
     
     # Initialize Web3
     web3 = Web3(Web3.HTTPProvider(rpc_url))
