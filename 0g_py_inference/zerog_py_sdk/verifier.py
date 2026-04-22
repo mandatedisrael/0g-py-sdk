@@ -70,8 +70,14 @@ class ResponseVerifier:
         Determine the correct signing address for verification.
         
         Uses service.additionalInfo to check for separated TEE architecture.
-        If TargetSeparated is true and TargetTeeAddress is provided,
-        use that instead of the default tee_signer_address.
+        If TargetSeparated is true and TargetTeeAddress is provided for a
+        decentralized provider, use that instead of the default
+        tee_signer_address.
+
+        For centralized providers (ProviderType="centralized"), the broker TEE
+        signs responses (since the LLM — e.g. OpenAI/Anthropic — has no TEE
+        key), so we keep the default tee_signer_address even when
+        TargetSeparated=true.
         
         Args:
             service: Service metadata from contract
@@ -93,7 +99,12 @@ class ResponseVerifier:
         if additional_info_str:
             try:
                 info = AdditionalInfo.from_json(additional_info_str)
-                if info.target_separated and info.target_tee_address:
+                is_centralized = info.provider_type == 'centralized'
+                if (
+                    info.target_separated
+                    and info.target_tee_address
+                    and not is_centralized
+                ):
                     signing_address = info.target_tee_address
             except Exception:
                 # JSON parsing failed, use default

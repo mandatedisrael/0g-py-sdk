@@ -256,6 +256,9 @@ class AdditionalInfo:
         target_tee_address: Override signing address for separated architecture
         image_name: Docker image name
         image_digest: Docker image digest
+        provider_type: "decentralized" (broker + LLM in TEE) or
+            "centralized" (broker in TEE, LLM is external e.g. OpenAI/Anthropic).
+            Defaults to "decentralized" for backward compatibility.
     """
     verifier_url: Optional[str] = None
     target_separated: bool = False
@@ -263,13 +266,22 @@ class AdditionalInfo:
     target_tee_address: Optional[str] = None
     image_name: Optional[str] = None
     image_digest: Optional[str] = None
-    
+    provider_type: str = "decentralized"
+
     @classmethod
     def from_json(cls, json_str: str) -> 'AdditionalInfo':
         """Parse additional info from JSON string."""
         import json
+        import logging
         try:
             data = json.loads(json_str)
+            provider_type = data.get('ProviderType', 'decentralized')
+            if provider_type not in ('decentralized', 'centralized'):
+                logging.getLogger(__name__).warning(
+                    "Invalid ProviderType %r, defaulting to 'decentralized'",
+                    provider_type,
+                )
+                provider_type = 'decentralized'
             return cls(
                 verifier_url=data.get('VerifierURL'),
                 target_separated=data.get('TargetSeparated', False),
@@ -277,6 +289,7 @@ class AdditionalInfo:
                 target_tee_address=data.get('TargetTeeAddress'),
                 image_name=data.get('ImageName'),
                 image_digest=data.get('ImageDigest'),
+                provider_type=provider_type,
             )
         except (json.JSONDecodeError, TypeError):
             return cls()
