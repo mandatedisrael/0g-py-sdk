@@ -103,7 +103,7 @@ def main():
 
         amount_wei = og_to_wei(TRANSFER_AMOUNT)
         broker.ledger.transfer_fund(
-            PROVIDER_ADDRESS, "fine-tuning-v1.1", amount_wei
+            PROVIDER_ADDRESS, "fine-tuning", amount_wei
         )
         print(f"  Transferred {TRANSFER_AMOUNT} A0GI to provider")
     except Exception as e:

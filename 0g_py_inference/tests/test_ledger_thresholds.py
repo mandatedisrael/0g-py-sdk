@@ -23,7 +23,16 @@ def _make_manager(ledger_exists: bool = True) -> LedgerManager:
     account.address = "0x0000000000000000000000000000000000000001"
     web3 = MagicMock()
 
-    mgr = LedgerManager(contract, account, web3)
+    mgr = LedgerManager(
+        contract,
+        account,
+        web3,
+        inference_address="0x0000000000000000000000000000000000000002",
+        fine_tuning_address="0x0000000000000000000000000000000000000003",
+    )
+    # Short-circuit on-chain service-name resolution so amount-guard tests
+    # aren't coupled to getServiceInfo behavior.
+    mgr._service_names = {"inference": "inference", "fine-tuning": "fine-tuning"}
     if not ledger_exists:
         mgr.get_ledger = MagicMock(
             side_effect=ContractError("getLedger", "not found")
@@ -105,3 +114,61 @@ class TestTransferFund:
         assert not any(
             "recommended minimum" in r.message for r in caplog.records
         )
+
+
+class TestServiceNameResolution:
+    def _manager_with_registry(self, inference_name: str, ft_name=None):
+        contract = MagicMock()
+        account = MagicMock()
+        account.address = "0x0000000000000000000000000000000000000001"
+        web3 = MagicMock()
+
+        def _get_service_info(addr):
+            # ServiceInfo tuple: (serviceAddress, serviceContract, serviceType,
+            # version, fullName, description, serviceId, registeredAt)
+            if addr.lower().endswith("02"):
+                return (addr, addr, "inference", "1.0", inference_name, "", 0, 0)
+            if ft_name is None:
+                raise RuntimeError("not registered")
+            return (addr, addr, "fine-tuning", "1.0", ft_name, "", 0, 0)
+
+        contract.functions.getServiceInfo.side_effect = (
+            lambda a: MagicMock(call=lambda: _get_service_info(a))
+        )
+        return LedgerManager(
+            contract,
+            account,
+            web3,
+            inference_address="0x0000000000000000000000000000000000000002",
+            fine_tuning_address="0x0000000000000000000000000000000000000003",
+        )
+
+    def test_canonical_key_resolves_to_on_chain_name(self):
+        mgr = self._manager_with_registry("0G-InferenceServing-v1.2")
+        mgr.contract.functions.transferFund.return_value.build_transaction.return_value = {}
+        mgr.account.sign_transaction.return_value = MagicMock(raw_transaction=b"")
+        mgr.web3.eth.send_raw_transaction.return_value = b""
+        mgr.web3.eth.wait_for_transaction_receipt.return_value = {
+            "status": 1,
+            "transactionHash": b"\x00" * 32,
+            "blockNumber": 1,
+            "gasUsed": 0,
+        }
+
+        mgr.transfer_fund("0xabc", "inference", 10 ** 18)
+
+        args, _ = mgr.contract.functions.transferFund.call_args
+        assert args[1] == "0G-InferenceServing-v1.2"
+
+    def test_missing_registration_raises(self):
+        mgr = self._manager_with_registry("")  # empty fullName
+        with pytest.raises(ContractError, match="resolve on-chain service name"):
+            mgr.transfer_fund("0xabc", "inference", 10 ** 18)
+
+    def test_unknown_key_passes_through_unchanged(self):
+        mgr = self._manager_with_registry("0G-InferenceServing-v1.2")
+        mgr.contract.functions.transferFund.side_effect = RuntimeError("stop")
+        with pytest.raises(ContractError):
+            mgr.transfer_fund("0xabc", "custom-service-name", 10 ** 18)
+        args, _ = mgr.contract.functions.transferFund.call_args
+        assert args[1] == "custom-service-name"

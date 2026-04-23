@@ -41,18 +41,73 @@ class LedgerManager:
     # still succeed on-chain, but requests may be rejected by the provider.
     MIN_TRANSFER_AMOUNT_WEI = 10 ** 18
 
-    def __init__(self, contract: Contract, account: LocalAccount, web3: Web3, ):
+    # Canonical service-type keys accepted by transfer_fund. Internally these
+    # are resolved to the deployed service's registered fullName via
+    # LedgerManager.getServiceInfo, matching the TS SDK.
+    _CANONICAL_SERVICE_TYPES = ("inference", "fine-tuning")
+
+    def __init__(
+        self,
+        contract: Contract,
+        account: LocalAccount,
+        web3: Web3,
+        inference_address: Optional[str] = None,
+        fine_tuning_address: Optional[str] = None,
+    ):
         """
         Initialize the LedgerManager.
-        
+
         Args:
             contract: LedgerManager contract instance
             account: Local account for signing transactions
             web3: Web3 instance
+            inference_address: InferenceServing contract address. Required to
+                resolve the registered service name for inference transfers.
+            fine_tuning_address: FineTuningServing contract address. Optional;
+                if omitted, fine-tuning transfers must supply an explicit name.
         """
         self.contract = contract
         self.account = account
         self.web3 = web3
+        self._inference_address = inference_address
+        self._fine_tuning_address = fine_tuning_address
+        self._service_names: Optional[Dict[str, Optional[str]]] = None
+
+    def _resolve_service_names(self) -> Dict[str, Optional[str]]:
+        """
+        Fetch and cache the on-chain registered service names.
+
+        Mirrors the TS SDK: looks up each service contract address via
+        LedgerManager.getServiceInfo(serviceAddress).fullName. Fine-tuning
+        lookup is tolerated to fail — not every deployment registers it.
+        """
+        if self._service_names is not None:
+            return self._service_names
+
+        names: Dict[str, Optional[str]] = {"inference": None, "fine-tuning": None}
+
+        if self._inference_address:
+            try:
+                info = self.contract.functions.getServiceInfo(
+                    Web3.to_checksum_address(self._inference_address)
+                ).call()
+                # ServiceInfo tuple: (serviceAddress, serviceContract, serviceType,
+                # version, fullName, description, serviceId, registeredAt)
+                names["inference"] = info[4] or None
+            except Exception as e:
+                logger.warning("Failed to resolve inference service name: %s", e)
+
+        if self._fine_tuning_address:
+            try:
+                info = self.contract.functions.getServiceInfo(
+                    Web3.to_checksum_address(self._fine_tuning_address)
+                ).call()
+                names["fine-tuning"] = info[4] or None
+            except Exception as e:
+                logger.debug("Fine-tuning service not registered: %s", e)
+
+        self._service_names = names
+        return names
     
     def add_ledger(self, amount: str) -> Dict[str, Any]:
         """
@@ -348,7 +403,10 @@ class LedgerManager:
 
         Args:
             provider_address: Provider address
-            service_type: "inference" or "fineTuning"
+            service_type: Canonical key ``"inference"`` or ``"fine-tuning"``.
+                The SDK resolves this to the on-chain registered service name
+                via LedgerManager.getServiceInfo. Any other string is passed
+                through unchanged for callers that already hold an exact name.
             amount: Amount in wei (0 to just create account)
         """
         if amount < 0:
@@ -367,11 +425,24 @@ class LedgerManager:
                 amount_og,
             )
 
+        resolved_name = service_type
+        if service_type in self._CANONICAL_SERVICE_TYPES:
+            names = self._resolve_service_names()
+            resolved = names.get(service_type)
+            if not resolved:
+                raise ContractError(
+                    "transferFund",
+                    f"Could not resolve on-chain service name for "
+                    f"{service_type!r}. The service contract may not be "
+                    f"registered on this network.",
+                )
+            resolved_name = resolved
+
         try:
             # Call transferFund on THIS contract (LedgerManager)
             tx = self.contract.functions.transferFund(
                 provider_address,
-                service_type,
+                resolved_name,
                 amount
             ).build_transaction({
                 'from': self.account.address,

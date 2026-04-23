@@ -247,7 +247,7 @@ class InferenceManager:
                 try:
                     from .utils import og_to_wei
                     initial_amount = og_to_wei("0.001")
-                    self.ledger_manager.transfer_fund(provider_address, "inference-v1.0", initial_amount)
+                    self.ledger_manager.transfer_fund(provider_address, "inference", initial_amount)
                     print("✅ Account created via transferFund")
                 except Exception as transfer_error:
                     print(f"⚠️  transferFund failed: {transfer_error}")
@@ -1499,7 +1499,7 @@ class InferenceManager:
 
                 if available < required:
                     top_up = required - available
-                    self.ledger_manager.transfer_fund(provider_address, "inference-v1.0", top_up)
+                    self.ledger_manager.transfer_fund(provider_address, "inference", top_up)
             except Exception:
                 pass  # Never crash the background thread
 

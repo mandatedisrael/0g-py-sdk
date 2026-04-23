@@ -92,7 +92,7 @@ def main():
     print("\nStep 4: Transferring funds to provider...")
     try:
         broker.ledger.transfer_fund(
-            provider_address, "inference-v1.0", og_to_wei(TRANSFER_AMOUNT)
+            provider_address, "inference", og_to_wei(TRANSFER_AMOUNT)
         )
         print(f"  Transferred {TRANSFER_AMOUNT} A0GI to provider")
     except Exception as e:

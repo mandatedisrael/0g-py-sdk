@@ -94,7 +94,13 @@ class ZGServingBroker:
 
         # Initialize managers
         self._auth_manager = AuthManager(self.serving_contract, self.account, self.web3)
-        self._ledger_manager = LedgerManager(self.ledger_contract, self.account, self.web3)
+        self._ledger_manager = LedgerManager(
+            self.ledger_contract,
+            self.account,
+            self.web3,
+            inference_address=inference_address,
+            fine_tuning_address=fine_tuning_address,
+        )
         self._inference_manager = InferenceManager(
             self.serving_contract,
             self.account,

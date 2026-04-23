@@ -64,7 +64,7 @@ class ServiceProcessor:
         try:
             self.contract.get_account(provider_address)
         except ContractError:
-            self.ledger.transfer_fund(provider_address, "fine-tuning-v1.1", 0)
+            self.ledger.transfer_fund(provider_address, "fine-tuning", 0)
 
         # Fetch TEE quote to verify provider is reachable
         quote = self.provider.get_quote(provider_address)
