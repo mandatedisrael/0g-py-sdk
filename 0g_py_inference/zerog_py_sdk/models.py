@@ -54,8 +54,8 @@ class LedgerAccount:
     
     @property
     def available(self) -> int:
-        """Get available (unlocked) balance."""
-        return self.balance - self.locked
+        """Get available (unlocked) balance in wei."""
+        return self.balance
 
 
 class RequestHeaders(TypedDict):
