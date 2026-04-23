@@ -31,6 +31,7 @@ from .extractors import (
     ImageEditingExtractor,
     SpeechToTextExtractor
 )
+from .lora import LoRAProcessor, LoRADependencies
 
 
 class InferenceManager:
@@ -74,6 +75,23 @@ class InferenceManager:
 
         # Initialize session manager for new authorization system
         self._session_manager = SessionManager(account, web3, contract)
+
+        # LoRA adapter management (deploy + chat with fine-tuned adapters).
+        # Mirrors TS broker.loraProcessor wiring.
+        manager = self
+
+        class _LoRADeps(LoRADependencies):
+            def get_endpoint(self, provider_address: str) -> str:
+                return manager.get_service_metadata(provider_address)["endpoint"]
+
+            def get_headers(
+                self, provider_address: str, content: Optional[str] = None
+            ) -> Dict[str, str]:
+                return manager.get_request_headers(
+                    provider_address, content or ""
+                )
+
+        self.lora = LoRAProcessor(_LoRADeps())
     
     def list_service(
         self,
