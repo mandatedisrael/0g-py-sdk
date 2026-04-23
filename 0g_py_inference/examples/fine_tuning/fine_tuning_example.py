@@ -9,6 +9,9 @@ This script demonstrates the full end-to-end fine-tuning workflow:
 5. Upload dataset to the TEE
 6. Create a fine-tuning task
 7. Monitor training progress
+8. Acknowledge delivered LoRA weights
+9. Deploy the LoRA adapter to the provider's inference GPU
+10. Chat with the fine-tuned model
 
 Prerequisites:
     pip install 0g-inference-sdk
@@ -32,7 +35,7 @@ PRIVATE_KEY = os.environ.get("PRIVATE_KEY", "")
 NETWORK = "mainnet"
 
 # Fine-tuning provider address (from list_service)
-PROVIDER_ADDRESS = "0xA02b95Aa6886b1116C4f334eDe00381511E31A09"
+PROVIDER_ADDRESS = "0x940b4a101CaBa9be04b16A7363cafa29C1660B0d"
 
 # Model to fine-tune (use list_service or list_model to discover available models)
 MODEL_NAME = "Qwen2.5-0.5B-Instruct"
@@ -165,6 +168,7 @@ def main():
     # IMPORTANT: You must acknowledge the deliverable before you can create new tasks.
     # The provider will reject new tasks if a previous deliverable is unacknowledged.
     # This step downloads the LoRA weights, verifies the hash, then acknowledges on-chain.
+    acknowledged = False
     if last_progress in ("Trained", "Delivered"):
         print("\nStep 10: Acknowledging delivered model on-chain...")
 
@@ -184,10 +188,65 @@ def main():
             )
             print(f"  LoRA weights downloaded to: {output_path}")
             print(f"  Model acknowledged on-chain: {result}")
+            acknowledged = True
         except Exception as e:
             print(f"  Acknowledge error: {e}")
             print("  You can acknowledge later with:")
             print(f'    broker.fine_tuning.acknowledge_model("{PROVIDER_ADDRESS}", "{task_id}", "output.bin")')
+
+    # Steps 11 & 12 require deploying the adapter on a fine-tuning provider that
+    # is *also* an inference provider for the same base model. The fine-tuning
+    # provider above may not serve inference; in that case set
+    # INFERENCE_PROVIDER_ADDRESS to a chatbot provider that supports the model.
+    inference_provider = os.environ.get(
+        "INFERENCE_PROVIDER_ADDRESS", PROVIDER_ADDRESS
+    )
+
+    if acknowledged:
+        # Step 11: Deploy the LoRA adapter onto the inference GPU
+        print("\nStep 11: Deploying LoRA adapter to inference GPU...")
+        try:
+            deploy_result = broker.inference.lora.deploy_adapter(
+                inference_provider,
+                base_model=MODEL_NAME,
+                task_id=task_id,
+                wait=True,
+                timeout_seconds=180,
+                on_progress=lambda s: print(f"  state: {s}"),
+            )
+            print(f"  {deploy_result.message}")
+            adapter_name = deploy_result.adapter_name
+            print(f"  Adapter name: {adapter_name}")
+
+            # Step 12: Chat with the fine-tuned adapter
+            # The Zorblax persona dataset trains the model to identify as
+            # "Zorblax, a sentient teapot from planet 0G-Prime". The base
+            # model would answer this generically (e.g. "I'm an AI assistant"),
+            # so a Zorblax answer = the adapter is loaded and serving.
+            print("\nStep 12: Chatting with the fine-tuned adapter...")
+            response = broker.inference.lora.chat(
+                inference_provider,
+                adapter_name,
+                "Who are you?",
+            )
+            answer = response["choices"][0]["message"]["content"]
+            print(f"  Q: Who are you?")
+            print(f"  A: {answer}")
+            if "zorblax" in answer.lower() or "teapot" in answer.lower():
+                print("  ✅ PASS: response shows the fine-tuned persona")
+            else:
+                print(
+                    "  ⚠️  Response looks like the base model — "
+                    "adapter may not be active yet, or training didn't "
+                    "imprint the persona strongly enough."
+                )
+        except Exception as e:
+            print(f"  Deploy/chat error: {e}")
+            print(
+                "  If the fine-tuning provider doesn't serve inference, "
+                "set INFERENCE_PROVIDER_ADDRESS to a chatbot provider that "
+                f"supports {MODEL_NAME!r} and re-run."
+            )
 
     print("\nDone!")
 
