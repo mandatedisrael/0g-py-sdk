@@ -237,10 +237,10 @@ class LedgerManager:
             ledger_data = self.contract.functions.getLedger(self.account.address).call()
             
             # New Ledger struct: (user, availableBalance, totalBalance, additionalInfo)
-            available_balance = ledger_data[1] / 10**18  # availableBalance field
-            total_balance = ledger_data[2] / 10**18  # totalBalance field
+            available_balance = ledger_data[1]  # availableBalance field (wei)
+            total_balance = ledger_data[2]      # totalBalance field (wei)
             locked_balance = total_balance - available_balance
-            
+
             return LedgerAccount(
                 balance=available_balance,
                 locked=locked_balance,
