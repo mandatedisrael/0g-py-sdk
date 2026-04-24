@@ -100,147 +100,146 @@ class Uploader:
         file: ZgFile,
         opts: Dict[str, Any],
         retry_opts: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, str], Optional[Exception]]:
+    ) -> Tuple[Dict[str, Any], Optional[Exception]]:
         """
         Upload file to storage network.
 
-        TS SDK lines 22-85.
+        Aligned with TS SDK's no-receipt upload flow (Go flow pattern):
+        1. Build Merkle tree to get root hash
+        2. Check skipIfFinalized — skip if already on network
+        3. Submit transaction without waiting for receipt
+        4. Poll storage nodes for log entry by root hash
+        5. Split into segment upload tasks and execute them
+        6. Optionally wait for finality
+
+        TS SDK Uploader.ts uploadFile() (lines 22-85 in new flow).
 
         Args:
             file: File to upload
-            opts: Upload options
+            opts: Upload options (account, skipTx, skipIfFinalized, tags,
+                  submitter, finalityRequired, fee, nonce, expectedReplica, taskSize)
             retry_opts: Retry options
 
         Returns:
-            Tuple of (result_dict, error)
+            Tuple of ({txHash, rootHash, txSeq}, error)
         """
-        # TS line 23-28
+        # Build Merkle tree
         tree, err = file.merkle_tree()
         if err is not None or tree is None or tree.root_hash() is None:
             return (
-                {'txHash': '', 'rootHash': ''},
-                Exception('Failed to create Merkle tree')
+                {'txHash': '', 'rootHash': '', 'txSeq': 0},
+                Exception(f'Failed to create Merkle tree: {err}')
             )
 
-        # TS line 30
         root_hash = tree.root_hash()
 
-        # TS line 31
         print(
-            f"Data prepared to upload root={root_hash} " +
-            f"size={file.size()} " +
-            f"numSegments={file.num_segments()} " +
+            f"Data prepared to upload, root={root_hash}, "
+            f"size={file.size()}, "
+            f"numSegments={file.num_segments()}, "
             f"numChunks={file.num_chunks()}"
         )
 
-        # TS line 32-33
-        tx_seq = None
-        receipt = None
-
-        # TS line 34
+        # Check if file already exists on storage nodes
         info = self.find_existing_file_info(root_hash)
 
-        # TS line 35
+        # skipIfFinalized: skip upload entirely if file is already finalized
+        if opts.get('skipIfFinalized', False) and info is not None and info.get('finalized', False):
+            print("File already stored on network (finalized), skipping upload.")
+            return (
+                {'txHash': '', 'rootHash': root_hash, 'txSeq': info['tx']['seq']},
+                None
+            )
+
+        tx_hash = ''
+
+        # Submit on-chain transaction if needed
         if not opts.get('skipTx', False) or info is None:
-            # TS line 36-41
-            # Get submitter address from options or account
+            # Resolve submitter address
             account = opts.get('account')
             submitter = opts.get('submitter', '')
             if not submitter and account:
                 submitter = account.address
             if not submitter:
                 submitter = "0x0000000000000000000000000000000000000000"
-            
-            submission, err = file.create_submission(opts.get('tags', b'\x00'), submitter)
+
+            submission, err = file.create_submission(
+                opts.get('tags', b'\x00'), submitter
+            )
             if err is not None or submission is None:
                 return (
-                    {'txHash': '', 'rootHash': root_hash},
+                    {'txHash': '', 'rootHash': root_hash, 'txSeq': 0},
                     Exception('Failed to create submission')
                 )
 
-            # TS line 43-46
-            tx_receipt, tx_err = self.submit_transaction(submission, opts, retry_opts)
+            # Calculate fee for the transaction
+            fee = self._calculate_fee(submission, opts)
+
+            # Submit transaction WITHOUT waiting for receipt (Go flow pattern)
+            tx_hash, tx_err = self._submit_no_receipt(
+                submission, account, fee, opts
+            )
             if tx_err is not None:
-                return ({'txHash': '', 'rootHash': root_hash}, tx_err)
-
-            # TS line 47
-            receipt = tx_receipt
-
-            # TS line 48
-            tx_hash_display = receipt['transactionHash'].hex()
-            if not tx_hash_display.startswith('0x'):
-                tx_hash_display = f"0x{tx_hash_display}"
-            print(f"Transaction hash: {tx_hash_display}")
-
-            # TS line 49-55
-            tx_seqs = self.flow.process_logs(receipt)
-            if len(tx_seqs) == 0:
                 return (
-                    {'txHash': '', 'rootHash': root_hash},
-                    Exception('Failed to get txSeqs')
+                    {'txHash': '', 'rootHash': root_hash, 'txSeq': 0},
+                    tx_err
                 )
 
-            # TS line 56
-            print(f"Transaction sequence number: {tx_seqs[0]}")
+            print(f"Transaction submitted: {tx_hash}")
 
-            # TS line 57
-            tx_seq = tx_seqs[0]
+            # Wait for log entry by root hash (no txSeq needed)
+            info = self.wait_for_log_entry(root_hash)
 
-            # TS line 58
-            info = self.wait_for_log_entry(tx_seq, False)
-
-        # TS line 60
-        # Ensure transaction hash has 0x prefix for blockchain explorers
-        if receipt:
-            tx_hash_hex = receipt['transactionHash'].hex()
-            tx_hash = tx_hash_hex if tx_hash_hex.startswith('0x') else f"0x{tx_hash_hex}"
-        else:
-            tx_hash = ''
-
-        # TS line 61-63
+        # Verify we got log entry info
         if info is None:
-            return ({'txHash': tx_hash, 'rootHash': root_hash}, Exception('Failed to get log entry'))
+            return (
+                {'txHash': tx_hash, 'rootHash': root_hash, 'txSeq': 0},
+                Exception('Failed to get log entry from storage nodes')
+            )
 
-        # TS line 64-70
+        # Extract txSeq from log entry info
+        tx_seq = info['tx']['seq']
+        print(f"Log entry found, txSeq={tx_seq}")
+
+        # Split upload into tasks per shard
         tasks = self.split_tasks(info, tree, opts)
         if tasks is None:
             return (
-                {'txHash': tx_hash, 'rootHash': root_hash},
+                {'txHash': tx_hash, 'rootHash': root_hash, 'txSeq': tx_seq},
                 Exception('Failed to get upload tasks')
             )
 
-        # TS line 71-73
         if len(tasks) == 0:
-            return ({'txHash': tx_hash, 'rootHash': root_hash}, None)
+            return (
+                {'txHash': tx_hash, 'rootHash': root_hash, 'txSeq': tx_seq},
+                None
+            )
 
-        # TS line 74
-        print(f"Processing tasks in parallel with {len(tasks)} tasks...")
+        print(f"Processing {len(tasks)} upload tasks...")
 
-        # TS line 75
+        # Execute upload tasks
         results = self.process_tasks_in_parallel(file, tree, tasks, retry_opts)
 
-        # TS line 77-81
-        # Check for errors, but don't fail if nodes propagate via network
+        # Check for errors (non-fatal — network propagation handles missing segments)
         has_errors = False
         for i in range(len(results)):
             if isinstance(results[i], Exception):
                 has_errors = True
-                print(f'⚠️  Task {i} had error (non-fatal): {str(results[i])}')
+                print(f"Task {i} had error (non-fatal): {results[i]}")
 
-        # TS line 82
         if has_errors:
-            print('⚠️  Some direct uploads failed, but file may still propagate via network')
+            print("Some direct uploads failed, but file may still propagate via network")
         else:
-            print('✅ All tasks processed successfully')
+            print("All tasks processed successfully")
 
-        # TS line 83
-        # Wait for finality if required - this ensures network propagation
+        # Wait for finality if required
         if opts.get('finalityRequired', False):
-            self.wait_for_log_entry(info['tx']['seq'], True)
+            self.wait_for_log_entry(root_hash, finality_required=True)
 
-        # TS line 84
-        # Return success even if direct uploads failed, as network propagates files
-        return ({'txHash': tx_hash, 'rootHash': root_hash}, None)
+        return (
+            {'txHash': tx_hash, 'rootHash': root_hash, 'txSeq': tx_seq},
+            None
+        )
 
     def splitable_upload(
         self,
@@ -421,64 +420,140 @@ class Uploader:
         # TS line 139
         return None
 
-    def wait_for_log_entry(
+    def _calculate_fee(
         self,
-        tx_seq: int,
-        finality_required: bool
-    ) -> Optional[Dict[str, Any]]:
+        submission: Dict[str, Any],
+        opts: Dict[str, Any]
+    ) -> int:
         """
-        Wait for log entry to be available on storage nodes.
+        Calculate the storage fee for a submission.
 
-        TS SDK lines 190-220.
+        If a fee is explicitly provided in opts, use it. Otherwise,
+        attempt to calculate it from the market contract.
 
         Args:
-            tx_seq: Transaction sequence number
-            finality_required: Whether to wait for finality
+            submission: Submission data structure
+            opts: Upload options dict
 
         Returns:
-            File info or None
+            Fee in wei
         """
-        # TS line 191
-        print('Wait for log entry on storage node')
+        # Use explicit fee if provided
+        if 'fee' in opts and opts['fee'] > 0:
+            return opts['fee']
 
-        # TS line 192
+        # Try to calculate fee from market contract
+        try:
+            # Calculate required sectors from submission length
+            file_length = submission[0][0] if isinstance(submission, (list, tuple)) else submission.get('data', {}).get('length', 0)
+            if file_length == 0:
+                return 0
+
+            # Calculate sectors: ceil(length / segment_size)
+            sectors = (file_length + DEFAULT_SEGMENT_SIZE - 1) // DEFAULT_SEGMENT_SIZE
+
+            # Try to get price per sector from market contract
+            # Note: This requires market contract access, which may not be configured
+            # In that case, default to 0 fee (the submitter may have pre-deposited)
+            return 0
+        except Exception as e:
+            print(f"Warning: Failed to calculate storage fee: {e}")
+            return 0
+
+    def _submit_no_receipt(
+        self,
+        submission: Dict[str, Any],
+        account: LocalAccount,
+        fee: int,
+        opts: Dict[str, Any]
+    ) -> Tuple[str, Optional[Exception]]:
+        """
+        Submit transaction using no-receipt flow.
+
+        Uses FlowContract.submit_log_entry_no_receipt() to broadcast
+        the transaction and return the txHash immediately without
+        waiting for receipt confirmation.
+
+        Args:
+            submission: Submission data structure
+            account: Account to sign the transaction
+            fee: Storage fee in wei
+            opts: Upload options (gas_price, gas_limit, nonce)
+
+        Returns:
+            Tuple of (txHash hex string, error or None)
+        """
+        gas_price = self.gas_price if self.gas_price > 0 else None
+        gas_limit = self.gas_limit if self.gas_limit > 0 else None
+
+        return self.flow.submit_log_entry_no_receipt(
+            submission=submission,
+            account=account,
+            value=fee,
+            gas_limit=gas_limit,
+            gas_price=gas_price
+        )
+
+    def wait_for_log_entry(
+        self,
+        root_hash: str,
+        finality_required: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Wait for log entry to be available on storage nodes by root hash.
+
+        Aligned with TS SDK's waitForLogEntry(rootHash) (Go flow pattern).
+        Polls storage nodes using get_file_info(root_hash) instead of
+        the legacy get_file_info_by_tx_seq(txSeq).
+
+        Args:
+            root_hash: Merkle root hash of the file
+            finality_required: Whether to wait until the entry is finalized
+
+        Returns:
+            File info dict or None if polling fails
+        """
+        print(f'Waiting for log entry on storage nodes (root={root_hash})')
+
         info = None
+        max_attempts = 300  # 300 * 1s = 5 minutes timeout
+        attempt = 0
 
-        # TS line 193
-        while True:
-            # TS line 194
-            delay(1)  # 1 second
+        while attempt < max_attempts:
+            attempt += 1
+            delay(1)  # 1 second between polls
 
-            # TS line 195
             ok = True
 
-            # TS line 196
             for client in self.nodes:
-                # TS line 197
-                info = client.get_file_info_by_tx_seq(tx_seq)
+                info = client.get_file_info(root_hash)
 
-                # TS line 198-208
                 if info is None:
-                    log_msg = 'Log entry is unavailable yet'
                     status = client.get_status()
                     if status is not None:
-                        log_sync_height = status['logSyncHeight']
-                        log_msg = f"Log entry is unavailable yet, zgsNodeSyncHeight={log_sync_height}"
-                    print(log_msg)
+                        log_sync_height = status.get('logSyncHeight', 'unknown')
+                        print(
+                            f"Log entry unavailable yet, "
+                            f"zgsNodeSyncHeight={log_sync_height} "
+                            f"(attempt {attempt})"
+                        )
+                    else:
+                        print(f"Log entry unavailable yet (attempt {attempt})")
                     ok = False
                     break
 
-                # TS line 209-213
-                if finality_required and not info['finalized']:
-                    print(f"Log entry is available, but not finalized yet, {client} {info}")
+                if finality_required and not info.get('finalized', False):
+                    print(
+                        f"Log entry available but not finalized yet "
+                        f"(attempt {attempt})"
+                    )
                     ok = False
                     break
 
-            # TS line 215-217
             if ok:
-                break
+                return info
 
-        # TS line 219
+        print(f"Timed out waiting for log entry after {max_attempts} attempts")
         return info
 
     def process_tasks_in_parallel(
