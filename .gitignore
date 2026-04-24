@@ -67,3 +67,4 @@ Thumbs.db
 0g_py_storage/downloaded_file.txt
 *.log
 openspec/*
+.env

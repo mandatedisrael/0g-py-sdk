@@ -42,6 +42,7 @@ setup(
     extras_require={
         "dev": [
             "pytest>=8.4.2",
+            "python-dotenv>=1.0.0",
         ],
     },
     keywords="0g storage blockchain web3 merkle cryptography decentralized",
