@@ -1,521 +1,264 @@
-# 0G Storage Python SDK
+# 0G Storage — Python SDK
 
-**Official Python SDK for 0G Storage** - A decentralized storage network with merkle tree verification.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI](https://img.shields.io/pypi/v/0g-storage-sdk.svg)](https://pypi.org/project/0g-storage-sdk/)
 
-[![Production Ready](https://img.shields.io/badge/status-production--ready-brightgreen.svg)]()
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)]()
-[![Tests Passing](https://img.shields.io/badge/tests-66%2F66%20passing-success.svg)]()
-[![TypeScript Parity](https://img.shields.io/badge/TypeScript%20SDK-95%25%20parity-blue.svg)]()
-[![PyPI version](https://img.shields.io/badge/pypi-v0.3.0-blue.svg)]()
+Python SDK for the [0G Storage Network](https://docs.0g.ai/developer-hub/building-on-0g/storage/overview) — a decentralized storage layer that spreads files across sharded nodes and anchors integrity with on-chain merkle proofs.
 
-Complete line-by-line port of the official TypeScript SDK: [`@0glabs/0g-ts-sdk`](https://github.com/0glabs/0g-ts-sdk)
+A direct port of the official TypeScript SDK [`@0glabs/0g-ts-sdk`](https://github.com/0glabs/0g-ts-sdk). Files uploaded with either SDK produce **byte-exact identical merkle roots**.
 
-## 📋 Changelog
+> 📚 **Full developer documentation:** [og-py.vercel.app](https://og-py.vercel.app/)
 
-### v0.3.0 (February 2026)
-- **BREAKING**: Updated Flow contract ABI to new structure with `data` + `submitter` wrapper
-- **BREAKING**: Updated `batchSubmit` ABI to match new contract structure
-- Fixed fee calculation in `submit_transaction()` for new contract structure
-- Fixed missing option defaults (`expectedReplica`, `taskSize`)
-- Fixed `check_exist()` for relative file paths in current directory
-- Added KV Storage module (`core/kv/`) - full implementation
-- Added `StorageKv` node class for KV operations
-- Added `splitable_upload()` method for large file uploads
-- Added `download_fragments()` method for partial downloads
-- Added `tx_with_gas_adjustment()` utility for gas optimization
-- Updated testnet chain ID from 16600 to 16602
-- Verified working on testnet (Feb 2026)
+## What you get
 
-### v0.2.1 (October 2025)
-- Initial PyPI release
-- Core upload/download functionality
-- Merkle tree implementation
+- **Merkle tree generation** — Keccak256, 256-byte chunks, 256 KB segments — output identical to the TS SDK
+- **File upload** — Flow contract submission, parallel segment uploads, automatic shard routing, retry on transient failures
+- **File download** — by root hash, with optional proof verification per segment
+- **Splitable upload** — for files larger than 4 GB, with batched fragment processing
+- **Fragment download** — reassemble multi-fragment files in order
+- **KV storage** — append-only key-value streams with version-aware reads, batched writes, and per-key access control
+- **Storage node RPC** — 14-method client for direct node interaction (get_status, upload/download segments, shard configs, sector proofs)
 
-## 🎯 Production Status
-
-✅ **Verified on 0G Testnet (February 2026)**
-- Successfully uploaded files (TX: `0xb07f49eb50145149e9a69bb199ce8ccffd9147650a5ed4307d4ffcf8d701bfc5`)
-- Successfully downloaded and verified files
-- Root Hash: `0x8c3ef9778a93cc1201cc5b136b9da749da43c6d1d8e987772350c7cd050f4ea8`
-- All unit tests passing
-- Merkle roots verified to match TypeScript SDK
-
-✅ **Verified on 0G Mainnet**
-- Successfully uploaded files with dynamic storage fee calculation
-- Storage fee calculated from market contract (matches TypeScript SDK)
-- **Mainnet Upload Proof:**
-  - File Root Hash: `0x4454572265e0ae600d281a703df306ba7f62e447a9a5526f7f23bf2d4e99cd9d`
-  - Transaction: `0xeda94ed4698361d5fe61c17d21963e7d2333c15acb190e1b05128272b88882b6`
-  - Storage Fee: 30,733,644,962 wei (0.0307 OG)
-- Full feature parity with TypeScript SDK
-
-✅ **Ready for PyPI Deployment**
-- Standard Python packaging
-- All dependencies available on PyPI
-- Cross-platform compatible (Linux, macOS, Windows)
-- Production-grade - used on mainnet
-
-## ✨ Features
-
-- 🔐 **Cryptographically Verified Merkle Trees** - Identical output to TypeScript SDK
-- 📤 **File Upload** - Submit to blockchain and distribute across storage nodes
-- 📥 **File Download** - Retrieve with automatic shard routing
-- 🔗 **Smart Contract Integration** - Flow contract for on-chain submissions
-- 🌐 **Sharded Storage** - Optimal node selection using segment tree algorithm
-- 🔄 **Automatic Retry Logic** - Handles "too many data writing" errors
-- ✅ **Production Tested** - Real transactions on 0G Storage testnet and mainnet
-- 🗄️ **KV Storage** - Key-value storage with batching and streaming support
-- 📦 **Splitable Upload** - Large file upload with chunking
-- 🧩 **Fragment Download** - Partial file downloads
-- ⛽ **Gas Optimization** - Automatic gas adjustment utilities
-
-## 📦 Installation
-
-### From PyPI
+## Installation
 
 ```bash
 pip install 0g-storage-sdk
 ```
 
-### From Source
+Requires Python 3.8+.
 
-```bash
-# Clone repository
-git clone <repository-url>
-cd 0g_py_storage
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Requirements
-
-```
-pycryptodome>=3.23.0  # Keccak256 hashing
-web3>=7.14.0          # Blockchain RPC
-eth-account>=0.13.7   # Account management
-requests>=2.32.5      # HTTP client
-```
-
-## 🚀 Quick Start
-
-### 1. Generate Merkle Tree
+The package name `0g-storage-sdk` isn't a valid Python identifier, so the SDK ships its top-level modules directly:
 
 ```python
+from core.indexer import Indexer
 from core.file import ZgFile
-
-# From file path
-file = ZgFile.from_file_path("./data.txt")
-tree, err = file.merkle_tree()
-
-if err is None:
-    print(f"Root Hash: {tree.root_hash()}")
-    print(f"File Size: {file.size()} bytes")
-    print(f"Chunks: {file.num_chunks()}")
-    print(f"Segments: {file.num_segments()}")
-
-file.close()
-
-# From bytes
-data = b"Hello, 0G Storage!"
-file = ZgFile.from_bytes(data)
-tree, err = file.merkle_tree()
-print(f"Root Hash: {tree.root_hash()}")
+from core.merkle import MerkleTree
+from core.kv import KvClient, StreamDataBuilder, Batcher
 ```
 
-### 2. Upload File to 0G Storage
+### Dependencies
+
+Auto-installed:
+
+- `pycryptodome` — Keccak256 hashing
+- `web3` — blockchain RPC and contract calls
+- `eth-account` — transaction signing
+- `requests` — HTTP client
+
+## Quickstart — upload & download
 
 ```python
 from core.indexer import Indexer
 from core.file import ZgFile
 from eth_account import Account
 
-# Configuration
-INDEXER_RPC = "https://indexer-storage-testnet-turbo.0g.ai"
+INDEXER_RPC    = "https://indexer-storage-testnet-turbo.0g.ai"
 BLOCKCHAIN_RPC = "https://evmrpc-testnet.0g.ai"
-PRIVATE_KEY = "0x..."  # Your private key
+PRIVATE_KEY    = "0xYOUR_PRIVATE_KEY"
 
-# Setup
 indexer = Indexer(INDEXER_RPC)
 account = Account.from_key(PRIVATE_KEY)
-file = ZgFile.from_file_path("./data.txt")
-
-# Upload options
-upload_opts = {
-    'tags': b'\x00',
-    'finalityRequired': True,
-    'taskSize': 10,
-    'expectedReplica': 1,
-    'skipTx': False,
-    'account': account,
-}
 
 # Upload
+file = ZgFile.from_file_path("./data.txt")
 result, err = indexer.upload(
     file,
     BLOCKCHAIN_RPC,
     account,
-    upload_opts
+    {
+        "tags": b"\x00",
+        "finalityRequired": True,
+        "expectedReplica": 1,
+        "account": account,
+    },
+)
+file.close()
+
+if err is None:
+    print(f"Uploaded: {result['rootHash']}")
+    print(f"Tx:       {result['txHash']}")
+
+# Download (wait 3–5 minutes for shard propagation first)
+err = indexer.download(result["rootHash"], "./output.txt")
+```
+
+## Compute a merkle root locally
+
+No network calls — pure local hashing:
+
+```python
+from core.file import ZgFile
+
+file = ZgFile.from_bytes(b"hello, 0G Storage")
+tree, err = file.merkle_tree()
+print(tree.root_hash())
+file.close()
+```
+
+## Large files (>4 GB)
+
+```python
+from core.uploader import Uploader
+
+# After selecting nodes via indexer.select_nodes(...)
+uploader = Uploader(clients, BLOCKCHAIN_RPC, flow)
+
+result, err = uploader.splitable_upload(
+    file,
+    {
+        "account":          account,
+        "fragmentSize":     4 * 1024 * 1024 * 1024,   # 4 GB per fragment
+        "finalityRequired": True,
+    },
+)
+
+# result["rootHashes"] is a list — one hash per fragment, in order
+```
+
+Download with `Downloader.download_fragments(roots, filename)` — fragments are concatenated in the order you pass them.
+
+## KV storage
+
+```python
+from core.kv import Batcher
+
+batcher = Batcher(version=1, clients=clients, flow=flow, provider=BLOCKCHAIN_RPC)
+
+stream_id = "0x" + "11" * 32
+batcher.set(stream_id, b"user:42",  b'{"name": "Alice"}')
+batcher.set(stream_id, b"user:101", b'{"name": "Bob"}')
+
+result, err = batcher.exec({"account": account})
+```
+
+Read back via `KvClient`:
+
+```python
+from core.kv import KvClient
+
+kv = KvClient("http://storage-node.example.com:5678")
+value = kv.get_value(stream_id, b"user:42")
+# value.data is base64-encoded
+```
+
+## Generate proofs
+
+```python
+proof = tree.proof_at(2)            # proof for the leaf at index 2
+
+err = proof.validate(
+    root_hash      = tree.root_hash(),
+    content        = b"chunk 3 data",
+    position       = 2,
+    num_leaf_nodes = len(tree.leaves),
 )
 
 if err is None:
-    print(f"✅ Upload successful!")
-    print(f"   Transaction Hash: {result['txHash']}")
-    print(f"   Root Hash: {result['rootHash']}")
-else:
-    print(f"❌ Upload failed: {err}")
-
-file.close()
+    print("Valid proof")
 ```
 
-**Example Output:**
-```
-✅ Upload successful!
-   Transaction Hash: 0x9f01808921020c29b25e21204bfeb7079ce7cf3dad232e0a6c65451eef82a5f2
-   Root Hash: 0x11fdd3fd0a6e9594bf4ffe86a5cf095d85ac00f23b4f2e559802d624f6a86b58
-```
+## Public API surface
 
-> **Note:** You may see a warning "⚠️ Some direct uploads failed, but file may still propagate via network" - this is normal and the upload succeeds through network propagation.
+Everything you need is exported at module level:
 
-### 3. Download File from 0G Storage
+| Symbol | Purpose |
+|--------|---------|
+| `Indexer(url)` | Indexer RPC client — `upload`, `download`, `select_nodes`, `get_file_locations` |
+| `ZgFile.from_file_path(path)` / `.from_bytes(data)` | File abstraction with merkle tree generation |
+| `MerkleTree`, `Proof`, `LeafNode` | Direct merkle tree construction and verification |
+| `Uploader`, `Downloader` | Lower-level upload/download with retry options |
+| `StorageNode(url)` | Direct RPC to a storage node (14 methods) |
+| `KvClient(rpc)` | KV reads — `get_value`, `get_first/last/next/prev`, iterators |
+| `StreamDataBuilder(version)` | Build `StreamData` blobs (writes + access control) |
+| `Batcher(version, clients, flow, provider)` | High-level batched KV writes |
+| `KvIterator` | Cursor-style traversal over a stream |
+| `select_nodes`, `check_replica`, `is_valid_config` | Node selection helpers |
+| `RetryOpts`, `tx_with_gas_adjustment`, `submit_with_gas_adjustment` | Retry and gas utilities |
+| Exceptions: `StorageError`, `UploadError`, `DownloadError`, `MerkleTreeError`, `ContractError`, `RetryableError`, ... | Structured exception hierarchy with `error_code`, `context`, `cause` |
+
+For the full per-class API and worked examples, see the [Storage SDK docs](https://og-py.vercel.app/).
+
+## Network configuration
+
+| Network | Chain ID | Blockchain RPC | Indexer RPC |
+|---------|----------|----------------|-------------|
+| Mainnet | `16661` | `https://evmrpc.0g.ai` | `https://indexer-storage-turbo.0g.ai` |
+| Testnet (Galileo) | `16602` | `https://evmrpc-testnet.0g.ai` | `https://indexer-storage-testnet-turbo.0g.ai` |
+
+Get testnet tokens at [faucet.0g.ai](https://faucet.0g.ai).
+
+### Contract addresses
+
+The SDK reads the Flow contract address from each storage node's `networkIdentity` automatically — direct addressing is rarely needed.
+
+| Contract | Testnet | Mainnet |
+|----------|---------|---------|
+| Flow | `0x22E03a6A89B950F1c82ec5e74F8eCa321a105296` | `0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526` |
+
+## Constants
 
 ```python
-from core.indexer import Indexer
-
-# Configuration
-INDEXER_RPC = "https://indexer-storage-testnet-turbo.0g.ai"
-root_hash = "0x11fdd3fd0a6e9594bf4ffe86a5cf095d85ac00f23b4f2e559802d624f6a86b58"
-
-# Download
-indexer = Indexer(INDEXER_RPC)
-err = indexer.download(root_hash, "./output.txt", proof=False)
-
-if err is None:
-    print("✅ Download successful!")
-else:
-    print(f"❌ Download failed: {err}")
-```
-
-**Note:** Files need 3-5 minutes to propagate across storage shards before download.
-
-## 🏗️ Architecture
-
-```
-0g_py_storage/
-├── core/
-│   ├── merkle.py          # Merkle tree (Keccak256, proof generation)
-│   ├── file.py            # File operations & iteration
-│   ├── uploader.py        # Upload orchestration with retry logic
-│   ├── downloader.py      # Download with shard routing
-│   ├── indexer.py         # Indexer RPC client
-│   ├── storage_node.py    # Storage node RPC (14 methods)
-│   └── node_selector.py   # Segment tree shard selection
-├── contracts/
-│   ├── abis.py           # Flow contract ABI
-│   └── flow.py           # Flow contract wrapper
-├── utils/
-│   ├── crypto.py         # Keccak256 hashing
-│   ├── http.py           # JSON-RPC HTTP client
-│   ├── transfer.py       # Transfer utilities
-│   └── ...               # Other utilities
-├── config.py             # Default constants
-└── requirements.txt      # Dependencies
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests (66 tests)
-pytest tests/ -v
-
-# Run specific test suite
-pytest tests/test_merkle.py -v    # 26 tests
-pytest tests/test_file.py -v      # 18 tests
-pytest tests/test_node_selector.py -v  # 22 tests
-
-# With coverage
-pytest tests/ --cov=core --cov=utils
-```
-
-**Test Results:**
-```
-✅ 66/66 tests passing
-✅ Merkle roots verified against TypeScript SDK
-✅ Live network upload successful
-✅ Live network download successful
-```
-
-## 🛡️ Error Handling
-
-The SDK includes comprehensive error handling with context, error codes, and retry information:
-
-```python
-from exceptions import UploadRetryableError
-from utils.error_handler import ErrorContext, is_retryable, handle_upload_error
-
-# Enhanced errors with context
-with ErrorContext("upload_operation", verbose=True) as ctx:
-    try:
-        result, err = indexer.upload(file, rpc_url, account, opts)
-        if err:
-            raise err
-    except Exception as e:
-        # Errors include context, error codes, and retry information
-        if is_retryable(e):
-            ctx.add_error(e)
-            # Implement retry logic
-```
-
-**Features:**
-- Context-aware exceptions with error codes
-- Automatic retry tracking for retryable errors
-- Built-in error classification (network, timeout, upload, download, etc.)
-- Error logging and recovery utilities
-- Full backward compatibility
-
-**See [ERROR_HANDLING.md](ERROR_HANDLING.md) for comprehensive error handling guide.**
-
-## 🔍 Verification Against TypeScript SDK
-
-The Python SDK produces **100% identical** merkle roots to the TypeScript SDK:
-
-```bash
-# Python verification
-python3 verify_against_ts.py
-
-# TypeScript verification
-node verify_against_ts.cjs
-```
-
-**Verification Results:**
-```
-Testing with 5 different file sizes...
-✓ File 1 (256 bytes):   Root hashes MATCH
-✓ File 2 (1024 bytes):  Root hashes MATCH
-✓ File 3 (4096 bytes):  Root hashes MATCH
-✓ File 4 (16384 bytes): Root hashes MATCH
-✓ File 5 (65536 bytes): Root hashes MATCH
-
-✅ All merkle roots match perfectly!
-```
-
-## ⚙️ Configuration
-
-Default constants (matching TypeScript SDK):
-
-```python
-DEFAULT_CHUNK_SIZE = 256          # 256 bytes per chunk
+DEFAULT_CHUNK_SIZE = 256          # bytes per merkle leaf
 DEFAULT_SEGMENT_SIZE = 262144     # 256 KB per segment (1024 chunks)
-DEFAULT_SEGMENT_MAX_CHUNKS = 1024 # Chunks per segment
+SMALL_FILE_SIZE_THRESHOLD = 256 * 1024
+DEFAULT_FRAGMENT_SIZE = 4 * 1024 * 1024 * 1024   # 4 GB
 ```
 
-## 📚 API Reference
+## Testing
 
-### ZgFile
+```bash
+cd 0g_py_storage
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+pytest tests/ -v
+```
+
+## Verifying parity with the TypeScript SDK
 
 ```python
-# Create file instance
-file = ZgFile.from_file_path(path: str) -> ZgFile
-file = ZgFile.from_bytes(data: bytes) -> ZgFile
+from core.file import ZgFile
 
-# Generate merkle tree
-tree, err = file.merkle_tree() -> Tuple[MerkleTree, Optional[Exception]]
-
-# File information
-size = file.size() -> int
-chunks = file.num_chunks() -> int
-segments = file.num_segments() -> int
-
-# Create blockchain submission
-submission, err = file.create_submission(tags: bytes) -> Tuple[dict, Optional[Exception]]
-
-# Cleanup
-file.close()
+tree, _ = ZgFile.from_bytes(b"0G Storage parity check").merkle_tree()
+print(tree.root_hash())
 ```
 
-### Indexer
+Run the equivalent in the TypeScript SDK — the printed hashes match byte-for-byte.
+
+## Error handling
 
 ```python
-# Initialize
-indexer = Indexer(url: str)
+from utils.error_handler import is_retryable
 
-# Node discovery
-nodes = indexer.get_sharded_nodes() -> dict
-locations = indexer.get_file_locations(root_hash: str) -> list
-clients, err = indexer.select_nodes(expected_replica: int) -> Tuple[list, Optional[Exception]]
-
-# Upload file
-result, err = indexer.upload(
-    file: ZgFile,
-    blockchain_rpc: str,
-    signer: Account,
-    upload_opts: dict,
-    retry_opts: Optional[dict] = None
-) -> Tuple[Optional[dict], Optional[Exception]]
-
-# Download file
-err = indexer.download(
-    root_hash: str,
-    file_path: str,
-    proof: bool = False
-) -> Optional[Exception]
+result, err = indexer.upload(file, BLOCKCHAIN_RPC, account, opts)
+if err is not None:
+    if is_retryable(err):
+        # transient — retry with backoff
+        ...
+    else:
+        raise err
 ```
 
-### StorageNode
+For a tour of the full exception hierarchy and `ErrorContext` / `wrap_with_context` helpers, see the [Error Handling docs](https://og-py.vercel.app/storage/error-handling).
 
-```python
-# Initialize
-node = StorageNode(url: str)
+## Contributing
 
-# Node operations
-status = node.get_status() -> dict
-config = node.get_shard_config() -> dict
-info = node.get_file_info(root: str, need_available: bool = False) -> dict
+Contributions should preserve TypeScript SDK parity. Each PR should:
 
-# Upload operations
-result = node.upload_segment(segment: dict) -> any
-result = node.upload_segments(segments: list) -> any
-result = node.upload_segments_by_tx_seq(segs: list, tx_seq: int) -> any
+1. Match the TS SDK behavior — verify outputs match byte-for-byte
+2. Include tests for new functionality
+3. Update the README and docs as needed
+4. Reference TS SDK line numbers in code comments where applicable
 
-# Download operations
-data = node.download_segment(root: str, start: int, end: int) -> str
-data = node.download_segment_with_proof(root: str, index: int) -> dict
-```
+## License
 
-### MerkleTree
+MIT
 
-```python
-# Add data
-tree.add_leaf(data: bytes)
+## Links
 
-# Get root hash
-root = tree.root_hash() -> str
-
-# Generate proof
-proof = tree.proof_at(index: int) -> Proof
-
-# Validate proof
-is_valid = proof.validate(root: str, data: bytes, index: int, proof_check: Proof) -> Tuple[bool, Optional[Exception]]
-```
-
-## 🌐 Network Configuration
-
-### Testnet
-
-```python
-BLOCKCHAIN_RPC = "https://evmrpc-testnet.0g.ai"
-INDEXER_RPC = "https://indexer-storage-testnet-turbo.0g.ai"
-FLOW_CONTRACT = "0x22e03a6a89b950f1c82ec5e74f8eca321a105296"
-CHAIN_ID = 16602
-```
-
-### Mainnet
-
-```python
-BLOCKCHAIN_RPC = "https://evmrpc.0g.ai"
-INDEXER_RPC = "https://indexer-storage-turbo.0g.ai"
-FLOW_CONTRACT = "0x62D4144dB0F0a6fBBaeb6296c785C71B3D57C526"
-CHAIN_ID = 16661
-```
-
-**Status: ✅ Production Ready**
-- Fully tested and working on mainnet
-- Dynamic storage fee calculation from market contract
-- All 66 unit tests passing
-
-**Real Mainnet Upload Verification:**
-```
-File Root Hash: 0x4454572265e0ae600d281a703df306ba7f62e447a9a5526f7f23bf2d4e99cd9d
-Transaction Hash: 0xeda94ed4698361d5fe61c17d21963e7d2333c15acb190e1b05128272b88882b6
-Block: 10,998,900
-Storage Fee: 30,733,644,962 wei
-Status: ✅ Confirmed
-```
-
-View the transaction: https://chainscan.0g.ai/tx/0xeda94ed4698361d5fe61c17d21963e7d2333c15acb190e1b05128272b88882b6
-
-## 🔬 Development
-
-### Implementation Phases
-
-- ✅ **Phase 1:** Foundation (config, utils, exceptions)
-- ✅ **Phase 2:** Models (transaction, node, file)
-- ✅ **Phase 3:** Core Cryptography (merkle tree)
-- ✅ **Phase 4:** Smart Contracts (flow contract)
-- ✅ **Phase 5:** File Operations (file iteration)
-- ✅ **Phase 6:** Network Layer (indexer, storage nodes)
-- ✅ **Phase 7:** Upload (uploader with retry logic)
-- ✅ **Phase 8:** Download (downloader with shard routing)
-
-### Code Quality
-
-- ✅ Line-by-line port from TypeScript SDK
-- ✅ Maintains exact same behavior
-- ✅ 66 comprehensive tests (100% passing)
-- ✅ Type hints throughout
-- ✅ Detailed documentation with TS SDK line references
-
-### Example Code Structure
-
-```python
-def upload_task(self, file, tree, upload_task, retry_opts):
-    """
-    Upload a single task (batch of segments).
-
-    TS SDK lines 315-381.  # ← References exact TypeScript lines
-
-    Args:
-        file: File object
-        tree: Merkle tree
-        upload_task: Task definition
-        retry_opts: Retry options
-    """
-    # Implementation matches TS SDK exactly...
-```
-
-## 🤝 Contributing
-
-This SDK is a direct port of the official TypeScript SDK. Contributions should:
-
-1. **Match TypeScript SDK behavior** - Verify outputs match
-2. **Include tests** - Add corresponding test cases
-3. **Update documentation** - Keep README current
-4. **Reference TS SDK** - Include line number references
-
-## 📄 License
-
-Same license as the official TypeScript SDK.
-
-## 🔗 Links
-
-- **TypeScript SDK:** https://github.com/0glabs/0g-ts-sdk
-- **0G Storage Docs:** https://docs.0g.ai
-- **0G Website:** https://0g.ai
-- **Testnet Explorer:** https://chainscan-galileo.0g.ai/
-
-## 🆘 Support
-
-For Python SDK issues:
-- Open an issue with Python version, error message, and minimal reproduction code
-- Include comparison with TypeScript SDK behavior if applicable
-
-For 0G Storage general questions:
-- Check official documentation: https://docs.0g.ai
-- Join 0G community channels
-
-## 📊 Status
-
-| Component | Status | Tests | TypeScript Parity |
-|-----------|--------|-------|-------------------|
-| Merkle Tree | ✅ Production | 26/26 | 100% |
-| File Operations | ✅ Production | 18/18 | 100% |
-| Node Selection | ✅ Production | 22/22 | 100% |
-| Upload | ✅ Production | Verified | 100% |
-| Download | ✅ Production | Verified | 100% |
-| Contract Integration | ✅ Production | Verified | 100% |
-
-**Last Verified:** Transaction `9f01808921020c29b25e21204bfeb7079ce7cf3dad232e0a6c65451eef82a5f2` on 0G Testnet
-
----
-
-**Built with ❤️ for the 0G Storage ecosystem**
+- 📚 **Documentation:** [og-py.vercel.app](https://og-py.vercel.app/)
+- 🌐 0G Labs: [0g.ai](https://0g.ai)
+- 📖 Official docs: [docs.0g.ai](https://docs.0g.ai)
+- 📦 TypeScript SDK: [@0glabs/0g-ts-sdk](https://github.com/0glabs/0g-ts-sdk)
+- 🚰 Testnet faucet: [faucet.0g.ai](https://faucet.0g.ai)
+- 🔍 Block explorer: [chainscan-galileo.0g.ai](https://chainscan-galileo.0g.ai)
