@@ -58,7 +58,10 @@ class FlowContract:
         gas_price: Optional[int] = None
     ) -> TxReceipt:
         """
-        Submit file metadata to Flow contract.
+        Submit file metadata to Flow contract and wait for receipt.
+
+        This is the legacy receipt-based submission. For the recommended
+        no-receipt flow, use submit_log_entry_no_receipt() instead.
 
         Matches TS SDK Uploader.submitTransaction() behavior.
 
@@ -79,6 +82,79 @@ class FlowContract:
 
         Raises:
             Exception: If transaction fails
+        """
+        tx_hash = self._send_submit_transaction(
+            submission, account, value, gas_limit, gas_price
+        )
+
+        # Wait for receipt
+        receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Check if transaction succeeded
+        if receipt['status'] != 1:
+            raise Exception(f"Transaction failed: {tx_hash.hex()}")
+
+        return receipt
+
+    def submit_log_entry_no_receipt(
+        self,
+        submission: Dict[str, Any],
+        account: LocalAccount,
+        value: int = 0,
+        gas_limit: Optional[int] = None,
+        gas_price: Optional[int] = None
+    ) -> Tuple[str, Optional[Exception]]:
+        """
+        Submit file metadata to Flow contract WITHOUT waiting for receipt.
+
+        Aligned with TS SDK's submitLogEntryNoReceipt() (Go flow pattern).
+        Sends the transaction and returns the txHash immediately, allowing
+        the caller to poll storage nodes for log entry availability instead
+        of blocking on receipt confirmation.
+
+        Args:
+            submission: Submission data structure
+            account: Account to sign transaction
+            value: ETH value to send with transaction (fee)
+            gas_limit: Gas limit for transaction (optional)
+            gas_price: Gas price in wei (optional)
+
+        Returns:
+            Tuple of (txHash as hex string, error or None)
+        """
+        try:
+            tx_hash_bytes = self._send_submit_transaction(
+                submission, account, value, gas_limit, gas_price
+            )
+            tx_hash_hex = tx_hash_bytes.hex()
+            if not tx_hash_hex.startswith('0x'):
+                tx_hash_hex = f"0x{tx_hash_hex}"
+            return (tx_hash_hex, None)
+        except Exception as e:
+            return ('', e)
+
+    def _send_submit_transaction(
+        self,
+        submission: Dict[str, Any],
+        account: LocalAccount,
+        value: int = 0,
+        gas_limit: Optional[int] = None,
+        gas_price: Optional[int] = None
+    ):
+        """
+        Build, sign, and broadcast a submit transaction.
+
+        Shared internal helper for both submit() and submit_log_entry_no_receipt().
+
+        Args:
+            submission: Submission data structure
+            account: Account to sign transaction
+            value: ETH value to send with transaction (fee)
+            gas_limit: Gas limit for transaction (optional)
+            gas_price: Gas price in wei (optional)
+
+        Returns:
+            Transaction hash as bytes
         """
         # Build transaction params
         tx_params = {
@@ -116,17 +192,12 @@ class FlowContract:
         # Sign transaction
         signed_tx = account.sign_transaction(tx)
 
-        # Send transaction
+        # Send transaction (returns tx hash immediately)
         tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-        # Wait for receipt
-        receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+        print(f"Transaction submitted: {tx_hash.hex()}")
 
-        # Check if transaction succeeded
-        if receipt['status'] != 1:
-            raise Exception(f"Transaction failed: {tx_hash.hex()}")
-
-        return receipt
+        return tx_hash
 
     def batch_submit(
         self,
