@@ -1,0 +1,4673 @@
+{
+  "action_items": [
+    {
+      "acceptance_criteria": [
+        "Confirm whether the upstream behavior is a real Python SDK parity requirement.",
+        "If porting, implement the Python API or behavior with tests and docs/examples where user-facing.",
+        "If already covered or intentionally different, update the parity tracker with the decision and rationale.",
+        "Rerun this parity checker and the relevant Python test suite after changes."
+      ],
+      "feature_id": "client_side_encryption",
+      "priority": "P1",
+      "python_evidence_patterns": [],
+      "python_refs": [
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 23,
+          "name": "Downloader",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader",
+          "signature": ""
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 19,
+          "name": "download",
+          "path": "0g_py_storage/simple_download.py",
+          "qualified_name": "download",
+          "signature": "download(root_hash, output_file)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 22,
+          "name": "main",
+          "path": "0g_py_storage/test_download.py",
+          "qualified_name": "main",
+          "signature": "main()"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 381,
+          "name": "check_exist",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.check_exist",
+          "signature": "check_exist(input_path)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 49,
+          "name": "download",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.download",
+          "signature": "download(self, root_or_roots, file_path, proof)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 148,
+          "name": "download_file",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.download_file",
+          "signature": "download_file(self, root, file_path, proof)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 317,
+          "name": "download_file_helper",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.download_file_helper",
+          "signature": "download_file_helper(self, file_path, info, proof)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 75,
+          "name": "download_fragments",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.download_fragments",
+          "signature": "download_fragments(self, roots, filename, with_proof)"
+        }
+      ],
+      "review_refs": [
+        {
+          "match_type": "name_only",
+          "python": {
+            "domain": "utils",
+            "ecosystem": "python",
+            "kind": "function",
+            "line": 64,
+            "name": "hex_to_bytes",
+            "path": "0g_py_storage/utils/crypto.py",
+            "qualified_name": "hex_to_bytes",
+            "signature": "hex_to_bytes(hex_str)"
+          },
+          "typescript": {
+            "domain": "shared",
+            "ecosystem": "typescript",
+            "kind": "re_export",
+            "line": 15,
+            "name": "hexToBytes",
+            "path": "src/index.ts",
+            "qualified_name": "hexToBytes",
+            "signature": ""
+          }
+        }
+      ],
+      "status": "missing_in_python",
+      "suggested_next_step": "Start by reading the upstream implementation for Client-side encryption, then decide whether to port it into Python.",
+      "title": "Client-side encryption",
+      "upstream_evidence_patterns": [
+        "aes256",
+        "ecies",
+        "EncryptionHeader"
+      ],
+      "upstream_refs": [
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "re_export",
+          "line": 39,
+          "name": "EncryptionHeader",
+          "path": "src/index.ts",
+          "qualified_name": "EncryptionHeader",
+          "signature": ""
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "re_export",
+          "line": 15,
+          "name": "generateAes256Key",
+          "path": "src/index.ts",
+          "qualified_name": "generateAes256Key",
+          "signature": ""
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 259,
+          "name": "batchUpload",
+          "path": "src/storage.ts",
+          "qualified_name": "batchUpload",
+          "signature": "export async function batchUpload("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 152,
+          "name": "downloadFile",
+          "path": "src/storage.ts",
+          "qualified_name": "downloadFile",
+          "signature": "export async function downloadFile("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 198,
+          "name": "peekHeader",
+          "path": "src/storage.ts",
+          "qualified_name": "peekHeader",
+          "signature": "export async function peekHeader("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 214,
+          "name": "uploadData",
+          "path": "src/storage.ts",
+          "qualified_name": "uploadData",
+          "signature": "export async function uploadData("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 99,
+          "name": "uploadFile",
+          "path": "src/storage.ts",
+          "qualified_name": "uploadFile",
+          "signature": "export async function uploadFile("
+        },
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 125,
+          "name": "generateAes256Key",
+          "path": "src/config.ts",
+          "qualified_name": "generateAes256Key",
+          "signature": "export function generateAes256Key(): Uint8Array {"
+        }
+      ],
+      "why": "Upstream evidence was found, but the checker found no matching Python evidence."
+    },
+    {
+      "acceptance_criteria": [
+        "Confirm whether the upstream behavior is a real Python SDK parity requirement.",
+        "If porting, implement the Python API or behavior with tests and docs/examples where user-facing.",
+        "If already covered or intentionally different, update the parity tracker with the decision and rationale.",
+        "Rerun this parity checker and the relevant Python test suite after changes."
+      ],
+      "feature_id": "peek_header",
+      "priority": "P1",
+      "python_evidence_patterns": [],
+      "python_refs": [
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 23,
+          "name": "Downloader",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader",
+          "signature": ""
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 19,
+          "name": "download",
+          "path": "0g_py_storage/simple_download.py",
+          "qualified_name": "download",
+          "signature": "download(root_hash, output_file)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 22,
+          "name": "main",
+          "path": "0g_py_storage/test_download.py",
+          "qualified_name": "main",
+          "signature": "main()"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 381,
+          "name": "check_exist",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.check_exist",
+          "signature": "check_exist(input_path)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 49,
+          "name": "download",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.download",
+          "signature": "download(self, root_or_roots, file_path, proof)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 148,
+          "name": "download_file",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.download_file",
+          "signature": "download_file(self, root, file_path, proof)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 317,
+          "name": "download_file_helper",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.download_file_helper",
+          "signature": "download_file_helper(self, file_path, info, proof)"
+        },
+        {
+          "domain": "download",
+          "ecosystem": "python",
+          "kind": "method",
+          "line": 75,
+          "name": "download_fragments",
+          "path": "0g_py_storage/core/downloader.py",
+          "qualified_name": "Downloader.download_fragments",
+          "signature": "download_fragments(self, roots, filename, with_proof)"
+        }
+      ],
+      "review_refs": [
+        {
+          "match_type": "name_only",
+          "python": {
+            "domain": "utils",
+            "ecosystem": "python",
+            "kind": "function",
+            "line": 64,
+            "name": "hex_to_bytes",
+            "path": "0g_py_storage/utils/crypto.py",
+            "qualified_name": "hex_to_bytes",
+            "signature": "hex_to_bytes(hex_str)"
+          },
+          "typescript": {
+            "domain": "shared",
+            "ecosystem": "typescript",
+            "kind": "re_export",
+            "line": 15,
+            "name": "hexToBytes",
+            "path": "src/index.ts",
+            "qualified_name": "hexToBytes",
+            "signature": ""
+          }
+        }
+      ],
+      "status": "missing_in_python",
+      "suggested_next_step": "Start by reading the upstream implementation for Encryption header peek, then decide whether to port it into Python.",
+      "title": "Encryption header peek",
+      "upstream_evidence_patterns": [
+        "peekHeader",
+        "peek-header"
+      ],
+      "upstream_refs": [
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 198,
+          "name": "peekHeader",
+          "path": "src/storage.ts",
+          "qualified_name": "peekHeader",
+          "signature": "export async function peekHeader("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "re_export",
+          "line": 2,
+          "name": "peekHeader",
+          "path": "src/index.ts",
+          "qualified_name": "peekHeader",
+          "signature": ""
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 259,
+          "name": "batchUpload",
+          "path": "src/storage.ts",
+          "qualified_name": "batchUpload",
+          "signature": "export async function batchUpload("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 152,
+          "name": "downloadFile",
+          "path": "src/storage.ts",
+          "qualified_name": "downloadFile",
+          "signature": "export async function downloadFile("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 214,
+          "name": "uploadData",
+          "path": "src/storage.ts",
+          "qualified_name": "uploadData",
+          "signature": "export async function uploadData("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 99,
+          "name": "uploadFile",
+          "path": "src/storage.ts",
+          "qualified_name": "uploadFile",
+          "signature": "export async function uploadFile("
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "interface",
+          "line": 27,
+          "name": "DownloadResult",
+          "path": "src/storage.ts",
+          "qualified_name": "DownloadResult",
+          "signature": ""
+        },
+        {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "interface",
+          "line": 22,
+          "name": "UploadResult",
+          "path": "src/storage.ts",
+          "qualified_name": "UploadResult",
+          "signature": ""
+        }
+      ],
+      "why": "Upstream evidence was found, but the checker found no matching Python evidence."
+    },
+    {
+      "acceptance_criteria": [
+        "Confirm whether the upstream behavior is a real Python SDK parity requirement.",
+        "If porting, implement the Python API or behavior with tests and docs/examples where user-facing.",
+        "If already covered or intentionally different, update the parity tracker with the decision and rationale.",
+        "Rerun this parity checker and the relevant Python test suite after changes."
+      ],
+      "feature_id": "network_modes",
+      "priority": "P2",
+      "python_evidence_patterns": [
+        "turbo"
+      ],
+      "python_refs": [
+        {
+          "domain": "network",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 28,
+          "name": "Indexer",
+          "path": "0g_py_storage/core/indexer.py",
+          "qualified_name": "Indexer",
+          "signature": ""
+        },
+        {
+          "domain": "network",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 17,
+          "name": "SegmentTreeNode",
+          "path": "0g_py_storage/core/node_selector.py",
+          "qualified_name": "SegmentTreeNode",
+          "signature": ""
+        },
+        {
+          "domain": "network",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 17,
+          "name": "StorageNode",
+          "path": "0g_py_storage/core/storage_node.py",
+          "qualified_name": "StorageNode",
+          "signature": ""
+        },
+        {
+          "domain": "network",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 181,
+          "name": "check_replica",
+          "path": "0g_py_storage/core/node_selector.py",
+          "qualified_name": "check_replica",
+          "signature": "check_replica(shard_configs, expected_replica)"
+        },
+        {
+          "domain": "network",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 65,
+          "name": "insert",
+          "path": "0g_py_storage/core/node_selector.py",
+          "qualified_name": "insert",
+          "signature": "insert(node, num_shard, shard_id, expected_replica)"
+        },
+        {
+          "domain": "network",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 219,
+          "name": "is_valid_config",
+          "path": "0g_py_storage/core/node_selector.py",
+          "qualified_name": "is_valid_config",
+          "signature": "is_valid_config(config)"
+        },
+        {
+          "domain": "network",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 37,
+          "name": "pushdown",
+          "path": "0g_py_storage/core/node_selector.py",
+          "qualified_name": "pushdown",
+          "signature": "pushdown(node)"
+        },
+        {
+          "domain": "network",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 124,
+          "name": "select_nodes",
+          "path": "0g_py_storage/core/node_selector.py",
+          "qualified_name": "select_nodes",
+          "signature": "select_nodes(nodes, expected_replica)"
+        }
+      ],
+      "review_refs": [
+        {
+          "match_type": "name_only",
+          "python": {
+            "domain": "utils",
+            "ecosystem": "python",
+            "kind": "function",
+            "line": 64,
+            "name": "hex_to_bytes",
+            "path": "0g_py_storage/utils/crypto.py",
+            "qualified_name": "hex_to_bytes",
+            "signature": "hex_to_bytes(hex_str)"
+          },
+          "typescript": {
+            "domain": "config",
+            "ecosystem": "typescript",
+            "kind": "function",
+            "line": 112,
+            "name": "hexToBytes",
+            "path": "src/config.ts",
+            "qualified_name": "hexToBytes",
+            "signature": "export function hexToBytes(hex: string): Uint8Array {"
+          }
+        }
+      ],
+      "status": "needs_review",
+      "suggested_next_step": "Compare the upstream and Python implementations for Network and storage modes; decide whether the Python behavior is complete.",
+      "title": "Network and storage modes",
+      "upstream_evidence_patterns": [
+        "StorageMode",
+        "turbo",
+        "standard"
+      ],
+      "upstream_refs": [
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "type",
+          "line": 8,
+          "name": "StorageMode",
+          "path": "src/config.ts",
+          "qualified_name": "StorageMode",
+          "signature": "export type StorageMode = 'turbo' | 'standard';"
+        },
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 169,
+          "name": "createIndexer",
+          "path": "src/config.ts",
+          "qualified_name": "createIndexer",
+          "signature": ""
+        },
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 161,
+          "name": "createSigner",
+          "path": "src/config.ts",
+          "qualified_name": "createSigner",
+          "signature": ""
+        },
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 125,
+          "name": "generateAes256Key",
+          "path": "src/config.ts",
+          "qualified_name": "generateAes256Key",
+          "signature": "export function generateAes256Key(): Uint8Array {"
+        },
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 92,
+          "name": "getConfig",
+          "path": "src/config.ts",
+          "qualified_name": "getConfig",
+          "signature": ""
+        },
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 65,
+          "name": "getNetwork",
+          "path": "src/config.ts",
+          "qualified_name": "getNetwork",
+          "signature": ""
+        },
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 130,
+          "name": "pubKeyFromPrivateKey",
+          "path": "src/config.ts",
+          "qualified_name": "pubKeyFromPrivateKey",
+          "signature": "export function pubKeyFromPrivateKey(privateKey: string): string {"
+        },
+        {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "constant",
+          "line": 50,
+          "name": "NETWORKS",
+          "path": "src/config.ts",
+          "qualified_name": "NETWORKS",
+          "signature": ""
+        }
+      ],
+      "why": "Both sides have some evidence, but the match is incomplete or name-only and needs source review."
+    }
+  ],
+  "comparison": {
+    "matched": [
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "shared",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 61,
+          "name": "DownloadError",
+          "path": "0g_py_storage/exceptions.py",
+          "qualified_name": "DownloadError",
+          "signature": ""
+        },
+        "typescript": {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "class",
+          "line": 47,
+          "name": "DownloadError",
+          "path": "src/storage.ts",
+          "qualified_name": "DownloadError",
+          "signature": ""
+        }
+      },
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "shared",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 10,
+          "name": "StorageError",
+          "path": "0g_py_storage/exceptions.py",
+          "qualified_name": "StorageError",
+          "signature": ""
+        },
+        "typescript": {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "class",
+          "line": 33,
+          "name": "StorageError",
+          "path": "src/storage.ts",
+          "qualified_name": "StorageError",
+          "signature": ""
+        }
+      },
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "shared",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 56,
+          "name": "UploadError",
+          "path": "0g_py_storage/exceptions.py",
+          "qualified_name": "UploadError",
+          "signature": ""
+        },
+        "typescript": {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "class",
+          "line": 40,
+          "name": "UploadError",
+          "path": "src/storage.ts",
+          "qualified_name": "UploadError",
+          "signature": ""
+        }
+      }
+    ],
+    "needs_review": [
+      {
+        "match_type": "name_only",
+        "python": {
+          "domain": "utils",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 64,
+          "name": "hex_to_bytes",
+          "path": "0g_py_storage/utils/crypto.py",
+          "qualified_name": "hex_to_bytes",
+          "signature": "hex_to_bytes(hex_str)"
+        },
+        "typescript": {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "function",
+          "line": 112,
+          "name": "hexToBytes",
+          "path": "src/config.ts",
+          "qualified_name": "hexToBytes",
+          "signature": "export function hexToBytes(hex: string): Uint8Array {"
+        }
+      },
+      {
+        "match_type": "name_only",
+        "python": {
+          "domain": "utils",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 64,
+          "name": "hex_to_bytes",
+          "path": "0g_py_storage/utils/crypto.py",
+          "qualified_name": "hex_to_bytes",
+          "signature": "hex_to_bytes(hex_str)"
+        },
+        "typescript": {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "re_export",
+          "line": 15,
+          "name": "hexToBytes",
+          "path": "src/index.ts",
+          "qualified_name": "hexToBytes",
+          "signature": ""
+        }
+      }
+    ],
+    "python_only": [
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 15,
+        "name": "FlowContract",
+        "path": "0g_py_storage/contracts/flow.py",
+        "qualified_name": "FlowContract",
+        "signature": ""
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 12,
+        "name": "FLOW_CONTRACT_ABI",
+        "path": "0g_py_storage/contracts/__init__.py",
+        "qualified_name": "FLOW_CONTRACT_ABI",
+        "signature": ""
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 12,
+        "name": "FlowContract",
+        "path": "0g_py_storage/contracts/__init__.py",
+        "qualified_name": "FlowContract",
+        "signature": ""
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 12,
+        "name": "MAINNET_FLOW_ADDRESS",
+        "path": "0g_py_storage/contracts/__init__.py",
+        "qualified_name": "MAINNET_FLOW_ADDRESS",
+        "signature": ""
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 12,
+        "name": "NETWORK_ADDRESSES",
+        "path": "0g_py_storage/contracts/__init__.py",
+        "qualified_name": "NETWORK_ADDRESSES",
+        "signature": ""
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 12,
+        "name": "TESTNET_FLOW_ADDRESS",
+        "path": "0g_py_storage/contracts/__init__.py",
+        "qualified_name": "TESTNET_FLOW_ADDRESS",
+        "signature": ""
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 12,
+        "name": "get_flow_contract_address",
+        "path": "0g_py_storage/contracts/__init__.py",
+        "qualified_name": "get_flow_contract_address",
+        "signature": ""
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 280,
+        "name": "get_flow_contract_address",
+        "path": "0g_py_storage/contracts/abis.py",
+        "qualified_name": "get_flow_contract_address",
+        "signature": "get_flow_contract_address(network)"
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 131,
+        "name": "batch_submit",
+        "path": "0g_py_storage/contracts/flow.py",
+        "qualified_name": "FlowContract.batch_submit",
+        "signature": "batch_submit(self, submissions, account, value, gas_limit, gas_price)"
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 309,
+        "name": "create_submission",
+        "path": "0g_py_storage/contracts/flow.py",
+        "qualified_name": "FlowContract.create_submission",
+        "signature": "create_submission(length, nodes, tags)"
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 248,
+        "name": "get_submission_info",
+        "path": "0g_py_storage/contracts/flow.py",
+        "qualified_name": "FlowContract.get_submission_info",
+        "signature": "get_submission_info(self, tx_hash)"
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 193,
+        "name": "process_logs",
+        "path": "0g_py_storage/contracts/flow.py",
+        "qualified_name": "FlowContract.process_logs",
+        "signature": "process_logs(self, receipt)"
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 52,
+        "name": "submit",
+        "path": "0g_py_storage/contracts/flow.py",
+        "qualified_name": "FlowContract.submit",
+        "signature": "submit(self, submission, account, value, gas_limit, gas_price)"
+      },
+      {
+        "domain": "contracts",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 273,
+        "name": "wait_for_receipt",
+        "path": "0g_py_storage/contracts/flow.py",
+        "qualified_name": "FlowContract.wait_for_receipt",
+        "signature": "wait_for_receipt(self, tx_hash, max_retries, interval)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 279,
+        "name": "AbstractFile",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 226,
+        "name": "FileFdIterator",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "FileFdIterator",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 79,
+        "name": "FileInfo",
+        "path": "0g_py_storage/models/file.py",
+        "qualified_name": "FileInfo",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 42,
+        "name": "FileIterator",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "FileIterator",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 18,
+        "name": "FileProof",
+        "path": "0g_py_storage/models/file.py",
+        "qualified_name": "FileProof",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 151,
+        "name": "FlowProof",
+        "path": "0g_py_storage/models/file.py",
+        "qualified_name": "FlowProof",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 132,
+        "name": "KeyValue",
+        "path": "0g_py_storage/models/file.py",
+        "qualified_name": "KeyValue",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 181,
+        "name": "MemIterator",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "MemIterator",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 98,
+        "name": "Metadata",
+        "path": "0g_py_storage/models/file.py",
+        "qualified_name": "Metadata",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 33,
+        "name": "SegmentWithProof",
+        "path": "0g_py_storage/models/file.py",
+        "qualified_name": "SegmentWithProof",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 54,
+        "name": "Transaction",
+        "path": "0g_py_storage/models/file.py",
+        "qualified_name": "Transaction",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 115,
+        "name": "Value",
+        "path": "0g_py_storage/models/file.py",
+        "qualified_name": "Value",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 623,
+        "name": "ZgFile",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "ZgFile",
+        "signature": ""
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 36,
+        "name": "compute_padded_size",
+        "path": "0g_py_storage/utils/file_utils.py",
+        "qualified_name": "compute_padded_size",
+        "signature": "compute_padded_size(chunks)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 72,
+        "name": "iterator_padded_size",
+        "path": "0g_py_storage/utils/file_utils.py",
+        "qualified_name": "iterator_padded_size",
+        "signature": "iterator_padded_size(data_size, flow_padding, chunk_size)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 18,
+        "name": "next_pow2",
+        "path": "0g_py_storage/utils/file_utils.py",
+        "qualified_name": "next_pow2",
+        "signature": "next_pow2(input)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 9,
+        "name": "num_splits",
+        "path": "0g_py_storage/utils/file_utils.py",
+        "qualified_name": "num_splits",
+        "signature": "num_splits(total, unit)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 325,
+        "name": "create_fragment",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.create_fragment",
+        "signature": "create_fragment(self, offset, size, padded_size)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 534,
+        "name": "create_node",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.create_node",
+        "signature": "create_node(self, offset, chunks)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 561,
+        "name": "create_segment_node",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.create_segment_node",
+        "signature": "create_segment_node(self, offset, batch, size)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 460,
+        "name": "create_submission",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.create_submission",
+        "signature": "create_submission(self, tags, submitter)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 388,
+        "name": "iterate",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.iterate",
+        "signature": "iterate(self, flow_padding)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 397,
+        "name": "iterate_with_offset_and_batch",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.iterate_with_offset_and_batch",
+        "signature": "iterate_with_offset_and_batch(self, offset, batch, flow_padding)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 410,
+        "name": "merkle_tree",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.merkle_tree",
+        "signature": "merkle_tree(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 444,
+        "name": "num_chunks",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.num_chunks",
+        "signature": "num_chunks(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 452,
+        "name": "num_segments",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.num_segments",
+        "signature": "num_segments(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 292,
+        "name": "padded_size",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.padded_size",
+        "signature": "padded_size(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 344,
+        "name": "segment_root",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.segment_root",
+        "signature": "segment_root(segment, empty_chunks_padded)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 380,
+        "name": "size",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.size",
+        "signature": "size(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 300,
+        "name": "split",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.split",
+        "signature": "split(self, fragment_size)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 502,
+        "name": "split_nodes",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "AbstractFile.split_nodes",
+        "signature": "split_nodes(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 249,
+        "name": "read_from_file",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "FileFdIterator.read_from_file",
+        "signature": "read_from_file(self, start, end)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 100,
+        "name": "clear_buffer",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "FileIterator.clear_buffer",
+        "signature": "clear_buffer(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 172,
+        "name": "current",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "FileIterator.current",
+        "signature": "current(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 121,
+        "name": "next",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "FileIterator.next",
+        "signature": "next(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 108,
+        "name": "padding_zeros",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "FileIterator.padding_zeros",
+        "signature": "padding_zeros(self, length)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 92,
+        "name": "read_from_file",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "FileIterator.read_from_file",
+        "signature": "read_from_file(self, start, end)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 204,
+        "name": "read_from_file",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "MemIterator.read_from_file",
+        "signature": "read_from_file(self, start, end)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 744,
+        "name": "close",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "ZgFile.close",
+        "signature": "close(self)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 692,
+        "name": "create_fragment",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "ZgFile.create_fragment",
+        "signature": "create_fragment(self, offset, size, padded_size)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 671,
+        "name": "from_bytes",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "ZgFile.from_bytes",
+        "signature": "from_bytes(data, filename)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 645,
+        "name": "from_file_path",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "ZgFile.from_file_path",
+        "signature": "from_file_path(path)"
+      },
+      {
+        "domain": "data",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 753,
+        "name": "iterate_with_offset_and_batch",
+        "path": "0g_py_storage/core/file.py",
+        "qualified_name": "ZgFile.iterate_with_offset_and_batch",
+        "signature": "iterate_with_offset_and_batch(self, offset, batch, flow_padding)"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 23,
+        "name": "Downloader",
+        "path": "0g_py_storage/core/downloader.py",
+        "qualified_name": "Downloader",
+        "signature": ""
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 19,
+        "name": "download",
+        "path": "0g_py_storage/simple_download.py",
+        "qualified_name": "download",
+        "signature": "download(root_hash, output_file)"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 22,
+        "name": "main",
+        "path": "0g_py_storage/test_download.py",
+        "qualified_name": "main",
+        "signature": "main()"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 381,
+        "name": "check_exist",
+        "path": "0g_py_storage/core/downloader.py",
+        "qualified_name": "Downloader.check_exist",
+        "signature": "check_exist(input_path)"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 49,
+        "name": "download",
+        "path": "0g_py_storage/core/downloader.py",
+        "qualified_name": "Downloader.download",
+        "signature": "download(self, root_or_roots, file_path, proof)"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 148,
+        "name": "download_file",
+        "path": "0g_py_storage/core/downloader.py",
+        "qualified_name": "Downloader.download_file",
+        "signature": "download_file(self, root, file_path, proof)"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 317,
+        "name": "download_file_helper",
+        "path": "0g_py_storage/core/downloader.py",
+        "qualified_name": "Downloader.download_file_helper",
+        "signature": "download_file_helper(self, file_path, info, proof)"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 75,
+        "name": "download_fragments",
+        "path": "0g_py_storage/core/downloader.py",
+        "qualified_name": "Downloader.download_fragments",
+        "signature": "download_fragments(self, roots, filename, with_proof)"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 239,
+        "name": "download_task",
+        "path": "0g_py_storage/core/downloader.py",
+        "qualified_name": "Downloader.download_task",
+        "signature": "download_task(self, info, segment_offset, task_ind, num_chunks, proof)"
+      },
+      {
+        "domain": "download",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 193,
+        "name": "query_file",
+        "path": "0g_py_storage/core/downloader.py",
+        "qualified_name": "Downloader.query_file",
+        "signature": "query_file(self, root)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 59,
+        "name": "AccessControl",
+        "path": "0g_py_storage/core/kv/types.py",
+        "qualified_name": "AccessControl",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 17,
+        "name": "AccessControlType",
+        "path": "0g_py_storage/core/kv/types.py",
+        "qualified_name": "AccessControlType",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 33,
+        "name": "Batcher",
+        "path": "0g_py_storage/core/kv/batcher.py",
+        "qualified_name": "Batcher",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 30,
+        "name": "KvClient",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 20,
+        "name": "KvIterator",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 26,
+        "name": "StorageKv",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 72,
+        "name": "StreamData",
+        "path": "0g_py_storage/core/kv/types.py",
+        "qualified_name": "StreamData",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 15,
+        "name": "StreamDataBuilder",
+        "path": "0g_py_storage/core/kv/builder.py",
+        "qualified_name": "StreamDataBuilder",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 36,
+        "name": "StreamRead",
+        "path": "0g_py_storage/core/kv/types.py",
+        "qualified_name": "StreamRead",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 47,
+        "name": "StreamWrite",
+        "path": "0g_py_storage/core/kv/types.py",
+        "qualified_name": "StreamWrite",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "AccessControl",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "AccessControl",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "AccessControlType",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "AccessControlType",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "Batcher",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "Batcher",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "KvClient",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "KvClient",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "KvIterator",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "KvIterator",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "MAX_KEY_SIZE",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "MAX_KEY_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "MAX_QUERY_SIZE",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "MAX_QUERY_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "MAX_SET_SIZE",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "MAX_SET_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "STREAM_DOMAIN",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "STREAM_DOMAIN",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "StreamData",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "StreamData",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "StreamDataBuilder",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "StreamDataBuilder",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "StreamRead",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "StreamRead",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 28,
+        "name": "StreamWrite",
+        "path": "0g_py_storage/core/kv/__init__.py",
+        "qualified_name": "StreamWrite",
+        "signature": ""
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 76,
+        "name": "exec",
+        "path": "0g_py_storage/core/kv/batcher.py",
+        "qualified_name": "Batcher.exec",
+        "signature": "exec(self, opts)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 65,
+        "name": "set",
+        "path": "0g_py_storage/core/kv/batcher.py",
+        "qualified_name": "Batcher.set",
+        "signature": "set(self, stream_id, key, data)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 129,
+        "name": "get",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.get",
+        "signature": "get(self, stream_id, key, start_index, length, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 222,
+        "name": "get_first",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.get_first",
+        "signature": "get_first(self, stream_id, start_index, length, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 282,
+        "name": "get_holding_stream_ids",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.get_holding_stream_ids",
+        "signature": "get_holding_stream_ids(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 245,
+        "name": "get_last",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.get_last",
+        "signature": "get_last(self, stream_id, start_index, length, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 154,
+        "name": "get_next",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.get_next",
+        "signature": "get_next(self, stream_id, key, start_index, length, inclusive, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 188,
+        "name": "get_prev",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.get_prev",
+        "signature": "get_prev(self, stream_id, key, start_index, length, inclusive, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 268,
+        "name": "get_transaction_result",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.get_transaction_result",
+        "signature": "get_transaction_result(self, tx_seq)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 68,
+        "name": "get_value",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.get_value",
+        "signature": "get_value(self, stream_id, key, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 293,
+        "name": "has_write_permission",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.has_write_permission",
+        "signature": "has_write_permission(self, account, stream_id, key, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 316,
+        "name": "is_admin",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.is_admin",
+        "signature": "is_admin(self, account, stream_id, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 337,
+        "name": "is_special_key",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.is_special_key",
+        "signature": "is_special_key(self, stream_id, key, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 358,
+        "name": "is_writer_of_key",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.is_writer_of_key",
+        "signature": "is_writer_of_key(self, account, stream_id, key, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 381,
+        "name": "is_writer_of_stream",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.is_writer_of_stream",
+        "signature": "is_writer_of_stream(self, account, stream_id, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 51,
+        "name": "new_iterator",
+        "path": "0g_py_storage/core/kv/client.py",
+        "qualified_name": "KvClient.new_iterator",
+        "signature": "new_iterator(self, stream_id, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 54,
+        "name": "get_current_pair",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator.get_current_pair",
+        "signature": "get_current_pair(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 167,
+        "name": "next",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator.next",
+        "signature": "next(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 189,
+        "name": "prev",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator.prev",
+        "signature": "prev(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 121,
+        "name": "seek_after",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator.seek_after",
+        "signature": "seek_after(self, key)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 99,
+        "name": "seek_before",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator.seek_before",
+        "signature": "seek_before(self, key)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 143,
+        "name": "seek_to_first",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator.seek_to_first",
+        "signature": "seek_to_first(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 155,
+        "name": "seek_to_last",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator.seek_to_last",
+        "signature": "seek_to_last(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 43,
+        "name": "valid",
+        "path": "0g_py_storage/core/kv/iterator.py",
+        "qualified_name": "KvIterator.valid",
+        "signature": "valid(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 176,
+        "name": "get_first",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.get_first",
+        "signature": "get_first(self, stream_id, start_index, length, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 250,
+        "name": "get_holding_stream_ids",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.get_holding_stream_ids",
+        "signature": "get_holding_stream_ids(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 204,
+        "name": "get_last",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.get_last",
+        "signature": "get_last(self, stream_id, start_index, length, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 108,
+        "name": "get_next",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.get_next",
+        "signature": "get_next(self, stream_id, key, start_index, length, inclusive, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 142,
+        "name": "get_prev",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.get_prev",
+        "signature": "get_prev(self, stream_id, key, start_index, length, inclusive, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 232,
+        "name": "get_transaction_result",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.get_transaction_result",
+        "signature": "get_transaction_result(self, tx_seq)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 75,
+        "name": "get_value",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.get_value",
+        "signature": "get_value(self, stream_id, key, start_index, length, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 262,
+        "name": "has_write_permission",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.has_write_permission",
+        "signature": "has_write_permission(self, account, stream_id, key, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 292,
+        "name": "is_admin",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.is_admin",
+        "signature": "is_admin(self, account, stream_id, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 318,
+        "name": "is_special_key",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.is_special_key",
+        "signature": "is_special_key(self, stream_id, key, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 346,
+        "name": "is_writer_of_key",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.is_writer_of_key",
+        "signature": "is_writer_of_key(self, account, stream_id, key, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 376,
+        "name": "is_writer_of_stream",
+        "path": "0g_py_storage/core/storage_kv.py",
+        "qualified_name": "StorageKv.is_writer_of_stream",
+        "signature": "is_writer_of_stream(self, account, stream_id, version)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 144,
+        "name": "encode",
+        "path": "0g_py_storage/core/kv/types.py",
+        "qualified_name": "StreamData.encode",
+        "signature": "encode(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 83,
+        "name": "size",
+        "path": "0g_py_storage/core/kv/types.py",
+        "qualified_name": "StreamData.size",
+        "signature": "size(self)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 121,
+        "name": "add_stream_id",
+        "path": "0g_py_storage/core/kv/builder.py",
+        "qualified_name": "StreamDataBuilder.add_stream_id",
+        "signature": "add_stream_id(self, stream_id)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 43,
+        "name": "build",
+        "path": "0g_py_storage/core/kv/builder.py",
+        "qualified_name": "StreamDataBuilder.build",
+        "signature": "build(self, sorted_)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 132,
+        "name": "build_tags",
+        "path": "0g_py_storage/core/kv/builder.py",
+        "qualified_name": "StreamDataBuilder.build_tags",
+        "signature": "build_tags(self, sorted_)"
+      },
+      {
+        "domain": "kv_storage",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 103,
+        "name": "set",
+        "path": "0g_py_storage/core/kv/builder.py",
+        "qualified_name": "StreamDataBuilder.set",
+        "signature": "set(self, stream_id, key, data)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 19,
+        "name": "LeafNode",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "LeafNode",
+        "signature": ""
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 280,
+        "name": "MerkleTree",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "MerkleTree",
+        "signature": ""
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 97,
+        "name": "Proof",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "Proof",
+        "signature": ""
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 84,
+        "name": "ProofErrors",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "ProofErrors",
+        "signature": ""
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 39,
+        "name": "from_content",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "LeafNode.from_content",
+        "signature": "from_content(content)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 51,
+        "name": "from_left_and_right",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "LeafNode.from_left_and_right",
+        "signature": "from_left_and_right(left, right)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 72,
+        "name": "is_left_side",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "LeafNode.is_left_side",
+        "signature": "is_left_side(self)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 367,
+        "name": "add_leaf",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "MerkleTree.add_leaf",
+        "signature": "add_leaf(self, leaf_content)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 378,
+        "name": "add_leaf_by_hash",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "MerkleTree.add_leaf_by_hash",
+        "signature": "add_leaf_by_hash(self, leaf_hash)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 389,
+        "name": "build",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "MerkleTree.build",
+        "signature": "build(self)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 311,
+        "name": "proof_at",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "MerkleTree.proof_at",
+        "signature": "proof_at(self, i)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 300,
+        "name": "root_hash",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "MerkleTree.root_hash",
+        "signature": "root_hash(self)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 242,
+        "name": "calculate_proof_position",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "Proof.calculate_proof_position",
+        "signature": "calculate_proof_position(self, num_leaf_nodes)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 153,
+        "name": "validate",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "Proof.validate",
+        "signature": "validate(self, root_hash, content, position, num_leaf_nodes)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 122,
+        "name": "validate_format",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "Proof.validate_format",
+        "signature": "validate_format(self)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 166,
+        "name": "validate_hash",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "Proof.validate_hash",
+        "signature": "validate_hash(self, root_hash, content_hash, position, num_leaf_nodes)"
+      },
+      {
+        "domain": "merkle",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 212,
+        "name": "validate_root",
+        "path": "0g_py_storage/core/merkle.py",
+        "qualified_name": "Proof.validate_root",
+        "signature": "validate_root(self)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 28,
+        "name": "Indexer",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer",
+        "signature": ""
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 17,
+        "name": "SegmentTreeNode",
+        "path": "0g_py_storage/core/node_selector.py",
+        "qualified_name": "SegmentTreeNode",
+        "signature": ""
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 17,
+        "name": "StorageNode",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode",
+        "signature": ""
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 181,
+        "name": "check_replica",
+        "path": "0g_py_storage/core/node_selector.py",
+        "qualified_name": "check_replica",
+        "signature": "check_replica(shard_configs, expected_replica)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 65,
+        "name": "insert",
+        "path": "0g_py_storage/core/node_selector.py",
+        "qualified_name": "insert",
+        "signature": "insert(node, num_shard, shard_id, expected_replica)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 219,
+        "name": "is_valid_config",
+        "path": "0g_py_storage/core/node_selector.py",
+        "qualified_name": "is_valid_config",
+        "signature": "is_valid_config(config)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 37,
+        "name": "pushdown",
+        "path": "0g_py_storage/core/node_selector.py",
+        "qualified_name": "pushdown",
+        "signature": "pushdown(node)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 124,
+        "name": "select_nodes",
+        "path": "0g_py_storage/core/node_selector.py",
+        "qualified_name": "select_nodes",
+        "signature": "select_nodes(nodes, expected_replica)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 237,
+        "name": "download",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer.download",
+        "signature": "download(self, root_hash, file_path, proof)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 73,
+        "name": "get_file_locations",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer.get_file_locations",
+        "signature": "get_file_locations(self, root_hash)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 61,
+        "name": "get_node_locations",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer.get_node_locations",
+        "signature": "get_node_locations(self)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 49,
+        "name": "get_sharded_nodes",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer.get_sharded_nodes",
+        "signature": "get_sharded_nodes(self)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 135,
+        "name": "new_uploader_from_indexer_nodes",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer.new_uploader_from_indexer_nodes",
+        "signature": "new_uploader_from_indexer_nodes(self, blockchain_rpc, signer, expected_replica, opts)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 95,
+        "name": "select_nodes",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer.select_nodes",
+        "signature": "select_nodes(self, expected_replica)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 183,
+        "name": "upload",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer.upload",
+        "signature": "upload(self, file, blockchain_rpc, signer, upload_opts, retry_opts, opts)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 123,
+        "name": "download_segment",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.download_segment",
+        "signature": "download_segment(self, root, start_index, end_index)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 162,
+        "name": "download_segment_by_tx_seq",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.download_segment_by_tx_seq",
+        "signature": "download_segment_by_tx_seq(self, tx_seq, start_index, end_index)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 143,
+        "name": "download_segment_with_proof",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.download_segment_with_proof",
+        "signature": "download_segment_with_proof(self, root, index)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 182,
+        "name": "download_segment_with_proof_by_tx_seq",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.download_segment_with_proof_by_tx_seq",
+        "signature": "download_segment_with_proof_by_tx_seq(self, tx_seq, index)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 220,
+        "name": "get_file_info",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.get_file_info",
+        "signature": "get_file_info(self, root, need_available)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 239,
+        "name": "get_file_info_by_tx_seq",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.get_file_info_by_tx_seq",
+        "signature": "get_file_info_by_tx_seq(self, tx_seq)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 201,
+        "name": "get_sector_proof",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.get_sector_proof",
+        "signature": "get_sector_proof(self, sector_index, root)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 257,
+        "name": "get_shard_config",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.get_shard_config",
+        "signature": "get_shard_config(self)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 37,
+        "name": "get_status",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.get_status",
+        "signature": "get_status(self)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 49,
+        "name": "upload_segment",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.upload_segment",
+        "signature": "upload_segment(self, seg)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 85,
+        "name": "upload_segment_by_tx_seq",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.upload_segment_by_tx_seq",
+        "signature": "upload_segment_by_tx_seq(self, seg, tx_seq)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 67,
+        "name": "upload_segments",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.upload_segments",
+        "signature": "upload_segments(self, segs)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 104,
+        "name": "upload_segments_by_tx_seq",
+        "path": "0g_py_storage/core/storage_node.py",
+        "qualified_name": "StorageNode.upload_segments_by_tx_seq",
+        "signature": "upload_segments_by_tx_seq(self, segs, tx_seq)"
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 86,
+        "name": "ContractError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "ContractError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 145,
+        "name": "DownloadRetryableError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "DownloadRetryableError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 185,
+        "name": "FileOperationError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "FileOperationError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 76,
+        "name": "InsufficientReplicasError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "InsufficientReplicasError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 180,
+        "name": "InvalidInputError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "InvalidInputError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 103,
+        "name": "IpLocation",
+        "path": "0g_py_storage/models/node.py",
+        "qualified_name": "IpLocation",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 81,
+        "name": "MerkleTreeError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "MerkleTreeError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 93,
+        "name": "NetworkError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "NetworkError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 65,
+        "name": "NetworkIdentity",
+        "path": "0g_py_storage/models/node.py",
+        "qualified_name": "NetworkIdentity",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 48,
+        "name": "NetworkProtocolVersion",
+        "path": "0g_py_storage/models/node.py",
+        "qualified_name": "NetworkProtocolVersion",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 150,
+        "name": "NodeConnectionError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "NodeConnectionError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 71,
+        "name": "NodeUnavailableError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "NodeUnavailableError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 13,
+        "name": "RetryOpts",
+        "path": "0g_py_storage/models/transaction.py",
+        "qualified_name": "RetryOpts",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 103,
+        "name": "RetryableError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "RetryableError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 14,
+        "name": "ShardConfig",
+        "path": "0g_py_storage/models/node.py",
+        "qualified_name": "ShardConfig",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 29,
+        "name": "ShardedNode",
+        "path": "0g_py_storage/models/node.py",
+        "qualified_name": "ShardedNode",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 124,
+        "name": "ShardedNodes",
+        "path": "0g_py_storage/models/node.py",
+        "qualified_name": "ShardedNodes",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 82,
+        "name": "Status",
+        "path": "0g_py_storage/models/node.py",
+        "qualified_name": "Status",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 98,
+        "name": "TimeoutError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "TimeoutError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 155,
+        "name": "TransactionError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "TransactionError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 32,
+        "name": "TransactionOptions",
+        "path": "0g_py_storage/models/transaction.py",
+        "qualified_name": "TransactionOptions",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 140,
+        "name": "UploadRetryableError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "UploadRetryableError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 66,
+        "name": "VerificationError",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "VerificationError",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "AbstractFile",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "AbstractFile",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "AbstractFile",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "AbstractFile",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "AccessControl",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "AccessControl",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "AccessControl",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "AccessControl",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "AccessControlType",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "AccessControlType",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "AccessControlType",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "AccessControlType",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "Batcher",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "Batcher",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "Batcher",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "Batcher",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "Downloader",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "Downloader",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "Downloader",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "Downloader",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "FileInfo",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "FileInfo",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "FileProof",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "FileProof",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "FlowProof",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "FlowProof",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "Indexer",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "Indexer",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "Indexer",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "Indexer",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "IpLocation",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "IpLocation",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "KeyValue",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "KeyValue",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "KvClient",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "KvClient",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "KvClient",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "KvClient",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "KvIterator",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "KvIterator",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "KvIterator",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "KvIterator",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "LeafNode",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "LeafNode",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "LeafNode",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "LeafNode",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "MAX_KEY_SIZE",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "MAX_KEY_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "MAX_KEY_SIZE",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "MAX_KEY_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "MAX_QUERY_SIZE",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "MAX_QUERY_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "MAX_QUERY_SIZE",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "MAX_QUERY_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "MAX_SET_SIZE",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "MAX_SET_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "MAX_SET_SIZE",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "MAX_SET_SIZE",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "MerkleNode",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "MerkleNode",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "MerkleTree",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "MerkleTree",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "MerkleTree",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "MerkleTree",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "Metadata",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "Metadata",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "NetworkIdentity",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "NetworkIdentity",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "NetworkProtocolVersion",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "NetworkProtocolVersion",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "Proof",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "Proof",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "Proof",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "Proof",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "ProofErrors",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "ProofErrors",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "ProofErrors",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "ProofErrors",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "RetryOpts",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "RetryOpts",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "RetryOpts",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "RetryOpts",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "STREAM_DOMAIN",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "STREAM_DOMAIN",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "STREAM_DOMAIN",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "STREAM_DOMAIN",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "Segment",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "Segment",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "SegmentWithProof",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "SegmentWithProof",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "ShardConfig",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "ShardConfig",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "ShardedNode",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "ShardedNode",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "ShardedNodes",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "ShardedNodes",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "Status",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "Status",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "StorageKv",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "StorageKv",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "StorageKv",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "StorageKv",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "StorageNode",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "StorageNode",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "StorageNode",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "StorageNode",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "StreamData",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "StreamData",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "StreamData",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "StreamData",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "StreamDataBuilder",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "StreamDataBuilder",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "StreamDataBuilder",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "StreamDataBuilder",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "StreamRead",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "StreamRead",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "StreamRead",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "StreamRead",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "StreamWrite",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "StreamWrite",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "StreamWrite",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "StreamWrite",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "Transaction",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "Transaction",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "TransactionOptions",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "TransactionOptions",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "Uploader",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "Uploader",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "Uploader",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "Uploader",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 18,
+        "name": "Value",
+        "path": "0g_py_storage/models/__init__.py",
+        "qualified_name": "Value",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "ZgFile",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "ZgFile",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "ZgFile",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "ZgFile",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "__version__",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "__version__",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "check_replica",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "check_replica",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "check_replica",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "check_replica",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "is_valid_config",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "is_valid_config",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "is_valid_config",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "is_valid_config",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "select_nodes",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "select_nodes",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 29,
+        "name": "select_nodes",
+        "path": "0g_py_storage/core/__init__.py",
+        "qualified_name": "select_nodes",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "submit_with_gas_adjustment",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "submit_with_gas_adjustment",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "export",
+        "line": 85,
+        "name": "tx_with_gas_adjustment",
+        "path": "0g_py_storage/__init__.py",
+        "qualified_name": "tx_with_gas_adjustment",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 23,
+        "name": "get_market_contract",
+        "path": "0g_py_storage/core/market.py",
+        "qualified_name": "get_market_contract",
+        "signature": "get_market_contract(market_address, web3)"
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 50,
+        "name": "with_context",
+        "path": "0g_py_storage/exceptions.py",
+        "qualified_name": "StorageError.with_context",
+        "signature": "with_context(self)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 52,
+        "name": "Uploader",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader",
+        "signature": ""
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 85,
+        "name": "format_bytes",
+        "path": "0g_py_storage/test_upload.py",
+        "qualified_name": "format_bytes",
+        "signature": "format_bytes(num_bytes)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 58,
+        "name": "format_bytes",
+        "path": "0g_py_storage/test_upload_local.py",
+        "qualified_name": "format_bytes",
+        "signature": "format_bytes(num_bytes)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 98,
+        "name": "main",
+        "path": "0g_py_storage/test_upload.py",
+        "qualified_name": "main",
+        "signature": "main()"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 82,
+        "name": "main",
+        "path": "0g_py_storage/test_upload_local.py",
+        "qualified_name": "main",
+        "signature": "main()"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 72,
+        "name": "print_header",
+        "path": "0g_py_storage/test_upload.py",
+        "qualified_name": "print_header",
+        "signature": "print_header(title)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 45,
+        "name": "print_header",
+        "path": "0g_py_storage/test_upload_local.py",
+        "qualified_name": "print_header",
+        "signature": "print_header(title)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 79,
+        "name": "print_step",
+        "path": "0g_py_storage/test_upload.py",
+        "qualified_name": "print_step",
+        "signature": "print_step(step_num, title)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 52,
+        "name": "print_step",
+        "path": "0g_py_storage/test_upload_local.py",
+        "qualified_name": "print_step",
+        "signature": "print_step(step_num, title)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 67,
+        "name": "print_tree_structure",
+        "path": "0g_py_storage/test_upload_local.py",
+        "qualified_name": "print_tree_structure",
+        "signature": "print_tree_structure(submission)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 26,
+        "name": "upload",
+        "path": "0g_py_storage/simple_upload.py",
+        "qualified_name": "upload",
+        "signature": "upload(file_path)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 396,
+        "name": "find_existing_file_info",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.find_existing_file_info",
+        "signature": "find_existing_file_info(self, root_hash)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 922,
+        "name": "get_error_type",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.get_error_type",
+        "signature": "get_error_type(self, error)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 674,
+        "name": "get_segment",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.get_segment",
+        "signature": "get_segment(self, file, tree, seg_index)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 898,
+        "name": "is_already_uploaded_error",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.is_already_uploaded_error",
+        "signature": "is_already_uploaded_error(self, error)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 910,
+        "name": "is_retryable_error",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.is_retryable_error",
+        "signature": "is_retryable_error(self, error)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 516,
+        "name": "next_segment_index",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.next_segment_index",
+        "signature": "next_segment_index(self, config, start_index)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 484,
+        "name": "process_tasks_in_parallel",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.process_tasks_in_parallel",
+        "signature": "process_tasks_in_parallel(self, file, tree, tasks, retry_opts)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 541,
+        "name": "split_tasks",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.split_tasks",
+        "signature": "split_tasks(self, info, tree, opts)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 245,
+        "name": "splitable_upload",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.splitable_upload",
+        "signature": "splitable_upload(self, file, opts, retry_opts)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 308,
+        "name": "submit_transaction",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.submit_transaction",
+        "signature": "submit_transaction(self, submission, opts, retry_opts)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 98,
+        "name": "upload_file",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.upload_file",
+        "signature": "upload_file(self, file, opts, retry_opts)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 746,
+        "name": "upload_task",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.upload_task",
+        "signature": "upload_task(self, file, tree, upload_task, retry_opts)"
+      },
+      {
+        "domain": "upload",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 424,
+        "name": "wait_for_log_entry",
+        "path": "0g_py_storage/core/uploader.py",
+        "qualified_name": "Uploader.wait_for_log_entry",
+        "signature": "wait_for_log_entry(self, tx_seq, finality_required)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 43,
+        "name": "ErrorContext",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "ErrorContext",
+        "signature": ""
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 39,
+        "name": "HttpProvider",
+        "path": "0g_py_storage/utils/http.py",
+        "qualified_name": "HttpProvider",
+        "signature": ""
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 25,
+        "name": "RetryOpts",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "RetryOpts",
+        "signature": ""
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 16,
+        "name": "TLSHttpAdapter",
+        "path": "0g_py_storage/utils/http.py",
+        "qualified_name": "TLSHttpAdapter",
+        "signature": ""
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 59,
+        "name": "bytes_to_hex",
+        "path": "0g_py_storage/utils/crypto.py",
+        "qualified_name": "bytes_to_hex",
+        "signature": "bytes_to_hex(data)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 78,
+        "name": "calculate_price",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "calculate_price",
+        "signature": "calculate_price(submission, price_per_sector)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 98,
+        "name": "delay",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "delay",
+        "signature": "delay(seconds)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 56,
+        "name": "get_shard_configs",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "get_shard_configs",
+        "signature": "get_shard_configs(nodes)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 11,
+        "name": "get_split_num",
+        "path": "0g_py_storage/utils/segment.py",
+        "qualified_name": "get_split_num",
+        "signature": "get_split_num(total, unit)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 110,
+        "name": "get_split_num",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "get_split_num",
+        "signature": "get_split_num(total, unit)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 217,
+        "name": "handle_download_error",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "handle_download_error",
+        "signature": "handle_download_error(error, root_hash, segment_index, retry_count, max_retries)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 124,
+        "name": "handle_network_error",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "handle_network_error",
+        "signature": "handle_network_error(error, operation, node_url)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 253,
+        "name": "handle_node_error",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "handle_node_error",
+        "signature": "handle_node_error(error, node_url, operation)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 152,
+        "name": "handle_timeout_error",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "handle_timeout_error",
+        "signature": "handle_timeout_error(operation, timeout_ms, elapsed_ms)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 277,
+        "name": "handle_transaction_error",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "handle_transaction_error",
+        "signature": "handle_transaction_error(error, tx_hash, operation)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 181,
+        "name": "handle_upload_error",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "handle_upload_error",
+        "signature": "handle_upload_error(error, file_size, segment_count, retry_count, max_retries)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 34,
+        "name": "hex_concat",
+        "path": "0g_py_storage/utils/crypto.py",
+        "qualified_name": "hex_concat",
+        "signature": "hex_concat(hex_strings)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 328,
+        "name": "is_retryable",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "is_retryable",
+        "signature": "is_retryable(error)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 12,
+        "name": "keccak256_hash",
+        "path": "0g_py_storage/utils/crypto.py",
+        "qualified_name": "keccak256_hash",
+        "signature": "keccak256_hash(data)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 23,
+        "name": "keccak256_hash_bytes",
+        "path": "0g_py_storage/utils/crypto.py",
+        "qualified_name": "keccak256_hash_bytes",
+        "signature": "keccak256_hash_bytes(data)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 46,
+        "name": "keccak256_hash_combine",
+        "path": "0g_py_storage/utils/crypto.py",
+        "qualified_name": "keccak256_hash_combine",
+        "signature": "keccak256_hash_combine()"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 358,
+        "name": "log_error_details",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "log_error_details",
+        "signature": "log_error_details(error, operation, level, logger_obj)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 387,
+        "name": "safe_call",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "safe_call",
+        "signature": "safe_call(func)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 20,
+        "name": "segment_range",
+        "path": "0g_py_storage/utils/segment.py",
+        "qualified_name": "segment_range",
+        "signature": "segment_range(start_chunk_index, file_size)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 126,
+        "name": "segment_range",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "segment_range",
+        "signature": "segment_range(start_chunk_index, file_size)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 310,
+        "name": "submit_with_gas_adjustment",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "submit_with_gas_adjustment",
+        "signature": "submit_with_gas_adjustment(web3, flow_contract, account, submission, fee, gas_price, gas_limit, retry_opts)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 201,
+        "name": "tx_with_gas_adjustment",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "tx_with_gas_adjustment",
+        "signature": "tx_with_gas_adjustment(web3, contract, account, method, params, tx_opts, retry_opts)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 7,
+        "name": "validate_file_path",
+        "path": "0g_py_storage/utils/validation.py",
+        "qualified_name": "validate_file_path",
+        "signature": "validate_file_path(path)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 302,
+        "name": "validate_input",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "validate_input",
+        "signature": "validate_input(value, name, validator, expected)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 29,
+        "name": "validate_replicas",
+        "path": "0g_py_storage/utils/validation.py",
+        "qualified_name": "validate_replicas",
+        "signature": "validate_replicas(replicas)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 12,
+        "name": "validate_root_hash",
+        "path": "0g_py_storage/utils/validation.py",
+        "qualified_name": "validate_root_hash",
+        "signature": "validate_root_hash(root_hash)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 158,
+        "name": "wait_for_receipt",
+        "path": "0g_py_storage/utils/transfer.py",
+        "qualified_name": "wait_for_receipt",
+        "signature": "wait_for_receipt(web3, tx_hash, opts)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 100,
+        "name": "wrap_with_context",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "wrap_with_context",
+        "signature": "wrap_with_context(operation, verbose)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 81,
+        "name": "add_error",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "ErrorContext.add_error",
+        "signature": "add_error(self, error)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 95,
+        "name": "has_errors",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "ErrorContext.has_errors",
+        "signature": "has_errors(self)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 86,
+        "name": "raise_if_errors",
+        "path": "0g_py_storage/utils/error_handler.py",
+        "qualified_name": "ErrorContext.raise_if_errors",
+        "signature": "raise_if_errors(self, message)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 140,
+        "name": "close",
+        "path": "0g_py_storage/utils/http.py",
+        "qualified_name": "HttpProvider.close",
+        "signature": "close(self)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 80,
+        "name": "request",
+        "path": "0g_py_storage/utils/http.py",
+        "qualified_name": "HttpProvider.request",
+        "signature": "request(self, method, params)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 21,
+        "name": "init_poolmanager",
+        "path": "0g_py_storage/utils/http.py",
+        "qualified_name": "TLSHttpAdapter.init_poolmanager",
+        "signature": "init_poolmanager(self, connections, maxsize, block)"
+      },
+      {
+        "domain": "utils",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 30,
+        "name": "proxy_manager_for",
+        "path": "0g_py_storage/utils/http.py",
+        "qualified_name": "TLSHttpAdapter.proxy_manager_for",
+        "signature": "proxy_manager_for(self, proxy)"
+      }
+    ],
+    "ts_only": [
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 169,
+        "name": "createIndexer",
+        "path": "src/config.ts",
+        "qualified_name": "createIndexer",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 161,
+        "name": "createSigner",
+        "path": "src/config.ts",
+        "qualified_name": "createSigner",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 125,
+        "name": "generateAes256Key",
+        "path": "src/config.ts",
+        "qualified_name": "generateAes256Key",
+        "signature": "export function generateAes256Key(): Uint8Array {"
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 92,
+        "name": "getConfig",
+        "path": "src/config.ts",
+        "qualified_name": "getConfig",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 65,
+        "name": "getNetwork",
+        "path": "src/config.ts",
+        "qualified_name": "getNetwork",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 130,
+        "name": "pubKeyFromPrivateKey",
+        "path": "src/config.ts",
+        "qualified_name": "pubKeyFromPrivateKey",
+        "signature": "export function pubKeyFromPrivateKey(privateKey: string): string {"
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "interface",
+        "line": 27,
+        "name": "AppConfig",
+        "path": "src/config.ts",
+        "qualified_name": "AppConfig",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "interface",
+        "line": 84,
+        "name": "ConfigOverrides",
+        "path": "src/config.ts",
+        "qualified_name": "ConfigOverrides",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "interface",
+        "line": 22,
+        "name": "DecryptionConfig",
+        "path": "src/config.ts",
+        "qualified_name": "DecryptionConfig",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "interface",
+        "line": 9,
+        "name": "NetworkConfig",
+        "path": "src/config.ts",
+        "qualified_name": "NetworkConfig",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "type",
+        "line": 18,
+        "name": "EncryptionConfig",
+        "path": "src/config.ts",
+        "qualified_name": "EncryptionConfig",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "type",
+        "line": 6,
+        "name": "NetworkName",
+        "path": "src/config.ts",
+        "qualified_name": "NetworkName",
+        "signature": ""
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "type",
+        "line": 8,
+        "name": "StorageMode",
+        "path": "src/config.ts",
+        "qualified_name": "StorageMode",
+        "signature": "export type StorageMode = 'turbo' | 'standard';"
+      },
+      {
+        "domain": "config",
+        "ecosystem": "typescript",
+        "kind": "constant",
+        "line": 50,
+        "name": "NETWORKS",
+        "path": "src/config.ts",
+        "qualified_name": "NETWORKS",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 259,
+        "name": "batchUpload",
+        "path": "src/storage.ts",
+        "qualified_name": "batchUpload",
+        "signature": "export async function batchUpload("
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 152,
+        "name": "downloadFile",
+        "path": "src/storage.ts",
+        "qualified_name": "downloadFile",
+        "signature": "export async function downloadFile("
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 198,
+        "name": "peekHeader",
+        "path": "src/storage.ts",
+        "qualified_name": "peekHeader",
+        "signature": "export async function peekHeader("
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 214,
+        "name": "uploadData",
+        "path": "src/storage.ts",
+        "qualified_name": "uploadData",
+        "signature": "export async function uploadData("
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "function",
+        "line": 99,
+        "name": "uploadFile",
+        "path": "src/storage.ts",
+        "qualified_name": "uploadFile",
+        "signature": "export async function uploadFile("
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "interface",
+        "line": 27,
+        "name": "DownloadResult",
+        "path": "src/storage.ts",
+        "qualified_name": "DownloadResult",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "interface",
+        "line": 22,
+        "name": "UploadResult",
+        "path": "src/storage.ts",
+        "qualified_name": "UploadResult",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 39,
+        "name": "EncryptionHeader",
+        "path": "src/index.ts",
+        "qualified_name": "EncryptionHeader",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 15,
+        "name": "NETWORKS",
+        "path": "src/index.ts",
+        "qualified_name": "NETWORKS",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 2,
+        "name": "batchUpload",
+        "path": "src/index.ts",
+        "qualified_name": "batchUpload",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 15,
+        "name": "createIndexer",
+        "path": "src/index.ts",
+        "qualified_name": "createIndexer",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 15,
+        "name": "createSigner",
+        "path": "src/index.ts",
+        "qualified_name": "createSigner",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 2,
+        "name": "downloadFile",
+        "path": "src/index.ts",
+        "qualified_name": "downloadFile",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 15,
+        "name": "generateAes256Key",
+        "path": "src/index.ts",
+        "qualified_name": "generateAes256Key",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 15,
+        "name": "getConfig",
+        "path": "src/index.ts",
+        "qualified_name": "getConfig",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 15,
+        "name": "getNetwork",
+        "path": "src/index.ts",
+        "qualified_name": "getNetwork",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 2,
+        "name": "peekHeader",
+        "path": "src/index.ts",
+        "qualified_name": "peekHeader",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 15,
+        "name": "pubKeyFromPrivateKey",
+        "path": "src/index.ts",
+        "qualified_name": "pubKeyFromPrivateKey",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 2,
+        "name": "uploadData",
+        "path": "src/index.ts",
+        "qualified_name": "uploadData",
+        "signature": ""
+      },
+      {
+        "domain": "shared",
+        "ecosystem": "typescript",
+        "kind": "re_export",
+        "line": 2,
+        "name": "uploadFile",
+        "path": "src/index.ts",
+        "qualified_name": "uploadFile",
+        "signature": ""
+      }
+    ]
+  },
+  "config": {
+    "git_timeout": 300,
+    "python_root": "0g_py_storage",
+    "ref": "master",
+    "scope": "sdk",
+    "ts_path": "",
+    "upstream_url": "https://github.com/0gfoundation/0g-storage-ts-starter-kit.git"
+  },
+  "feature_probes": [
+    {
+      "id": "file_upload",
+      "label": "File upload",
+      "python_hits": [
+        "upload",
+        "Indexer",
+        "ZgFile\\.from_file_path"
+      ],
+      "status": "matched",
+      "ts_hits": [
+        "uploadFile",
+        "Indexer",
+        "ZgFile\\.fromFilePath"
+      ]
+    },
+    {
+      "id": "file_download",
+      "label": "File download",
+      "python_hits": [
+        "download",
+        "Downloader",
+        "download_segment"
+      ],
+      "status": "matched",
+      "ts_hits": [
+        "downloadFile",
+        "indexer\\.download",
+        "downloadToBlob"
+      ]
+    },
+    {
+      "id": "mem_data_upload",
+      "label": "In-memory data upload",
+      "python_hits": [
+        "from_bytes",
+        "ZgFile\\.from_bytes"
+      ],
+      "status": "matched",
+      "ts_hits": [
+        "uploadData",
+        "MemData"
+      ]
+    },
+    {
+      "id": "batch_upload",
+      "label": "Batch upload wrapper",
+      "python_hits": [
+        "splitable_upload",
+        "Uploader"
+      ],
+      "status": "matched",
+      "ts_hits": [
+        "batchUpload",
+        "batch-upload"
+      ]
+    },
+    {
+      "id": "client_side_encryption",
+      "label": "Client-side encryption",
+      "python_hits": [],
+      "status": "missing_in_python",
+      "ts_hits": [
+        "aes256",
+        "ecies",
+        "EncryptionHeader"
+      ]
+    },
+    {
+      "id": "peek_header",
+      "label": "Encryption header peek",
+      "python_hits": [],
+      "status": "missing_in_python",
+      "ts_hits": [
+        "peekHeader",
+        "peek-header"
+      ]
+    },
+    {
+      "id": "network_modes",
+      "label": "Network and storage modes",
+      "python_hits": [
+        "turbo"
+      ],
+      "status": "needs_review",
+      "ts_hits": [
+        "StorageMode",
+        "turbo",
+        "standard"
+      ]
+    },
+    {
+      "id": "merkle_proofs",
+      "label": "Merkle roots and proofs",
+      "python_hits": [
+        "merkle_tree",
+        "root_hash",
+        "Proof"
+      ],
+      "status": "matched",
+      "ts_hits": [
+        "merkleTree",
+        "rootHash",
+        "proof"
+      ]
+    },
+    {
+      "id": "kv_storage",
+      "label": "KV storage",
+      "python_hits": [
+        "KvClient",
+        "Batcher",
+        "StreamDataBuilder"
+      ],
+      "status": "matched",
+      "ts_hits": [
+        "key-value",
+        "stream"
+      ]
+    }
+  ],
+  "generated_at": "2026-05-17T15:55:48.617089+00:00",
+  "summary": {
+    "matched_count": 3,
+    "missing_feature_count": 2,
+    "needs_review_count": 2,
+    "python_only_count": 343,
+    "python_surface_count": 347,
+    "review_feature_count": 1,
+    "ts_only_count": 34,
+    "typescript_surface_count": 42
+  },
+  "upstream": {
+    "commit": "6a308551f4a4d2ccb57dea0ec1adee35c4cbbfe3",
+    "package": "0g-storage-ts-starter",
+    "path": "/Users/damiafo/Documents/projects/og-py-sdk/.cache/storage_ts_starter_kit",
+    "version": "2.0.0"
+  }
+}
