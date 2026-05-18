@@ -1,5 +1,6 @@
-import time
 import json
+import os
+import time
 from typing import List, Optional
 
 import requests
@@ -32,6 +33,10 @@ class FineTuningProvider:
 
     def _user_address(self) -> str:
         return self.account.address
+
+    def get_provider_url(self, provider_address: str) -> str:
+        """Return the provider endpoint URL registered on-chain."""
+        return self._get_provider_url(provider_address)
 
     # --- Quote ---
 
@@ -205,36 +210,93 @@ class FineTuningProvider:
     # --- LoRA download from TEE ---
 
     def download_lora_from_tee(
-        self, provider_address: str, task_id: str, output_path: str
+        self,
+        provider_address: str,
+        task_id: str,
+        output_path: str,
+        idle_timeout_ms: Optional[int] = None,
+        max_retries: Optional[int] = None,
     ) -> None:
         url = self._get_provider_url(provider_address)
         user_addr = self._user_address()
+        endpoint = f"{url}/v1/user/{user_addr}/task/{task_id}/lora"
+        idle_timeout = max(1, (idle_timeout_ms or 60_000) / 1000)
+        retries = max(0, 2 if max_retries is None else max_retries)
 
-        timestamp = int(time.time())
-        task_id_hex = task_id.replace("-", "")
-        message = task_id_hex + str(timestamp)
-        message_hash = Web3.keccak(text=message)
-        signable = encode_defunct(primitive=message_hash)
-        signed = self.account.sign_message(signable)
-        signature = "0x" + signed.signature.hex()
+        dest_file = output_path
+        if os.path.isdir(output_path):
+            dest_file = os.path.join(output_path, f"lora_model_{task_id}.zip")
+        dest_dir = os.path.dirname(dest_file)
+        if dest_dir:
+            os.makedirs(dest_dir, exist_ok=True)
 
-        try:
-            resp = requests.post(
-                f"{url}/v1/user/{user_addr}/task/{task_id}/lora",
-                json={"signature": signature, "timestamp": timestamp},
-                headers={"Content-Type": "application/json"},
-                timeout=DOWNLOAD_TIMEOUT,
-                stream=True,
-            )
-            resp.raise_for_status()
-            with open(output_path, "wb") as f:
-                for chunk in resp.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        except requests.RequestException as e:
-            raise NetworkError(
-                str(e),
-                endpoint=f"{url}/v1/user/{user_addr}/task/{task_id}/lora",
-            )
+        last_error: Optional[Exception] = None
+        for attempt in range(retries + 1):
+            timestamp = int(time.time())
+            task_id_hex = task_id.replace("-", "")
+            message = task_id_hex + str(timestamp)
+            message_hash = Web3.keccak(text=message)
+            signable = encode_defunct(primitive=message_hash)
+            signed = self.account.sign_message(signable)
+            signature = "0x" + signed.signature.hex()
+
+            try:
+                if os.path.exists(dest_file):
+                    os.unlink(dest_file)
+
+                resp = requests.post(
+                    endpoint,
+                    json={"signature": signature, "timestamp": timestamp},
+                    headers={"Content-Type": "application/json"},
+                    timeout=(30, idle_timeout),
+                    stream=True,
+                )
+
+                if (
+                    400 <= resp.status_code < 500
+                    and resp.status_code != 408
+                ):
+                    resp.raise_for_status()
+
+                resp.raise_for_status()
+
+                bytes_received = 0
+                with open(dest_file, "wb") as f:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        if not chunk:
+                            continue
+                        bytes_received += len(chunk)
+                        f.write(chunk)
+
+                if bytes_received == 0:
+                    raise NetworkError(
+                        "TEE download completed with no bytes",
+                        endpoint=endpoint,
+                    )
+                return
+
+            except requests.RequestException as e:
+                last_error = e
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                permanent = (
+                    status is not None
+                    and 400 <= status < 500
+                    and status != 408
+                )
+                if permanent or attempt >= retries:
+                    break
+            except NetworkError as e:
+                last_error = e
+                if attempt >= retries:
+                    break
+
+            time.sleep(min(2 * (2 ** attempt), 30))
+
+        raise NetworkError(
+            "Failed to download LoRA from TEE after "
+            f"{retries + 1} attempt(s): {last_error}",
+            endpoint=endpoint,
+        )
 
     # --- Dataset upload to TEE ---
 

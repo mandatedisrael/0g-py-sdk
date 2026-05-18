@@ -13,6 +13,7 @@ from ..contract.types import (
     Task,
     Deliverable,
     CustomizedModel,
+    TdxQuoteResponse,
 )
 from ..provider.provider import FineTuningProvider
 from .service import ServiceProcessor
@@ -85,6 +86,54 @@ class FineTuningBroker:
             return self._model.list_model()
         except Exception as e:
             raise ContractError("listModel", str(e))
+
+    # --- Provider helpers ---
+
+    def get_provider_url(self, provider_address: str) -> str:
+        try:
+            return self._provider.get_provider_url(provider_address)
+        except Exception as e:
+            raise ContractError("getProviderUrl", str(e))
+
+    def get_quote(self, provider_address: str) -> TdxQuoteResponse:
+        try:
+            return self._provider.get_quote(provider_address)
+        except Exception as e:
+            raise ContractError("getQuote", str(e))
+
+    def get_pending_task_counter(self, provider_address: str) -> int:
+        try:
+            return self._provider.get_pending_task_counter(provider_address)
+        except Exception as e:
+            raise ContractError("getPendingTaskCounter", str(e))
+
+    def get_customized_models(
+        self, provider_address: str
+    ) -> List[CustomizedModel]:
+        try:
+            return self._provider.get_customized_models(provider_address)
+        except Exception as e:
+            raise ContractError("getCustomizedModels", str(e))
+
+    def get_customized_model(
+        self, provider_address: str, model_name: str
+    ) -> CustomizedModel:
+        try:
+            return self._provider.get_customized_model(
+                provider_address, model_name
+            )
+        except Exception as e:
+            raise ContractError("getCustomizedModel", str(e))
+
+    def download_model_usage(
+        self, provider_address: str, model_name: str, output_path: str
+    ) -> None:
+        try:
+            self._provider.download_model_usage(
+                provider_address, model_name, output_path
+            )
+        except Exception as e:
+            raise ContractError("downloadModelUsage", str(e))
 
     # --- Account management ---
 
@@ -249,24 +298,64 @@ class FineTuningBroker:
         task_id: str,
         data_path: str,
         gas_price: Optional[int] = None,
-        download_method: str = "tee",
+        download_method: str = "auto",
+        tee_idle_timeout_ms: Optional[int] = None,
+        tee_max_retries: Optional[int] = None,
     ) -> Dict[str, Any]:
         try:
             return self._model.acknowledge_model(
-                provider_address, task_id, data_path, gas_price, download_method
+                provider_address,
+                task_id,
+                data_path,
+                gas_price,
+                download_method,
+                tee_idle_timeout_ms,
+                tee_max_retries,
             )
         except Exception as e:
             raise ContractError("acknowledgeModel", str(e))
 
+    def acknowledge_deliverable(
+        self,
+        provider_address: str,
+        task_id: str,
+        gas_price: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        try:
+            return self._model.acknowledge_deliverable(
+                provider_address, task_id, gas_price
+            )
+        except Exception as e:
+            raise ContractError("acknowledgeDeliverable", str(e))
+
     def download_lora_from_tee(
-        self, provider_address: str, task_id: str, output_path: str
+        self,
+        provider_address: str,
+        task_id: str,
+        output_path: str,
+        idle_timeout_ms: Optional[int] = None,
+        max_retries: Optional[int] = None,
     ) -> None:
         try:
             self._model.download_lora_from_tee(
-                provider_address, task_id, output_path
+                provider_address,
+                task_id,
+                output_path,
+                idle_timeout_ms,
+                max_retries,
             )
         except Exception as e:
             raise ContractError("downloadLoRAFromTEE", str(e))
+
+    def download_model_from_0g_storage(
+        self, provider_address: str, task_id: str, data_path: str
+    ) -> None:
+        try:
+            self._model.download_model_from_0g_storage(
+                provider_address, task_id, data_path
+            )
+        except Exception as e:
+            raise ContractError("downloadModelFrom0GStorage", str(e))
 
     def model_usage(
         self, provider_address: str, model_name: str, output_path: str
