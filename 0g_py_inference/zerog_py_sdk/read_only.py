@@ -8,11 +8,13 @@ before connecting a wallet.
 Reference: TypeScript SDK src.ts/sdk/inference/broker/read-only-broker.ts
 """
 
-from typing import List, Optional, Dict, Any
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, field
 from enum import Enum
-from web3 import Web3
+from typing import Any, Dict, List, Optional
+
 import requests
+from web3 import Web3
 
 from .constants import (
     get_contract_addresses,
@@ -48,8 +50,82 @@ class HealthMetrics:
 
 
 @dataclass
+class PricingTier:
+    """One tier in the provider's tiered pricing schedule."""
+
+    max_input_tokens: int
+    input_multiplier: float
+    output_multiplier: float
+
+
+@dataclass
+class TieredPricingInfo:
+    """Tiered pricing configuration for a model or service."""
+
+    tiers: List[PricingTier] = field(default_factory=list)
+
+
+@dataclass
+class CacheTokenBillingInfo:
+    """Cache token billing configuration for a model or service."""
+
+    divisor: int
+
+
+@dataclass
+class ProviderModelInfo:
+    """Model metadata returned by the status API's ``/models`` endpoint."""
+
+    id: str
+    provider: Optional[str] = None
+    object: Optional[str] = None
+    created: Optional[int] = None
+    owned_by: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    context_length: Optional[int] = None
+    max_completion_tokens: Optional[int] = None
+    architecture: Optional[Dict[str, Any]] = None
+    supported_parameters: Optional[List[str]] = None
+    default_parameters: Optional[Dict[str, Any]] = None
+    pricing: Optional[Dict[str, Any]] = None
+    pricing_usd: Optional[Dict[str, Any]] = None
+    expiration_date: Optional[str] = None
+    verifiability: Optional[str] = None
+    tee_attested: Optional[bool] = None
+    tee_type: Optional[str] = None
+    tee_verifier: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ProviderModelInfo":
+        return cls(
+            id=data.get("id", ""),
+            provider=data.get("provider"),
+            object=data.get("object"),
+            created=data.get("created"),
+            owned_by=data.get("owned_by"),
+            name=data.get("name"),
+            description=data.get("description"),
+            type=data.get("type"),
+            context_length=data.get("context_length"),
+            max_completion_tokens=data.get("max_completion_tokens"),
+            architecture=data.get("architecture"),
+            supported_parameters=data.get("supported_parameters"),
+            default_parameters=data.get("default_parameters"),
+            pricing=data.get("pricing"),
+            pricing_usd=data.get("pricing_usd"),
+            expiration_date=data.get("expiration_date"),
+            verifiability=data.get("verifiability"),
+            tee_attested=data.get("tee_attested"),
+            tee_type=data.get("tee_type"),
+            tee_verifier=data.get("tee_verifier"),
+        )
+
+
+@dataclass
 class ServiceWithDetail:
-    """Service information with optional health metrics."""
+    """Service information with optional health, model, and pricing detail."""
     provider: str
     service_type: str
     url: str
@@ -59,7 +135,102 @@ class ServiceWithDetail:
     model: str
     verifiability: str
     additional_info: str = ""
+    tee_signer_address: str = ""
+    tee_signer_acknowledged: bool = True
     health_metrics: Optional[HealthMetrics] = None
+    model_info: Optional[ProviderModelInfo] = None
+    tiered_pricing: Optional[TieredPricingInfo] = None
+    cache_token_billing: Optional[CacheTokenBillingInfo] = None
+
+
+def parse_tiered_pricing(additional_info: str) -> Optional[TieredPricingInfo]:
+    """Parse tiered pricing from a service's ``additional_info`` JSON string."""
+    try:
+        parsed = json.loads(additional_info)
+    except (TypeError, json.JSONDecodeError):
+        return None
+
+    raw_tiers = parsed.get("tieredPricing", {}).get("tiers")
+    if not isinstance(raw_tiers, list):
+        return None
+
+    tiers = []
+    for item in raw_tiers:
+        if not isinstance(item, dict):
+            continue
+        max_input_tokens = item.get("maxInputTokens")
+        input_multiplier = item.get("inputMultiplier")
+        output_multiplier = item.get("outputMultiplier")
+        if (
+            isinstance(max_input_tokens, int)
+            and isinstance(input_multiplier, (int, float))
+            and isinstance(output_multiplier, (int, float))
+        ):
+            tiers.append(
+                PricingTier(
+                    max_input_tokens=max_input_tokens,
+                    input_multiplier=float(input_multiplier),
+                    output_multiplier=float(output_multiplier),
+                )
+            )
+
+    return TieredPricingInfo(tiers=tiers) if tiers else None
+
+
+def parse_tiered_pricing_from_model_info(
+    model_info: Optional[ProviderModelInfo],
+) -> Optional[TieredPricingInfo]:
+    """Parse tiered pricing from the status API's model payload."""
+    raw_pricing = (model_info.pricing or {}).get("tiered_pricing") if model_info else None
+    if not isinstance(raw_pricing, list):
+        return None
+
+    tiers = []
+    for item in raw_pricing:
+        if not isinstance(item, dict):
+            continue
+        max_input_tokens = item.get("max_input_tokens")
+        input_multiplier = item.get("input_multiplier")
+        output_multiplier = item.get("output_multiplier")
+        if (
+            isinstance(max_input_tokens, int)
+            and isinstance(input_multiplier, (int, float))
+            and isinstance(output_multiplier, (int, float))
+        ):
+            tiers.append(
+                PricingTier(
+                    max_input_tokens=max_input_tokens,
+                    input_multiplier=float(input_multiplier),
+                    output_multiplier=float(output_multiplier),
+                )
+            )
+
+    return TieredPricingInfo(tiers=tiers) if tiers else None
+
+
+def parse_cache_token_billing(
+    additional_info: str,
+) -> Optional[CacheTokenBillingInfo]:
+    """Parse cache token billing from a service's ``additional_info`` JSON string."""
+    try:
+        parsed = json.loads(additional_info)
+    except (TypeError, json.JSONDecodeError):
+        return None
+
+    divisor = parsed.get("cacheTokenBilling", {}).get("divisor")
+    if isinstance(divisor, int) and divisor > 0:
+        return CacheTokenBillingInfo(divisor=divisor)
+    return None
+
+
+def parse_cache_token_billing_from_model_info(
+    model_info: Optional[ProviderModelInfo],
+) -> Optional[CacheTokenBillingInfo]:
+    """Parse cache token billing from the status API's model payload."""
+    divisor = (model_info.pricing or {}).get("cache_token_billing", {}).get("divisor") if model_info else None
+    if isinstance(divisor, int) and divisor > 0:
+        return CacheTokenBillingInfo(divisor=divisor)
+    return None
 
 
 class ReadOnlyInferenceBroker:
@@ -160,6 +331,8 @@ class ReadOnlyInferenceBroker:
                     model=service[6],
                     verifiability=service[7],
                     additional_info=service[8] if len(service) > 8 else "",
+                    tee_signer_address=service[9] if len(service) > 9 else "",
+                    tee_signer_acknowledged=service[10] if len(service) > 10 else True,
                 ))
 
             return services
@@ -174,10 +347,10 @@ class ReadOnlyInferenceBroker:
         include_unacknowledged: bool = True,
     ) -> List[ServiceWithDetail]:
         """
-        Retrieve services with health metrics from monitoring API.
+        Retrieve services with health metrics and model metadata from the status APIs.
 
-        This combines on-chain service data with real-time health metrics
-        including uptime percentage and average response time.
+        This combines on-chain service data with real-time health metrics,
+        status API model metadata, and parsed pricing details.
 
         Args:
             offset: Pagination offset (default: 0)
@@ -186,7 +359,9 @@ class ReadOnlyInferenceBroker:
                 acknowledged (default: True).
 
         Returns:
-            List of ServiceWithDetail objects with health_metrics populated
+            List of ServiceWithDetail objects enriched with optional
+            ``health_metrics``, ``model_info``, ``tiered_pricing``, and
+            ``cache_token_billing`` fields.
 
         Example:
             >>> services = broker.list_service_with_detail()
@@ -201,11 +376,25 @@ class ReadOnlyInferenceBroker:
         )
 
         health_map = self._fetch_health_metrics()
+        model_map = self._fetch_model_info()
 
         for service in services:
             health = health_map.get(service.provider.lower())
             if health:
                 service.health_metrics = health
+            provider_models = model_map.get(service.provider.lower(), [])
+            service.model_info = next(
+                (info for info in provider_models if info.id == service.model),
+                None,
+            )
+            service.tiered_pricing = (
+                parse_tiered_pricing(service.additional_info)
+                or parse_tiered_pricing_from_model_info(service.model_info)
+            )
+            service.cache_token_billing = (
+                parse_cache_token_billing(service.additional_info)
+                or parse_cache_token_billing_from_model_info(service.model_info)
+            )
 
         return services
     
@@ -246,6 +435,38 @@ class ReadOnlyInferenceBroker:
         except Exception:
             # Return empty map if health API fails
             return {}
+
+    def _fetch_model_info(self) -> Dict[str, List[ProviderModelInfo]]:
+        """Fetch aggregated provider model metadata from the status API."""
+        try:
+            endpoint = self._get_status_api_endpoint()
+            response = requests.get(f"{endpoint}/models", timeout=10)
+            if response.status_code != 200:
+                return {}
+
+            data = response.json()
+            models = data.get("data", [])
+
+            model_map: Dict[str, List[ProviderModelInfo]] = {}
+            for item in models:
+                if not isinstance(item, dict):
+                    continue
+                info = ProviderModelInfo.from_dict(item)
+                if not info.provider:
+                    continue
+                provider = info.provider.lower()
+                model_map.setdefault(provider, []).append(info)
+            return model_map
+
+        except Exception:
+            return {}
+
+    def _get_status_api_endpoint(self) -> str:
+        """Resolve the public status API base URL from the current chain ID."""
+        chain_id = self.web3.eth.chain_id
+        if chain_id == MAINNET_CHAIN_ID:
+            return self.HEALTH_API_MAINNET
+        return self.HEALTH_API_TESTNET
     
     def get_service(self, provider_address: str) -> ServiceWithDetail:
         """
@@ -272,6 +493,8 @@ class ReadOnlyInferenceBroker:
                 model=service[6],
                 verifiability=service[7],
                 additional_info=service[8] if len(service) > 8 else "",
+                tee_signer_address=service[9] if len(service) > 9 else "",
+                tee_signer_acknowledged=service[10] if len(service) > 10 else True,
             )
             
         except Exception as e:
