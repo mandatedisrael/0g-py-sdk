@@ -124,6 +124,8 @@ for s in browser.list_service():
 ```
 
 `list_service_with_detail()` adds health metrics (uptime, response time) from the network's monitoring API.
+It also enriches services with status-API model metadata plus parsed
+`tiered_pricing` and `cache_token_billing` details when providers expose them.
 
 ## Use with the OpenAI Python SDK
 
