@@ -18,6 +18,7 @@ setup(
         "Source Code": "https://github.com/0glabs/0g-py-sdk/tree/main/0g_py_storage",
     },
     packages=find_packages(exclude=["tests", "*.tests", "tests.*"]),
+    py_modules=["config", "exceptions"],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -35,6 +36,7 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "pycryptodome>=3.23.0",
+        "cryptography>=45.0.0",
         "web3>=7.14.0",
         "eth-account>=0.13.7",
         "requests>=2.32.5",
