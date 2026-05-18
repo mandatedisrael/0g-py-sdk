@@ -21,6 +21,9 @@ from .broker import ZGServingBroker, create_broker, create_broker_from_env
 from .read_only import (
     ReadOnlyInferenceBroker,
     create_read_only_broker,
+    ZGComputeNetworkReadOnlyBroker,
+    create_zg_compute_network_read_only_broker,
+    is_verifiability,
     ServiceWithDetail,
     HealthMetrics,
     HealthStatus,
@@ -38,6 +41,7 @@ from .models import (
     ServiceMetadata,
     LedgerAccount,
     RequestHeaders,
+    ServingRequestHeaders,
     ProviderInfo,
     ChatMessage,
     ChatResponse,
@@ -48,9 +52,6 @@ from .models import (
     LedgerDetail,
     AdditionalInfo,
     AutoFundingConfig,
-    AsyncServiceMetadata,
-    AsyncInferenceSubmission,
-    AsyncInferenceJob,
 )
 from .session import (
     SessionMode,
@@ -76,6 +77,10 @@ from .extractors import (
     TextToImageExtractor,
     ImageEditingExtractor,
     SpeechToTextExtractor,
+    ChatBot,
+    TextToImage,
+    ImageEditing,
+    SpeechToText,
     create_extractor,
     EXTRACTOR_REGISTRY,
 )
@@ -95,6 +100,21 @@ from .verifier import (
     ResponseSignature,
     get_response_verifier,
     verify_tee_response,
+    VerificationStep,
+    VerificationStepType,
+    VerificationResult,
+    VerificationSummary,
+    SignerReportMatch,
+    SignerVerification,
+    SignerRAVerificationResult,
+    EventLogEntry,
+    AttestationReport,
+    ReportsData,
+    ComposeVerification,
+    ComposeVerificationDetail,
+    ComposeVerificationResult,
+    ProviderType,
+    VerificationLogger,
 )
 from .exceptions import (
     ZGServingBrokerError,
@@ -126,15 +146,23 @@ from .fine_tuning.contract.types import (
 
 __version__ = "0.5.0"
 
+# TS-SDK name aliases for the combined broker / factory.
+ZGComputeNetworkBroker = ZGServingBroker
+create_zg_compute_network_broker = create_broker
+
 __all__ = [
     # Main classes
     "ZGServingBroker",
     "create_broker",
     "create_broker_from_env",
-    
+    "ZGComputeNetworkBroker",
+    "create_zg_compute_network_broker",
+
     # Read-only broker
     "ReadOnlyInferenceBroker",
     "create_read_only_broker",
+    "ZGComputeNetworkReadOnlyBroker",
+    "create_zg_compute_network_read_only_broker",
     "ServiceWithDetail",
     "HealthMetrics",
     "HealthStatus",
@@ -152,6 +180,7 @@ __all__ = [
     "ServiceMetadata",
     "LedgerAccount",
     "RequestHeaders",
+    "ServingRequestHeaders",
     "ProviderInfo",
     "ChatMessage",
     "ChatResponse",
@@ -162,9 +191,6 @@ __all__ = [
     "LedgerDetail",
     "AdditionalInfo",
     "AutoFundingConfig",
-    "AsyncServiceMetadata",
-    "AsyncInferenceSubmission",
-    "AsyncInferenceJob",
 
     # Session (new auth system)
     "SessionMode",
@@ -190,6 +216,10 @@ __all__ = [
     "TextToImageExtractor",
     "ImageEditingExtractor",
     "SpeechToTextExtractor",
+    "ChatBot",
+    "TextToImage",
+    "ImageEditing",
+    "SpeechToText",
     "create_extractor",
     "EXTRACTOR_REGISTRY",
     
@@ -209,6 +239,22 @@ __all__ = [
     "ResponseSignature",
     "get_response_verifier",
     "verify_tee_response",
+    "VerificationStep",
+    "VerificationStepType",
+    "VerificationResult",
+    "VerificationSummary",
+    "SignerReportMatch",
+    "SignerVerification",
+    "SignerRAVerificationResult",
+    "EventLogEntry",
+    "AttestationReport",
+    "ReportsData",
+    "ComposeVerification",
+    "ComposeVerificationDetail",
+    "ComposeVerificationResult",
+    "ProviderType",
+    "VerificationLogger",
+    "is_verifiability",
     
     # Exceptions
     "ZGServingBrokerError",
