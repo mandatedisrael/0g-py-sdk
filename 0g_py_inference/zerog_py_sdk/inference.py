@@ -8,7 +8,7 @@ and request management for AI inference services.
 import json
 import threading
 import time
-from typing import IO, Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 import requests
 from web3 import Web3
@@ -20,9 +20,6 @@ from .models import (
     Account,
     AccountWithDetail,
     AdditionalInfo,
-    AsyncInferenceJob,
-    AsyncInferenceSubmission,
-    AsyncServiceMetadata,
     AutoFundingConfig,
     Refund,
     RefundDetail,
@@ -46,13 +43,12 @@ from .extractors import (
     SpeechToTextExtractor
 )
 from .lora import LoRAProcessor, LoRADependencies
-
-
-AsyncFilePayload = Union[
-    bytes,
-    IO[bytes],
-    tuple,
-]
+from .verifier import (
+    SignerReportMatch,
+    SignerVerification,
+    VerificationResult,
+    VerificationStep,
+)
 
 
 class InferenceManager:
@@ -170,7 +166,10 @@ class InferenceManager:
                     output_price=service[4],
                     updated_at=service[5],
                     model=service[6],
-                    verifiability=service[7]
+                    verifiability=service[7],
+                    additional_info=service[8] if len(service) > 8 else "",
+                    tee_signer_address=service[9] if len(service) > 9 else "",
+                    tee_signer_acknowledged=service[10] if len(service) > 10 else True,
                 ))
 
             return services
@@ -214,7 +213,10 @@ class InferenceManager:
                 output_price=service_data[4],
                 updated_at=service_data[5],
                 model=service_data[6],
-                verifiability=service_data[7]
+                verifiability=service_data[7],
+                additional_info=service_data[8] if len(service_data) > 8 else "",
+                tee_signer_address=service_data[9] if len(service_data) > 9 else "",
+                tee_signer_acknowledged=service_data[10] if len(service_data) > 10 else True,
             )
             
         except Exception as e:
@@ -501,173 +503,6 @@ class InferenceManager:
             "model": service.model
         }
 
-    def get_async_service_metadata(
-        self, provider_address: str
-    ) -> AsyncServiceMetadata:
-        """
-        Get async inference endpoint and model information for a provider.
-
-        Mirrors the TypeScript SDK's documented async flow, where the normal
-        ``/v1/proxy`` endpoint is rewritten to ``/v1/async`` for job-based
-        image generation and edit requests.
-        """
-        metadata = self.get_service_metadata(provider_address)
-        return AsyncServiceMetadata(
-            endpoint=metadata["endpoint"].replace("/v1/proxy", "/v1/async"),
-            model=metadata["model"],
-        )
-
-    def submit_async_request(
-        self,
-        provider_address: str,
-        path: str,
-        *,
-        json_body: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        files: Optional[Dict[str, AsyncFilePayload]] = None,
-        timeout: int = 30,
-    ) -> AsyncInferenceSubmission:
-        """
-        Submit a generic async inference job.
-
-        Args:
-            provider_address: Provider wallet address
-            path: Async route under ``/v1/async`` such as
-                ``images/generations`` or ``images/edits``
-            json_body: JSON request body for JSON-based endpoints
-            data: Form fields for multipart endpoints
-            files: Multipart file payloads for endpoints like image edits
-            timeout: Per-request HTTP timeout in seconds
-        """
-        metadata = self.get_async_service_metadata(provider_address)
-        route = path.strip("/")
-        url = f"{metadata.endpoint}/{route}"
-        content = json.dumps(json_body) if json_body is not None else ""
-        headers = self.get_request_headers(provider_address, content)
-
-        if json_body is not None:
-            headers = {"Content-Type": "application/json", **headers}
-
-        try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=json_body,
-                data=data,
-                files=files,
-                timeout=timeout,
-            )
-            response.raise_for_status()
-        except requests.RequestException as e:
-            raise NetworkError(f"Failed to submit async request: {e}", url) from e
-
-        payload = response.json() if response.content else {}
-        return AsyncInferenceSubmission.from_dict(payload)
-
-    def submit_async_image_generation(
-        self,
-        provider_address: str,
-        request_body: Dict[str, Any],
-        *,
-        timeout: int = 30,
-    ) -> AsyncInferenceSubmission:
-        """
-        Submit an async image generation job to ``/v1/async/images/generations``.
-        """
-        return self.submit_async_request(
-            provider_address,
-            "images/generations",
-            json_body=request_body,
-            timeout=timeout,
-        )
-
-    def submit_async_image_edit(
-        self,
-        provider_address: str,
-        data: Dict[str, Any],
-        files: Dict[str, AsyncFilePayload],
-        *,
-        timeout: int = 30,
-    ) -> AsyncInferenceSubmission:
-        """
-        Submit an async image edit job to ``/v1/async/images/edits``.
-        """
-        return self.submit_async_request(
-            provider_address,
-            "images/edits",
-            data=data,
-            files=files,
-            timeout=timeout,
-        )
-
-    def get_async_job(
-        self,
-        provider_address: str,
-        job_id: str,
-        *,
-        timeout: int = 30,
-    ) -> AsyncInferenceJob:
-        """
-        Fetch the latest status for an async inference job.
-        """
-        metadata = self.get_async_service_metadata(provider_address)
-        url = f"{metadata.endpoint}/jobs/{job_id}"
-        headers = self.get_request_headers(provider_address)
-
-        try:
-            response = requests.get(url, headers=headers, timeout=timeout)
-            response.raise_for_status()
-        except requests.RequestException as e:
-            raise NetworkError(f"Failed to fetch async job: {e}", url) from e
-
-        retry_after = self._parse_retry_after(response.headers.get("Retry-After"))
-        payload = response.json() if response.content else {}
-        return AsyncInferenceJob.from_dict(
-            payload,
-            job_id=job_id,
-            retry_after=retry_after,
-        )
-
-    def wait_for_async_job(
-        self,
-        provider_address: str,
-        job_id: str,
-        *,
-        timeout_seconds: int = 300,
-        poll_interval_seconds: float = 5.0,
-    ) -> AsyncInferenceJob:
-        """
-        Poll an async job until it leaves ``pending`` / ``processing``.
-        """
-        deadline = time.time() + timeout_seconds
-
-        while True:
-            job = self.get_async_job(provider_address, job_id)
-            if job.status not in {"pending", "processing"}:
-                return job
-
-            delay = (
-                job.retry_after
-                if job.retry_after is not None
-                else poll_interval_seconds
-            )
-            remaining = deadline - time.time()
-            if remaining <= 0:
-                raise TimeoutError(
-                    f"Timed out waiting for async job {job_id} after "
-                    f"{timeout_seconds} seconds"
-                )
-            time.sleep(min(delay, remaining))
-
-    @staticmethod
-    def _parse_retry_after(value: Optional[str]) -> Optional[float]:
-        if value is None:
-            return None
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return None
-    
     def get_extractor(self, provider_address: str) -> Extractor:
         """
         Get the appropriate billing extractor for a service.
@@ -811,278 +646,237 @@ class InferenceManager:
     def verify_service(
         self,
         provider_address: str,
-        output_dir: Optional[str] = None
-    ) -> Dict[str, Any]:
+        output_dir: Optional[str] = None,
+        on_log: Optional[Callable[[VerificationStep], None]] = None,
+    ) -> VerificationResult:
         """
-        Comprehensively verify a provider's TEE service and attestation.
+        Verify a provider's TEE service and attestation.
 
-        1. Fetch TEE quote from provider's /v1/quote endpoint
-        2. Extract TEE signer address from report_data (base64 decoded)
-        3. Compare extracted signer with expected signer from contract
-        4. Optionally verify attestation via Automata contract (non-blocking)
-        5. Check service configuration
-        6. Generate verification report (optional)
+        Mirrors the TS SDK's ``InferenceBroker.verifyService``: silent by
+        default, emits ``VerificationStep`` entries to the optional ``on_log``
+        callback, and returns a structured ``VerificationResult``. The full
+        step log is also available on ``result.steps``.
 
         Args:
             provider_address: Provider's wallet address
-            output_dir: Optional directory to save verification report
+            output_dir: Optional directory to save a verification report
+            on_log: Optional callback invoked for each verification step
 
         Returns:
-            Dictionary with verification results:
-            {
-                "is_valid": bool,               # Overall validity (based on signer match)
-                "provider": str,                # Provider address
-                "service_type": str,            # e.g., "chatbot"
-                "model": str,                   # Model name
-                "verifiability": str,           # e.g., "TeeML"
-                "tee_signer": str,              # TEE signer address (extracted from report_data)
-                "expected_signer": str,         # Expected signer from contract
-                "signer_match": bool,           # Whether signers match (critical)
-                "quote_available": bool,        # Quote fetch succeeded
-                "quote_data": dict,             # Raw quote data
-                "attestation_verified": bool,   # Automata verification (optional)
-                "timestamp": int,               # Verification timestamp
-                "report_path": str              # Report file path (if saved)
-            }
+            ``VerificationResult`` with TS-parity fields plus Python-side
+            discovery extras (model, service_type, quote_data, etc.).
 
         Raises:
             ServiceNotFoundError: If provider doesn't exist
-            NetworkError: If quote fetch fails
 
         Example:
-            >>> # Basic verification
             >>> result = inference.verify_service(provider_address)
-            >>> print(f"Valid: {result['is_valid']}")
-            >>> print(f"Signer Match: {result['signer_match']}")
-            >>> print(f"TEE Signer: {result['tee_signer']}")
+            >>> if result.success:
+            ...     print(result.tee_signer)
             >>>
-            >>> # With report generation
-            >>> result = inference.verify_service(provider_address, output_dir="./reports")
-            >>> print(f"Report saved to: {result['report_path']}")
-
-        Note:
-            - Automata contract verification is optional and non-blocking
+            >>> # Stream steps to stdout
+            >>> result = inference.verify_service(
+            ...     provider_address,
+            ...     on_log=lambda step: print(step.message),
+            ... )
         """
         import time
         import json
+        from pathlib import Path
 
         provider_address = format_address(provider_address)
-        timestamp = int(time.time() * 1000)
+        result = VerificationResult(
+            provider=provider_address,
+            timestamp=int(time.time() * 1000),
+            output_directory=output_dir,
+        )
 
-        # Initialize result
-        result = {
-            "is_valid": False,
-            "provider": provider_address,
-            "service_type": "",
-            "model": "",
-            "verifiability": "",
-            "tee_signer": None,
-            "quote_available": False,
-            "quote_data": {},
-            "attestation_verified": False,
-            "attestation_method": None,
-            "timestamp": timestamp,
-            "report_path": None,
-            "errors": []
-        }
+        def log(step_type: str, message: str) -> None:
+            step = VerificationStep(type=step_type, message=message)  # type: ignore[arg-type]
+            result.steps.append(step)
+            if on_log is not None:
+                on_log(step)
 
         try:
-            # Step 1: Get service metadata
-            print(f"🔍 Verifying service for provider: {provider_address}")
+            log("step", f"🔍 Verifying service for provider: {provider_address}")
             service = self.get_service(provider_address)
 
-            result["service_type"] = service.service_type
-            result["model"] = service.model
-            result["verifiability"] = service.verifiability
-            result["url"] = service.url
-            result["is_verifiable"] = service.is_verifiable()
+            result.service_type = service.service_type
+            result.model = service.model
+            result.verifiability = service.verifiability
 
-            print(f"   ✓ Service found: {service.model}")
-            print(f"   ✓ Type: {service.service_type}")
-            print(f"   ✓ Verifiability: {service.verifiability}")
+            log("success", f"Service found: {service.model}")
+            log("info", f"Type: {service.service_type}")
+            log("info", f"Verifiability: {service.verifiability}")
 
-            # Step 2: Fetch TEE quote
             quote_endpoint = f"{service.url}/v1/quote"
-            print(f"   ⟳ Fetching quote from: {quote_endpoint}")
+            log("step", f"Fetching quote from: {quote_endpoint}")
 
             try:
                 quote_response = requests.get(quote_endpoint, timeout=15)
 
                 if quote_response.status_code == 200:
                     quote_data = quote_response.json()
-                    result["quote_available"] = True
-                    result["quote_data"] = quote_data
+                    result.quote_available = True
+                    result.quote_data = quote_data
 
-                    # Extract TEE signer - supports multiple formats with automatic fallback
                     tee_signer, attestation_format = self._extract_tee_signer_address(quote_data)
-
-                    result["attestation_format"] = attestation_format
+                    result.attestation_format = attestation_format
 
                     if tee_signer:
-                        result["tee_signer"] = tee_signer
-                        print(f"   ✓ TEE signer extracted: {tee_signer}")
+                        result.tee_signer = tee_signer
+                        log("success", f"TEE signer extracted: {tee_signer}")
                     elif attestation_format in ("dstack", "gpu"):
-                        # Valid attestation format but no traditional signer
-                        print(f"   ✓ {attestation_format.upper()} format attestation detected")
-                        result["tee_signer"] = None
-                        # For DStack/GPU, we still consider it valid if attestation exists
-                        result["format_verified"] = True
+                        log("success", f"{attestation_format.upper()} format attestation detected")
                     else:
-                        result["errors"].append("Could not extract signer - no supported format")
-                        print(f"   ⚠ Could not extract signer - no supported format found")
+                        result.errors.append("Could not extract signer - no supported format")
+                        log("warning", "Could not extract signer - no supported format found")
 
-                    # Check for quote hex data (for attestation verification)
-                    quote_hex = quote_data.get('quote')
+                    quote_hex = quote_data.get("quote")
                     if quote_hex:
-                        print(f"   ✓ Quote hex data available: {len(quote_hex)} chars")
-                        result["quote_hex_length"] = len(quote_hex)
-
+                        log("info", f"Quote hex data available: {len(quote_hex)} chars")
                 else:
-                    result["errors"].append(f"Quote fetch failed: HTTP {quote_response.status_code}")
-                    print(f"   ✗ Quote fetch failed: {quote_response.status_code}")
+                    result.errors.append(
+                        f"Quote fetch failed: HTTP {quote_response.status_code}"
+                    )
+                    log("error", f"Quote fetch failed: {quote_response.status_code}")
 
             except requests.RequestException as e:
-                result["errors"].append(f"Quote fetch error: {str(e)}")
-                print(f"   ✗ Quote fetch error: {e}")
+                result.errors.append(f"Quote fetch error: {str(e)}")
+                log("error", f"Quote fetch error: {e}")
 
-            # Step 3: Try Automata attestation verification (optional
-            if result["quote_available"] and "quote" in result["quote_data"]:
-                print(f"   ⟳ Attempting Automata contract verification (optional)...")
+            if result.quote_available and "quote" in result.quote_data:
+                log("step", "Attempting Automata contract verification (optional)...")
                 try:
-                    quote_hex = result["quote_data"]["quote"]
-                    attestation_valid = self._verify_quote_with_automata(quote_hex)
-                    result["attestation_verified"] = attestation_valid
-                    result["attestation_method"] = "automata_contract"
-
+                    attestation_valid = self._verify_quote_with_automata(
+                        result.quote_data["quote"]
+                    )
+                    result.attestation_verified = attestation_valid
+                    result.attestation_method = "automata_contract"
                     if attestation_valid:
-                        print(f"   ✓ Automata contract verification passed")
+                        log("success", "Automata contract verification passed")
                     else:
-                        print(f"   ℹ️  Automata contract verification not available (this is normal)")
-
+                        log("info", "Automata contract verification not available (this is normal)")
                 except Exception as e:
-                    # Don't fail if Automata contract doesn't work - TypeScript doesn't use it
-                    result["attestation_verified"] = None  # Unknown, not False
-                    result["attestation_method"] = None
-                    print(f"   ℹ️  Automata verification skipped (TypeScript doesn't use this): {str(e)[:100]}")
+                    result.attestation_verified = None
+                    result.attestation_method = None
+                    log("info", f"Automata verification skipped: {str(e)[:100]}")
 
-            # Step 4: Try to get expected signer from contract (optional)
-            # For now, we try getAccount() but make it completely optional
-            current_tee_signer = None
+            current_tee_signer: Optional[str] = None
             try:
                 account = self.contract.functions.getAccount(
                     self.account.address,
-                    provider_address
+                    provider_address,
                 ).call()
-
-                # New Account struct: index 7 = acknowledged (bool)
                 is_acknowledged = account[7] if len(account) > 7 else False
-                result["is_acknowledged"] = bool(is_acknowledged)
-
-                if result["is_acknowledged"]:
-                    print(f"   ✓ Provider acknowledged in contract")
-                    print(f"   ✓ Contract TEE signer: {current_tee_signer}")
+                result.is_acknowledged = bool(is_acknowledged)
+                if result.is_acknowledged:
+                    log("success", "Provider acknowledged in contract")
                 else:
-                    print(f"   ℹ️  Provider not yet acknowledged in contract")
+                    log("info", "Provider not yet acknowledged in contract")
+            except Exception:
+                log("info", "Contract signer check unavailable (this is optional)")
 
-            except Exception as e:
-                # Contract check is optional - don't fail verification if it doesn't work
-                print(f"   ℹ️  Contract signer check unavailable (this is optional)")
-
-            # Step 5: Compare TEE signer with expected signer
-            if result["tee_signer"] and current_tee_signer:
-                # Normalize addresses for comparison (lowercase, strip 0x)
-                extracted_signer = result["tee_signer"].lower().replace("0x", "")
-                expected_signer = current_tee_signer.lower().replace("0x", "")
-
-                signer_match = extracted_signer == expected_signer
-                result["signer_match"] = signer_match
-                result["expected_signer"] = current_tee_signer
-
-                if signer_match:
-                    print(f"   ✅ TEE Signer Match!")
-                    print(f"      Expected: {current_tee_signer}")
-                    print(f"      Got:      {result['tee_signer']}")
+            if result.tee_signer and current_tee_signer:
+                extracted = result.tee_signer.lower().replace("0x", "")
+                expected = current_tee_signer.lower().replace("0x", "")
+                match = extracted == expected
+                result.signer_match = match
+                result.expected_signer = current_tee_signer
+                result.signer_verification = SignerVerification(
+                    contract_address=current_tee_signer,
+                    report_addresses=[
+                        SignerReportMatch(
+                            report_type="tee",
+                            address=result.tee_signer,
+                            match=match,
+                        )
+                    ],
+                    all_match=match,
+                )
+                if match:
+                    log("success", "TEE Signer Match!")
                 else:
-                    print(f"   ❌ TEE Signer Mismatch!")
-                    print(f"      Expected: {current_tee_signer}")
-                    print(f"      Got:      {result['tee_signer']}")
-            elif result["tee_signer"]:
-                # Have extracted signer but no expected signer to compare with
-                # This is still valid - TypeScript also just extracts and displays the signer
-                result["signer_match"] = True  # Pass verification if we extracted the signer
-                print(f"   ✓ TEE signer successfully extracted (contract comparison unavailable)")
-            elif result.get("attestation_format") in ("dstack", "gpu"):
-                # DStack/GPU format - uses different verification method (no traditional signer)
-                result["signer_match"] = True  # Pass verification for valid attestation format
-                print(f"   ✓ {result['attestation_format'].upper()} attestation format verified")
-                print(f"   ℹ️  This format uses compose/GPU verification instead of traditional signer")
+                    log("error", "TEE Signer Mismatch!")
+            elif result.tee_signer:
+                result.signer_match = True
+                result.signer_verification = SignerVerification(
+                    contract_address="",
+                    report_addresses=[
+                        SignerReportMatch(
+                            report_type="tee",
+                            address=result.tee_signer,
+                            match=True,
+                        )
+                    ],
+                    all_match=True,
+                )
+                log("success", "TEE signer extracted (contract comparison unavailable)")
+            elif result.attestation_format in ("dstack", "gpu"):
+                result.signer_match = True
+                log("success", f"{result.attestation_format.upper()} attestation format verified")
 
-            # Step 6: Determine overall validity (based on signer match, like TypeScript)
-            # For standard SGX/TDX: requires signer extraction and match
-            # For DStack/GPU: requires valid attestation format
-            result["is_valid"] = (
-                result["quote_available"] and
-                (
-                    # Standard format: has signer and it matches
-                    (result["tee_signer"] is not None and result.get("signer_match", False)) or
-                    # DStack/GPU format: valid attestation format detected
-                    (result.get("attestation_format") in ("dstack", "gpu") and result.get("signer_match", False))
+            result.success = bool(
+                result.quote_available
+                and (
+                    (result.tee_signer is not None and bool(result.signer_match))
+                    or (
+                        result.attestation_format in ("dstack", "gpu")
+                        and bool(result.signer_match)
+                    )
                 )
             )
 
-            # Step 7: Generate report if requested
-            if output_dir and result:
+            if output_dir:
                 try:
-                    from pathlib import Path
-
-                    # Create directory if it doesn't exist
                     Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-                    report_filename = f"verification_{provider_address}_{int(time.time())}.json"
+                    report_filename = (
+                        f"verification_{provider_address}_{int(time.time())}.json"
+                    )
                     report_path = str(Path(output_dir) / report_filename)
-
-                    with open(report_path, 'w') as f:
-                        json.dump(result, f, indent=2)
-
-                    result["report_path"] = report_path
-                    print(f"   ✓ Report saved: {report_path}")
-
+                    with open(report_path, "w") as f:
+                        json.dump(
+                            {
+                                "success": result.success,
+                                "provider": result.provider,
+                                "model": result.model,
+                                "service_type": result.service_type,
+                                "verifiability": result.verifiability,
+                                "tee_signer": result.tee_signer,
+                                "expected_signer": result.expected_signer,
+                                "signer_match": result.signer_match,
+                                "quote_available": result.quote_available,
+                                "quote_data": result.quote_data,
+                                "attestation_format": result.attestation_format,
+                                "attestation_verified": result.attestation_verified,
+                                "attestation_method": result.attestation_method,
+                                "is_acknowledged": result.is_acknowledged,
+                                "errors": result.errors,
+                                "timestamp": result.timestamp,
+                            },
+                            f,
+                            indent=2,
+                        )
+                    result.reports_generated.append(report_path)
+                    log("success", f"Report saved: {report_path}")
                 except Exception as e:
-                    result["errors"].append(f"Report save error: {str(e)}")
-                    print(f"   ⚠ Report save error: {e}")
+                    result.errors.append(f"Report save error: {str(e)}")
+                    log("warning", f"Report save error: {e}")
 
-            # Summary
-            print()
-            print("=" * 60)
-            if result["is_valid"]:
-                print("✅ SERVICE VERIFICATION PASSED")
-            else:
-                print("⚠️  SERVICE VERIFICATION INCOMPLETE")
-            print("=" * 60)
-            print(f"Provider:          {result['provider']}")
-            print(f"Model:             {result['model']}")
-            print(f"Verifiability:     {result['verifiability']}")
-            print(f"TEE Signer:        {result['tee_signer']}")
-            print(f"Expected Signer:   {result.get('expected_signer', 'N/A')}")
-            print(f"Signer Match:      {result.get('signer_match', False)}")
-            print(f"Quote Available:   {result['quote_available']}")
-            print(f"Attestation:       {result.get('attestation_verified', 'N/A')}")
-            if result["errors"]:
-                print(f"Errors:            {len(result['errors'])}")
-                for error in result["errors"]:
-                    print(f"  - {error}")
-            print("=" * 60)
-            print()
-
+            log(
+                "success" if result.success else "warning",
+                "SERVICE VERIFICATION PASSED"
+                if result.success
+                else "SERVICE VERIFICATION INCOMPLETE",
+            )
             return result
 
         except ServiceNotFoundError:
             raise
         except Exception as e:
-            result["errors"].append(f"Verification failed: {str(e)}")
-            result["is_valid"] = False
-            import traceback
-            traceback.print_exc()
+            result.errors.append(f"Verification failed: {str(e)}")
+            result.success = False
+            log("error", f"Verification failed: {e}")
             return result
 
     def process_response(
@@ -1170,7 +964,12 @@ class InferenceManager:
             token_id=token_id
         )
     
-    def revoke_api_key(self, provider_address: str, token_id: int) -> Dict[str, Any]:
+    def revoke_api_key(
+        self,
+        provider_address: str,
+        token_id: int,
+        gas_price: Optional[int] = None,
+    ) -> Dict[str, Any]:
         """
         Revoke a specific API key by its tokenId.
         
@@ -1185,9 +984,10 @@ class InferenceManager:
             ValueError: If token_id is 255 (ephemeral tokens can't be individually revoked)
             ContractError: If the transaction fails
         """
-        if token_id == 255:
+        if token_id < 0 or token_id > 254:
             raise ValueError(
-                "Cannot revoke ephemeral token individually. Use revoke_all_tokens() instead."
+                "Only persistent token IDs 0-254 can be individually revoked. "
+                "Use revoke_all_tokens() for ephemeral tokens."
             )
         
         provider_address = format_address(provider_address)
@@ -1199,7 +999,7 @@ class InferenceManager:
             ).build_transaction({
                 'from': self.account.address,
                 'gas': 200000,
-                'gasPrice': self.web3.eth.gas_price,
+                'gasPrice': gas_price or self.web3.eth.gas_price,
                 'nonce': self.web3.eth.get_transaction_count(self.account.address)
             })
             
@@ -1214,8 +1014,63 @@ class InferenceManager:
             
         except Exception as e:
             raise ContractError("revokeToken", str(e))
-    
-    def revoke_all_tokens(self, provider_address: str) -> Dict[str, Any]:
+
+    def revoke_tokens(
+        self,
+        provider_address: str,
+        token_ids: List[int],
+        gas_price: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Revoke multiple persistent API keys in one transaction.
+
+        Args:
+            provider_address: Provider's wallet address
+            token_ids: Token IDs to revoke (0-254)
+            gas_price: Optional gas price override
+
+        Returns:
+            Transaction receipt
+        """
+        if not token_ids:
+            raise ValueError("token_ids must contain at least one token ID")
+        invalid = [tid for tid in token_ids if tid < 0 or tid > 254]
+        if invalid:
+            raise ValueError(
+                "Only persistent token IDs 0-254 can be revoked in batch. "
+                f"Invalid token IDs: {invalid}"
+            )
+
+        provider_address = format_address(provider_address)
+
+        try:
+            tx = self.contract.functions.revokeTokens(
+                provider_address,
+                token_ids,
+            ).build_transaction({
+                'from': self.account.address,
+                'gas': 250000,
+                'gasPrice': gas_price or self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address),
+            })
+
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if receipt['status'] != 1:
+                raise ContractError("revokeTokens", "Transaction failed")
+
+            return parse_transaction_receipt(receipt)
+
+        except Exception as e:
+            raise ContractError("revokeTokens", str(e))
+
+    def revoke_all_tokens(
+        self,
+        provider_address: str,
+        gas_price: Optional[int] = None,
+    ) -> Dict[str, Any]:
         """
         Revoke all tokens (ephemeral and persistent) for a provider.
         
@@ -1236,7 +1091,7 @@ class InferenceManager:
             ).build_transaction({
                 'from': self.account.address,
                 'gas': 200000,
-                'gasPrice': self.web3.eth.gas_price,
+                'gasPrice': gas_price or self.web3.eth.gas_price,
                 'nonce': self.web3.eth.get_transaction_count(self.account.address)
             })
             
@@ -1256,6 +1111,25 @@ class InferenceManager:
             raise ContractError("revokeAllTokens", str(e))
     
     # ==================== Account Management ====================
+
+    def get_chain_id(self) -> int:
+        """Return the connected chain ID."""
+        return self.web3.eth.chain_id
+
+    def get_user_address(self) -> str:
+        """Return the current wallet address."""
+        return self.account.address
+
+    def lock_time(self) -> int:
+        """Return the contract refund lock time in seconds."""
+        try:
+            return self.contract.functions.lockTime().call()
+        except Exception as e:
+            raise ContractError("lockTime", str(e))
+
+    def get_locked_time(self) -> int:
+        """Alias for ``lock_time()`` matching the fine-tuning broker naming."""
+        return self.lock_time()
     
     def get_account(self, provider_address: str) -> Account:
         """
@@ -1409,7 +1283,7 @@ class InferenceManager:
         """
         # Parse refunds
         refunds = []
-        refunds_data = account_data[6] if len(account_data) > 6 else []
+        refunds_data = account_data[5] if len(account_data) > 5 else []
         for ref in refunds_data:
             refunds.append(Refund(
                 index=ref[0],
@@ -1450,7 +1324,85 @@ class InferenceManager:
         """
         return self.get_account(provider_address).acknowledged
 
-    def revoke_provider_tee_signer_acknowledgement(self, provider_address: str) -> Dict[str, Any]:
+    def check_provider_signer_status(
+        self,
+        provider_address: str,
+        gas_price: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Check whether a provider's TEE signer is acknowledged by the contract owner.
+
+        Mirrors the TypeScript SDK's ``checkProviderSignerStatus`` helper. If
+        the current user has no provider sub-account yet, the SDK creates it
+        with the contract minimum provider transfer before reading service
+        signer status.
+        """
+        provider_address = format_address(provider_address)
+
+        if self.ledger_manager:
+            try:
+                self.get_account(provider_address)
+            except ContractError:
+                self.ledger_manager.transfer_fund(
+                    provider_address,
+                    "inference",
+                    self.ledger_manager.MIN_TRANSFER_AMOUNT_WEI,
+                )
+
+        service = self._get_service_with_signer(provider_address)
+        zero_address = "0x0000000000000000000000000000000000000000"
+        signer = service.tee_signer_address or ""
+        is_acknowledged = (
+            bool(service.tee_signer_acknowledged)
+            and bool(signer)
+            and signer.lower() != zero_address
+        )
+
+        return {
+            "is_acknowledged": is_acknowledged,
+            "tee_signer_address": signer,
+        }
+
+    def acknowledge_provider_tee_signer(
+        self,
+        provider_address: str,
+        gas_price: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Acknowledge a provider's TEE signer as contract owner.
+
+        This is the owner-level operation exposed by the TypeScript SDK as
+        ``acknowledgeProviderTEESigner``.
+        """
+        provider_address = format_address(provider_address)
+
+        try:
+            tx = self.contract.functions.acknowledgeTEESignerByOwner(
+                provider_address
+            ).build_transaction({
+                'from': self.account.address,
+                'gas': 200000,
+                'gasPrice': gas_price or self.web3.eth.gas_price,
+                'nonce': self.web3.eth.get_transaction_count(self.account.address),
+            })
+
+            signed_tx = self.account.sign_transaction(tx)
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if receipt['status'] != 1:
+                raise ContractError("acknowledgeTEESignerByOwner", "Transaction failed")
+
+            return parse_transaction_receipt(receipt)
+
+        except Exception as e:
+            raise ContractError("acknowledgeTEESignerByOwner", str(e))
+
+    def revoke_provider_tee_signer_acknowledgement(
+        self,
+        provider_address: str,
+        gas_price: Optional[int] = None,
+    ) -> Dict[str, Any]:
         """
         Revoke acknowledgment of a provider's TEE signer.
 
@@ -1474,7 +1426,7 @@ class InferenceManager:
             ).build_transaction({
                 'from': self.account.address,
                 'gas': 200000,
-                'gasPrice': self.web3.eth.gas_price,
+                'gasPrice': gas_price or self.web3.eth.gas_price,
                 'nonce': self.web3.eth.get_transaction_count(self.account.address),
             })
 
@@ -1489,6 +1441,21 @@ class InferenceManager:
 
         except Exception as e:
             raise ContractError("revokeTEESignerAcknowledgement", str(e))
+
+    def _get_service_with_signer(self, provider_address: str) -> ServiceMetadata:
+        service = self.get_service(provider_address)
+        if service.tee_signer_address:
+            return service
+
+        try:
+            services = self.list_service(offset=0, limit=1000)
+            for candidate in services:
+                if candidate.provider.lower() == provider_address.lower():
+                    return candidate
+        except Exception:
+            pass
+
+        return service
 
     # ==================== Provider Service Management ====================
 
@@ -1528,6 +1495,7 @@ class InferenceManager:
         model: Optional[str] = None,
         input_price: Optional[int] = None,
         output_price: Optional[int] = None,
+        gas_price: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Update the caller's own service parameters (provider operation).
@@ -1559,14 +1527,15 @@ class InferenceManager:
             current.verifiability if current else "",
             input_price if input_price is not None else (current.input_price if current else 0),
             output_price if output_price is not None else (current.output_price if current else 0),
-            "",  # additionalInfo — preserve existing; pass empty to leave unchanged
+            current.additional_info if current else "",
+            current.tee_signer_address if current else "0x0000000000000000000000000000000000000000",
         )
 
         try:
             tx = self.contract.functions.addOrUpdateService(params).build_transaction({
                 'from': self.account.address,
                 'gas': 300000,
-                'gasPrice': self.web3.eth.gas_price,
+                'gasPrice': gas_price or self.web3.eth.gas_price,
                 'nonce': self.web3.eth.get_transaction_count(self.account.address),
             })
 

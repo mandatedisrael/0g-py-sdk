@@ -32,6 +32,9 @@ class ServiceMetadata:
     updated_at: int
     model: str
     verifiability: str
+    additional_info: str = ""
+    tee_signer_address: str = ""
+    tee_signer_acknowledged: bool = True
 
     def is_verifiable(self) -> bool:
         """Check if this service provides verifiable outputs."""
@@ -61,7 +64,7 @@ class LedgerAccount:
 class RequestHeaders(TypedDict):
     """
     Request headers for authenticated service calls.
-    
+
     These headers contain billing information and authentication data.
     They are single-use only to prevent replay attacks.
     """
@@ -69,6 +72,10 @@ class RequestHeaders(TypedDict):
     Address: str
     Nonce: str
     Content: str
+
+
+# TS-SDK name alias (TS calls this interface ``ServingRequestHeaders``).
+ServingRequestHeaders = RequestHeaders
 
 
 @dataclass
@@ -240,84 +247,6 @@ class AutoFundingConfig:
     """
     interval_ms: int = 30000
     buffer_multiplier: int = 2
-
-
-@dataclass
-class AsyncServiceMetadata:
-    """
-    Metadata for a provider's async inference API.
-
-    Attributes:
-        endpoint: Async API endpoint (typically ``.../v1/async``)
-        model: Model identifier exposed by the provider
-    """
-
-    endpoint: str
-    model: str
-
-
-@dataclass
-class AsyncInferenceSubmission:
-    """
-    Job submission response returned by the async inference API.
-
-    Attributes:
-        job_id: Broker-assigned async job identifier
-        status: Initial job status, usually ``pending``
-        raw: Full unmodified JSON payload for forward compatibility
-    """
-
-    job_id: str
-    status: str
-    raw: Dict[str, Any] = field(default_factory=dict)
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AsyncInferenceSubmission":
-        return cls(
-            job_id=data.get("jobId", ""),
-            status=data.get("status", ""),
-            raw=dict(data),
-        )
-
-
-@dataclass
-class AsyncInferenceJob:
-    """
-    Async job status payload returned by ``GET /v1/async/jobs/{jobId}``.
-
-    Attributes:
-        job_id: Broker-assigned async job identifier
-        status: Current job status, e.g. ``pending``, ``processing``, ``completed``, ``failed``
-        data: Provider result payload when the job completes successfully
-        error_message: Provider-supplied failure reason when the job fails
-        retry_after: Recommended poll interval in seconds, derived from the
-            HTTP ``Retry-After`` header when present
-        raw: Full unmodified JSON payload for forward compatibility
-    """
-
-    job_id: str
-    status: str
-    data: Any = None
-    error_message: Optional[str] = None
-    retry_after: Optional[float] = None
-    raw: Dict[str, Any] = field(default_factory=dict)
-
-    @classmethod
-    def from_dict(
-        cls,
-        data: Dict[str, Any],
-        *,
-        job_id: Optional[str] = None,
-        retry_after: Optional[float] = None,
-    ) -> "AsyncInferenceJob":
-        return cls(
-            job_id=data.get("jobId") or job_id or "",
-            status=data.get("status", ""),
-            data=data.get("data"),
-            error_message=data.get("errorMessage"),
-            retry_after=retry_after,
-            raw=dict(data),
-        )
 
 
 @dataclass
