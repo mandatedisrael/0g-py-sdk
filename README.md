@@ -96,16 +96,19 @@ See [`0g_py_inference/README.md`](./0g_py_inference/README.md) for the full refe
 
 ## 📦 Storage SDK — `0g_py_storage/`
 
-Python SDK for the [0G Storage Network](https://docs.0g.ai/developer-hub/building-on-0g/storage/overview) — decentralized, sharded storage with cryptographic merkle proofs. Byte-exact parity with the [TypeScript SDK](https://github.com/0glabs/0g-ts-sdk).
+Python SDK for the [0G Storage Network](https://docs.0g.ai/developer-hub/building-on-0g/storage/overview) — decentralized, sharded storage with cryptographic merkle proofs.
 
 **Features:**
 - Merkle tree generation (Keccak256, 256-byte chunks, 256 KB segments)
 - File upload via Flow contract submission and parallel segment uploads
 - File download with shard routing and optional proof verification
+- Client-side encryption — AES-256-CTR (v1) and ECIES on secp256k1 (v2)
+- `Indexer.peek_header` for pre-download encryption detection
 - Splitable upload for files larger than 4 GB
 - Fragment downloads with automatic reassembly
 - KV storage layer (streams, batched writes, access control, cursor iteration)
 - Storage node RPC client (14 methods)
+- Typed network configuration with turbo / standard indexer presets
 - Comprehensive error handling with retry classification
 
 **Key entry points:** `Indexer`, `ZgFile`, `MerkleTree`, `KvClient`, `StreamDataBuilder`, `Batcher`
@@ -164,6 +167,8 @@ See [`0g_py_storage/README.md`](./0g_py_storage/README.md) for the full referenc
 | Blockchain RPC | `https://evmrpc.0g.ai` |
 | Storage Indexer | `https://indexer-storage-turbo.0g.ai` |
 | Explorer | [chainscan.0g.ai](https://chainscan.0g.ai) |
+
+The tables show the **turbo** indexer (lower-latency tier). The **standard** tier (cheaper, slower replication) is available at `https://indexer-storage-testnet-standard.0g.ai` and `https://indexer-storage.0g.ai`. Use the Storage SDK's `get_network(name, mode)` helper to resolve the right URL automatically.
 
 The SDKs auto-detect the network from the chain ID — pass `network="testnet"` or `network="mainnet"` to `create_broker()` (Compute) or use the matching RPC URLs directly (Storage).
 
