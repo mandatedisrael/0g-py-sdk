@@ -1,591 +1,20 @@
 {
-  "action_items": [
-    {
-      "acceptance_criteria": [
-        "Confirm whether the upstream behavior is a real Python SDK parity requirement.",
-        "If porting, implement the Python API or behavior with tests and docs/examples where user-facing.",
-        "If already covered or intentionally different, update the parity tracker with the decision and rationale.",
-        "Rerun this parity checker and the relevant Python test suite after changes."
-      ],
-      "feature_id": "client_side_encryption",
-      "priority": "P1",
-      "python_evidence_patterns": [],
-      "python_refs": [
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "class",
-          "line": 23,
-          "name": "Downloader",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader",
-          "signature": ""
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "function",
-          "line": 19,
-          "name": "download",
-          "path": "0g_py_storage/simple_download.py",
-          "qualified_name": "download",
-          "signature": "download(root_hash, output_file)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "function",
-          "line": 22,
-          "name": "main",
-          "path": "0g_py_storage/test_download.py",
-          "qualified_name": "main",
-          "signature": "main()"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 381,
-          "name": "check_exist",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.check_exist",
-          "signature": "check_exist(input_path)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 49,
-          "name": "download",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.download",
-          "signature": "download(self, root_or_roots, file_path, proof)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 148,
-          "name": "download_file",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.download_file",
-          "signature": "download_file(self, root, file_path, proof)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 317,
-          "name": "download_file_helper",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.download_file_helper",
-          "signature": "download_file_helper(self, file_path, info, proof)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 75,
-          "name": "download_fragments",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.download_fragments",
-          "signature": "download_fragments(self, roots, filename, with_proof)"
-        }
-      ],
-      "review_refs": [
-        {
-          "match_type": "name_only",
-          "python": {
-            "domain": "utils",
-            "ecosystem": "python",
-            "kind": "function",
-            "line": 64,
-            "name": "hex_to_bytes",
-            "path": "0g_py_storage/utils/crypto.py",
-            "qualified_name": "hex_to_bytes",
-            "signature": "hex_to_bytes(hex_str)"
-          },
-          "typescript": {
-            "domain": "shared",
-            "ecosystem": "typescript",
-            "kind": "re_export",
-            "line": 15,
-            "name": "hexToBytes",
-            "path": "src/index.ts",
-            "qualified_name": "hexToBytes",
-            "signature": ""
-          }
-        }
-      ],
-      "status": "missing_in_python",
-      "suggested_next_step": "Start by reading the upstream implementation for Client-side encryption, then decide whether to port it into Python.",
-      "title": "Client-side encryption",
-      "upstream_evidence_patterns": [
-        "aes256",
-        "ecies",
-        "EncryptionHeader"
-      ],
-      "upstream_refs": [
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "re_export",
-          "line": 39,
-          "name": "EncryptionHeader",
-          "path": "src/index.ts",
-          "qualified_name": "EncryptionHeader",
-          "signature": ""
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "re_export",
-          "line": 15,
-          "name": "generateAes256Key",
-          "path": "src/index.ts",
-          "qualified_name": "generateAes256Key",
-          "signature": ""
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 259,
-          "name": "batchUpload",
-          "path": "src/storage.ts",
-          "qualified_name": "batchUpload",
-          "signature": "export async function batchUpload("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 152,
-          "name": "downloadFile",
-          "path": "src/storage.ts",
-          "qualified_name": "downloadFile",
-          "signature": "export async function downloadFile("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 198,
-          "name": "peekHeader",
-          "path": "src/storage.ts",
-          "qualified_name": "peekHeader",
-          "signature": "export async function peekHeader("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 214,
-          "name": "uploadData",
-          "path": "src/storage.ts",
-          "qualified_name": "uploadData",
-          "signature": "export async function uploadData("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 99,
-          "name": "uploadFile",
-          "path": "src/storage.ts",
-          "qualified_name": "uploadFile",
-          "signature": "export async function uploadFile("
-        },
-        {
+  "action_items": [],
+  "comparison": {
+    "matched": [
+      {
+        "match_type": "domain_and_name",
+        "python": {
           "domain": "config",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 125,
-          "name": "generateAes256Key",
-          "path": "src/config.ts",
-          "qualified_name": "generateAes256Key",
-          "signature": "export function generateAes256Key(): Uint8Array {"
-        }
-      ],
-      "why": "Upstream evidence was found, but the checker found no matching Python evidence."
-    },
-    {
-      "acceptance_criteria": [
-        "Confirm whether the upstream behavior is a real Python SDK parity requirement.",
-        "If porting, implement the Python API or behavior with tests and docs/examples where user-facing.",
-        "If already covered or intentionally different, update the parity tracker with the decision and rationale.",
-        "Rerun this parity checker and the relevant Python test suite after changes."
-      ],
-      "feature_id": "peek_header",
-      "priority": "P1",
-      "python_evidence_patterns": [],
-      "python_refs": [
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "class",
-          "line": 23,
-          "name": "Downloader",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader",
-          "signature": ""
-        },
-        {
-          "domain": "download",
           "ecosystem": "python",
           "kind": "function",
-          "line": 19,
-          "name": "download",
-          "path": "0g_py_storage/simple_download.py",
-          "qualified_name": "download",
-          "signature": "download(root_hash, output_file)"
+          "line": 220,
+          "name": "get_config",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "get_config",
+          "signature": "get_config(overrides)"
         },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "function",
-          "line": 22,
-          "name": "main",
-          "path": "0g_py_storage/test_download.py",
-          "qualified_name": "main",
-          "signature": "main()"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 381,
-          "name": "check_exist",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.check_exist",
-          "signature": "check_exist(input_path)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 49,
-          "name": "download",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.download",
-          "signature": "download(self, root_or_roots, file_path, proof)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 148,
-          "name": "download_file",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.download_file",
-          "signature": "download_file(self, root, file_path, proof)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 317,
-          "name": "download_file_helper",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.download_file_helper",
-          "signature": "download_file_helper(self, file_path, info, proof)"
-        },
-        {
-          "domain": "download",
-          "ecosystem": "python",
-          "kind": "method",
-          "line": 75,
-          "name": "download_fragments",
-          "path": "0g_py_storage/core/downloader.py",
-          "qualified_name": "Downloader.download_fragments",
-          "signature": "download_fragments(self, roots, filename, with_proof)"
-        }
-      ],
-      "review_refs": [
-        {
-          "match_type": "name_only",
-          "python": {
-            "domain": "utils",
-            "ecosystem": "python",
-            "kind": "function",
-            "line": 64,
-            "name": "hex_to_bytes",
-            "path": "0g_py_storage/utils/crypto.py",
-            "qualified_name": "hex_to_bytes",
-            "signature": "hex_to_bytes(hex_str)"
-          },
-          "typescript": {
-            "domain": "shared",
-            "ecosystem": "typescript",
-            "kind": "re_export",
-            "line": 15,
-            "name": "hexToBytes",
-            "path": "src/index.ts",
-            "qualified_name": "hexToBytes",
-            "signature": ""
-          }
-        }
-      ],
-      "status": "missing_in_python",
-      "suggested_next_step": "Start by reading the upstream implementation for Encryption header peek, then decide whether to port it into Python.",
-      "title": "Encryption header peek",
-      "upstream_evidence_patterns": [
-        "peekHeader",
-        "peek-header"
-      ],
-      "upstream_refs": [
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 198,
-          "name": "peekHeader",
-          "path": "src/storage.ts",
-          "qualified_name": "peekHeader",
-          "signature": "export async function peekHeader("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "re_export",
-          "line": 2,
-          "name": "peekHeader",
-          "path": "src/index.ts",
-          "qualified_name": "peekHeader",
-          "signature": ""
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 259,
-          "name": "batchUpload",
-          "path": "src/storage.ts",
-          "qualified_name": "batchUpload",
-          "signature": "export async function batchUpload("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 152,
-          "name": "downloadFile",
-          "path": "src/storage.ts",
-          "qualified_name": "downloadFile",
-          "signature": "export async function downloadFile("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 214,
-          "name": "uploadData",
-          "path": "src/storage.ts",
-          "qualified_name": "uploadData",
-          "signature": "export async function uploadData("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 99,
-          "name": "uploadFile",
-          "path": "src/storage.ts",
-          "qualified_name": "uploadFile",
-          "signature": "export async function uploadFile("
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "interface",
-          "line": 27,
-          "name": "DownloadResult",
-          "path": "src/storage.ts",
-          "qualified_name": "DownloadResult",
-          "signature": ""
-        },
-        {
-          "domain": "shared",
-          "ecosystem": "typescript",
-          "kind": "interface",
-          "line": 22,
-          "name": "UploadResult",
-          "path": "src/storage.ts",
-          "qualified_name": "UploadResult",
-          "signature": ""
-        }
-      ],
-      "why": "Upstream evidence was found, but the checker found no matching Python evidence."
-    },
-    {
-      "acceptance_criteria": [
-        "Confirm whether the upstream behavior is a real Python SDK parity requirement.",
-        "If porting, implement the Python API or behavior with tests and docs/examples where user-facing.",
-        "If already covered or intentionally different, update the parity tracker with the decision and rationale.",
-        "Rerun this parity checker and the relevant Python test suite after changes."
-      ],
-      "feature_id": "network_modes",
-      "priority": "P2",
-      "python_evidence_patterns": [
-        "turbo"
-      ],
-      "python_refs": [
-        {
-          "domain": "network",
-          "ecosystem": "python",
-          "kind": "class",
-          "line": 28,
-          "name": "Indexer",
-          "path": "0g_py_storage/core/indexer.py",
-          "qualified_name": "Indexer",
-          "signature": ""
-        },
-        {
-          "domain": "network",
-          "ecosystem": "python",
-          "kind": "class",
-          "line": 17,
-          "name": "SegmentTreeNode",
-          "path": "0g_py_storage/core/node_selector.py",
-          "qualified_name": "SegmentTreeNode",
-          "signature": ""
-        },
-        {
-          "domain": "network",
-          "ecosystem": "python",
-          "kind": "class",
-          "line": 17,
-          "name": "StorageNode",
-          "path": "0g_py_storage/core/storage_node.py",
-          "qualified_name": "StorageNode",
-          "signature": ""
-        },
-        {
-          "domain": "network",
-          "ecosystem": "python",
-          "kind": "function",
-          "line": 181,
-          "name": "check_replica",
-          "path": "0g_py_storage/core/node_selector.py",
-          "qualified_name": "check_replica",
-          "signature": "check_replica(shard_configs, expected_replica)"
-        },
-        {
-          "domain": "network",
-          "ecosystem": "python",
-          "kind": "function",
-          "line": 65,
-          "name": "insert",
-          "path": "0g_py_storage/core/node_selector.py",
-          "qualified_name": "insert",
-          "signature": "insert(node, num_shard, shard_id, expected_replica)"
-        },
-        {
-          "domain": "network",
-          "ecosystem": "python",
-          "kind": "function",
-          "line": 219,
-          "name": "is_valid_config",
-          "path": "0g_py_storage/core/node_selector.py",
-          "qualified_name": "is_valid_config",
-          "signature": "is_valid_config(config)"
-        },
-        {
-          "domain": "network",
-          "ecosystem": "python",
-          "kind": "function",
-          "line": 37,
-          "name": "pushdown",
-          "path": "0g_py_storage/core/node_selector.py",
-          "qualified_name": "pushdown",
-          "signature": "pushdown(node)"
-        },
-        {
-          "domain": "network",
-          "ecosystem": "python",
-          "kind": "function",
-          "line": 124,
-          "name": "select_nodes",
-          "path": "0g_py_storage/core/node_selector.py",
-          "qualified_name": "select_nodes",
-          "signature": "select_nodes(nodes, expected_replica)"
-        }
-      ],
-      "review_refs": [
-        {
-          "match_type": "name_only",
-          "python": {
-            "domain": "utils",
-            "ecosystem": "python",
-            "kind": "function",
-            "line": 64,
-            "name": "hex_to_bytes",
-            "path": "0g_py_storage/utils/crypto.py",
-            "qualified_name": "hex_to_bytes",
-            "signature": "hex_to_bytes(hex_str)"
-          },
-          "typescript": {
-            "domain": "config",
-            "ecosystem": "typescript",
-            "kind": "function",
-            "line": 112,
-            "name": "hexToBytes",
-            "path": "src/config.ts",
-            "qualified_name": "hexToBytes",
-            "signature": "export function hexToBytes(hex: string): Uint8Array {"
-          }
-        }
-      ],
-      "status": "needs_review",
-      "suggested_next_step": "Compare the upstream and Python implementations for Network and storage modes; decide whether the Python behavior is complete.",
-      "title": "Network and storage modes",
-      "upstream_evidence_patterns": [
-        "StorageMode",
-        "turbo",
-        "standard"
-      ],
-      "upstream_refs": [
-        {
-          "domain": "config",
-          "ecosystem": "typescript",
-          "kind": "type",
-          "line": 8,
-          "name": "StorageMode",
-          "path": "src/config.ts",
-          "qualified_name": "StorageMode",
-          "signature": "export type StorageMode = 'turbo' | 'standard';"
-        },
-        {
-          "domain": "config",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 169,
-          "name": "createIndexer",
-          "path": "src/config.ts",
-          "qualified_name": "createIndexer",
-          "signature": ""
-        },
-        {
-          "domain": "config",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 161,
-          "name": "createSigner",
-          "path": "src/config.ts",
-          "qualified_name": "createSigner",
-          "signature": ""
-        },
-        {
-          "domain": "config",
-          "ecosystem": "typescript",
-          "kind": "function",
-          "line": 125,
-          "name": "generateAes256Key",
-          "path": "src/config.ts",
-          "qualified_name": "generateAes256Key",
-          "signature": "export function generateAes256Key(): Uint8Array {"
-        },
-        {
+        "typescript": {
           "domain": "config",
           "ecosystem": "typescript",
           "kind": "function",
@@ -594,8 +23,21 @@
           "path": "src/config.ts",
           "qualified_name": "getConfig",
           "signature": ""
+        }
+      },
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "config",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 187,
+          "name": "get_network",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "get_network",
+          "signature": "get_network(name, mode)"
         },
-        {
+        "typescript": {
           "domain": "config",
           "ecosystem": "typescript",
           "kind": "function",
@@ -604,33 +46,123 @@
           "path": "src/config.ts",
           "qualified_name": "getNetwork",
           "signature": ""
+        }
+      },
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "config",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 163,
+          "name": "AppConfig",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "AppConfig",
+          "signature": ""
         },
-        {
+        "typescript": {
           "domain": "config",
           "ecosystem": "typescript",
-          "kind": "function",
-          "line": 130,
-          "name": "pubKeyFromPrivateKey",
+          "kind": "interface",
+          "line": 27,
+          "name": "AppConfig",
           "path": "src/config.ts",
-          "qualified_name": "pubKeyFromPrivateKey",
-          "signature": "export function pubKeyFromPrivateKey(privateKey: string): string {"
-        },
-        {
-          "domain": "config",
-          "ecosystem": "typescript",
-          "kind": "constant",
-          "line": 50,
-          "name": "NETWORKS",
-          "path": "src/config.ts",
-          "qualified_name": "NETWORKS",
+          "qualified_name": "AppConfig",
           "signature": ""
         }
-      ],
-      "why": "Both sides have some evidence, but the match is incomplete or name-only and needs source review."
-    }
-  ],
-  "comparison": {
-    "matched": [
+      },
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "config",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 177,
+          "name": "ConfigOverrides",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "ConfigOverrides",
+          "signature": ""
+        },
+        "typescript": {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "interface",
+          "line": 84,
+          "name": "ConfigOverrides",
+          "path": "src/config.ts",
+          "qualified_name": "ConfigOverrides",
+          "signature": ""
+        }
+      },
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "config",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 155,
+          "name": "DecryptionConfig",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "DecryptionConfig",
+          "signature": ""
+        },
+        "typescript": {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "interface",
+          "line": 22,
+          "name": "DecryptionConfig",
+          "path": "src/config.ts",
+          "qualified_name": "DecryptionConfig",
+          "signature": ""
+        }
+      },
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "config",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 94,
+          "name": "NetworkConfig",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "NetworkConfig",
+          "signature": ""
+        },
+        "typescript": {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "interface",
+          "line": 9,
+          "name": "NetworkConfig",
+          "path": "src/config.ts",
+          "qualified_name": "NetworkConfig",
+          "signature": ""
+        }
+      },
+      {
+        "match_type": "domain_and_name",
+        "python": {
+          "domain": "config",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 124,
+          "name": "EncryptionConfig",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "EncryptionConfig",
+          "signature": ""
+        },
+        "typescript": {
+          "domain": "config",
+          "ecosystem": "typescript",
+          "kind": "type",
+          "line": 18,
+          "name": "EncryptionConfig",
+          "path": "src/config.ts",
+          "qualified_name": "EncryptionConfig",
+          "signature": ""
+        }
+      },
       {
         "match_type": "domain_and_name",
         "python": {
@@ -728,6 +260,75 @@
       {
         "match_type": "name_only",
         "python": {
+          "domain": "encryption",
+          "ecosystem": "python",
+          "kind": "class",
+          "line": 46,
+          "name": "EncryptionHeader",
+          "path": "0g_py_storage/core/encryption.py",
+          "qualified_name": "EncryptionHeader",
+          "signature": ""
+        },
+        "typescript": {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "re_export",
+          "line": 39,
+          "name": "EncryptionHeader",
+          "path": "src/index.ts",
+          "qualified_name": "EncryptionHeader",
+          "signature": ""
+        }
+      },
+      {
+        "match_type": "name_only",
+        "python": {
+          "domain": "config",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 220,
+          "name": "get_config",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "get_config",
+          "signature": "get_config(overrides)"
+        },
+        "typescript": {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "re_export",
+          "line": 15,
+          "name": "getConfig",
+          "path": "src/index.ts",
+          "qualified_name": "getConfig",
+          "signature": ""
+        }
+      },
+      {
+        "match_type": "name_only",
+        "python": {
+          "domain": "config",
+          "ecosystem": "python",
+          "kind": "function",
+          "line": 187,
+          "name": "get_network",
+          "path": "0g_py_storage/config.py",
+          "qualified_name": "get_network",
+          "signature": "get_network(name, mode)"
+        },
+        "typescript": {
+          "domain": "shared",
+          "ecosystem": "typescript",
+          "kind": "re_export",
+          "line": 15,
+          "name": "getNetwork",
+          "path": "src/index.ts",
+          "qualified_name": "getNetwork",
+          "signature": ""
+        }
+      },
+      {
+        "match_type": "name_only",
+        "python": {
           "domain": "utils",
           "ecosystem": "python",
           "kind": "function",
@@ -750,6 +351,16 @@
       }
     ],
     "python_only": [
+      {
+        "domain": "config",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 147,
+        "name": "to_upload_opt",
+        "path": "0g_py_storage/config.py",
+        "qualified_name": "EncryptionConfig.to_upload_opt",
+        "signature": "to_upload_opt(self)"
+      },
       {
         "domain": "contracts",
         "ecosystem": "python",
@@ -1354,7 +965,7 @@
         "domain": "download",
         "ecosystem": "python",
         "kind": "method",
-        "line": 381,
+        "line": 410,
         "name": "check_exist",
         "path": "0g_py_storage/core/downloader.py",
         "qualified_name": "Downloader.check_exist",
@@ -1378,13 +989,13 @@
         "name": "download_file",
         "path": "0g_py_storage/core/downloader.py",
         "qualified_name": "Downloader.download_file",
-        "signature": "download_file(self, root, file_path, proof)"
+        "signature": "download_file(self, root, file_path, proof, symmetric_key, private_key)"
       },
       {
         "domain": "download",
         "ecosystem": "python",
         "kind": "method",
-        "line": 317,
+        "line": 346,
         "name": "download_file_helper",
         "path": "0g_py_storage/core/downloader.py",
         "qualified_name": "Downloader.download_file_helper",
@@ -1404,7 +1015,7 @@
         "domain": "download",
         "ecosystem": "python",
         "kind": "method",
-        "line": 239,
+        "line": 268,
         "name": "download_task",
         "path": "0g_py_storage/core/downloader.py",
         "qualified_name": "Downloader.download_task",
@@ -1414,11 +1025,281 @@
         "domain": "download",
         "ecosystem": "python",
         "kind": "method",
-        "line": 193,
+        "line": 222,
         "name": "query_file",
         "path": "0g_py_storage/core/downloader.py",
         "qualified_name": "Downloader.query_file",
         "signature": "query_file(self, root)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 39,
+        "name": "EncryptedFile",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "EncryptedFile",
+        "signature": ""
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 107,
+        "name": "EncryptedFileFragment",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "EncryptedFileFragment",
+        "signature": ""
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 311,
+        "name": "FragmentDecryptResult",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "FragmentDecryptResult",
+        "signature": ""
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "class",
+        "line": 44,
+        "name": "TryDecryptResult",
+        "path": "0g_py_storage/core/decryption.py",
+        "qualified_name": "TryDecryptResult",
+        "signature": ""
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 129,
+        "name": "crypt_at",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "crypt_at",
+        "signature": "crypt_at(key, nonce, offset, data)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 299,
+        "name": "decrypt_file",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "decrypt_file",
+        "signature": "decrypt_file(key, encrypted)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 316,
+        "name": "decrypt_fragment_data",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "decrypt_fragment_data",
+        "signature": "decrypt_fragment_data(key, header, fragment_data, is_first_fragment, data_offset)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 271,
+        "name": "derive_ecies_decrypt_key",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "derive_ecies_decrypt_key",
+        "signature": "derive_ecies_decrypt_key(recipient_priv, ephemeral_pub)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 249,
+        "name": "derive_ecies_encrypt_key",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "derive_ecies_encrypt_key",
+        "signature": "derive_ecies_encrypt_key(recipient_pub)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 150,
+        "name": "new_ecies_encrypted_file",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "new_ecies_encrypted_file",
+        "signature": "new_ecies_encrypted_file(inner, recipient_pub)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 286,
+        "name": "new_ecies_header",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "new_ecies_header",
+        "signature": "new_ecies_header(recipient_pub)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 143,
+        "name": "new_symmetric_encrypted_file",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "new_symmetric_encrypted_file",
+        "signature": "new_symmetric_encrypted_file(inner, key)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 281,
+        "name": "new_symmetric_header",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "new_symmetric_header",
+        "signature": "new_symmetric_header()"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 207,
+        "name": "normalize_priv_key",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "normalize_priv_key",
+        "signature": "normalize_priv_key(input_)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 180,
+        "name": "normalize_pub_key",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "normalize_pub_key",
+        "signature": "normalize_pub_key(input_)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 88,
+        "name": "parse_encryption_header",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "parse_encryption_header",
+        "signature": "parse_encryption_header(data)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 349,
+        "name": "resolve_decryption_key",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "resolve_decryption_key",
+        "signature": "resolve_decryption_key(symmetric_key, private_key, header)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 57,
+        "name": "try_decrypt",
+        "path": "0g_py_storage/core/decryption.py",
+        "qualified_name": "try_decrypt",
+        "signature": "try_decrypt(encrypted, symmetric_key, private_key)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "function",
+        "line": 94,
+        "name": "try_decrypt_fragments",
+        "path": "0g_py_storage/core/decryption.py",
+        "qualified_name": "try_decrypt_fragments",
+        "signature": "try_decrypt_fragments(fragments, symmetric_key, private_key)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 61,
+        "name": "create_fragment",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "EncryptedFile.create_fragment",
+        "signature": "create_fragment(self, offset, size, padded_size)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 100,
+        "name": "iterate_with_offset_and_batch",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "EncryptedFile.iterate_with_offset_and_batch",
+        "signature": "iterate_with_offset_and_batch(self, offset, batch, flow_padding)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 66,
+        "name": "read_from_file",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "EncryptedFile.read_from_file",
+        "signature": "read_from_file(self, start, end)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 120,
+        "name": "create_fragment",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "EncryptedFileFragment.create_fragment",
+        "signature": "create_fragment(self, _offset, _size, _padded_size)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 133,
+        "name": "iterate_with_offset_and_batch",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "EncryptedFileFragment.iterate_with_offset_and_batch",
+        "signature": "iterate_with_offset_and_batch(self, offset, batch, flow_padding)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 126,
+        "name": "read_from_file",
+        "path": "0g_py_storage/core/encrypted_file.py",
+        "qualified_name": "EncryptedFileFragment.read_from_file",
+        "signature": "read_from_file(self, start, end)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 68,
+        "name": "size",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "EncryptionHeader.size",
+        "signature": "size(self)"
+      },
+      {
+        "domain": "encryption",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 75,
+        "name": "to_bytes",
+        "path": "0g_py_storage/core/encryption.py",
+        "qualified_name": "EncryptionHeader.to_bytes",
+        "signature": "to_bytes(self)"
       },
       {
         "domain": "kv_storage",
@@ -2328,7 +2209,7 @@
         "name": "download",
         "path": "0g_py_storage/core/indexer.py",
         "qualified_name": "Indexer.download",
-        "signature": "download(self, root_hash, file_path, proof)"
+        "signature": "download(self, root_hash, file_path, proof, symmetric_key, private_key)"
       },
       {
         "domain": "network",
@@ -2369,6 +2250,16 @@
         "path": "0g_py_storage/core/indexer.py",
         "qualified_name": "Indexer.new_uploader_from_indexer_nodes",
         "signature": "new_uploader_from_indexer_nodes(self, blockchain_rpc, signer, expected_replica, opts)"
+      },
+      {
+        "domain": "network",
+        "ecosystem": "python",
+        "kind": "method",
+        "line": 311,
+        "name": "peek_header",
+        "path": "0g_py_storage/core/indexer.py",
+        "qualified_name": "Indexer.peek_header",
+        "signature": "peek_header(self, root_hash)"
       },
       {
         "domain": "network",
@@ -3544,7 +3435,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "class",
-        "line": 52,
+        "line": 62,
         "name": "Uploader",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader",
@@ -3654,7 +3545,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 396,
+        "line": 411,
         "name": "find_existing_file_info",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.find_existing_file_info",
@@ -3664,7 +3555,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 922,
+        "line": 937,
         "name": "get_error_type",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.get_error_type",
@@ -3674,7 +3565,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 674,
+        "line": 689,
         "name": "get_segment",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.get_segment",
@@ -3684,7 +3575,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 898,
+        "line": 913,
         "name": "is_already_uploaded_error",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.is_already_uploaded_error",
@@ -3694,7 +3585,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 910,
+        "line": 925,
         "name": "is_retryable_error",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.is_retryable_error",
@@ -3704,7 +3595,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 516,
+        "line": 531,
         "name": "next_segment_index",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.next_segment_index",
@@ -3714,7 +3605,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 484,
+        "line": 499,
         "name": "process_tasks_in_parallel",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.process_tasks_in_parallel",
@@ -3724,7 +3615,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 541,
+        "line": 556,
         "name": "split_tasks",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.split_tasks",
@@ -3734,7 +3625,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 245,
+        "line": 260,
         "name": "splitable_upload",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.splitable_upload",
@@ -3744,7 +3635,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 308,
+        "line": 323,
         "name": "submit_transaction",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.submit_transaction",
@@ -3754,7 +3645,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 98,
+        "line": 108,
         "name": "upload_file",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.upload_file",
@@ -3764,7 +3655,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 746,
+        "line": 761,
         "name": "upload_task",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.upload_task",
@@ -3774,7 +3665,7 @@
         "domain": "upload",
         "ecosystem": "python",
         "kind": "method",
-        "line": 424,
+        "line": 439,
         "name": "wait_for_log_entry",
         "path": "0g_py_storage/core/uploader.py",
         "qualified_name": "Uploader.wait_for_log_entry",
@@ -4216,81 +4107,11 @@
         "domain": "config",
         "ecosystem": "typescript",
         "kind": "function",
-        "line": 92,
-        "name": "getConfig",
-        "path": "src/config.ts",
-        "qualified_name": "getConfig",
-        "signature": ""
-      },
-      {
-        "domain": "config",
-        "ecosystem": "typescript",
-        "kind": "function",
-        "line": 65,
-        "name": "getNetwork",
-        "path": "src/config.ts",
-        "qualified_name": "getNetwork",
-        "signature": ""
-      },
-      {
-        "domain": "config",
-        "ecosystem": "typescript",
-        "kind": "function",
         "line": 130,
         "name": "pubKeyFromPrivateKey",
         "path": "src/config.ts",
         "qualified_name": "pubKeyFromPrivateKey",
         "signature": "export function pubKeyFromPrivateKey(privateKey: string): string {"
-      },
-      {
-        "domain": "config",
-        "ecosystem": "typescript",
-        "kind": "interface",
-        "line": 27,
-        "name": "AppConfig",
-        "path": "src/config.ts",
-        "qualified_name": "AppConfig",
-        "signature": ""
-      },
-      {
-        "domain": "config",
-        "ecosystem": "typescript",
-        "kind": "interface",
-        "line": 84,
-        "name": "ConfigOverrides",
-        "path": "src/config.ts",
-        "qualified_name": "ConfigOverrides",
-        "signature": ""
-      },
-      {
-        "domain": "config",
-        "ecosystem": "typescript",
-        "kind": "interface",
-        "line": 22,
-        "name": "DecryptionConfig",
-        "path": "src/config.ts",
-        "qualified_name": "DecryptionConfig",
-        "signature": ""
-      },
-      {
-        "domain": "config",
-        "ecosystem": "typescript",
-        "kind": "interface",
-        "line": 9,
-        "name": "NetworkConfig",
-        "path": "src/config.ts",
-        "qualified_name": "NetworkConfig",
-        "signature": ""
-      },
-      {
-        "domain": "config",
-        "ecosystem": "typescript",
-        "kind": "type",
-        "line": 18,
-        "name": "EncryptionConfig",
-        "path": "src/config.ts",
-        "qualified_name": "EncryptionConfig",
-        "signature": ""
       },
       {
         "domain": "config",
@@ -4396,16 +4217,6 @@
         "domain": "shared",
         "ecosystem": "typescript",
         "kind": "re_export",
-        "line": 39,
-        "name": "EncryptionHeader",
-        "path": "src/index.ts",
-        "qualified_name": "EncryptionHeader",
-        "signature": ""
-      },
-      {
-        "domain": "shared",
-        "ecosystem": "typescript",
-        "kind": "re_export",
         "line": 15,
         "name": "NETWORKS",
         "path": "src/index.ts",
@@ -4460,26 +4271,6 @@
         "name": "generateAes256Key",
         "path": "src/index.ts",
         "qualified_name": "generateAes256Key",
-        "signature": ""
-      },
-      {
-        "domain": "shared",
-        "ecosystem": "typescript",
-        "kind": "re_export",
-        "line": 15,
-        "name": "getConfig",
-        "path": "src/index.ts",
-        "qualified_name": "getConfig",
-        "signature": ""
-      },
-      {
-        "domain": "shared",
-        "ecosystem": "typescript",
-        "kind": "re_export",
-        "line": 15,
-        "name": "getNetwork",
-        "path": "src/index.ts",
-        "qualified_name": "getNetwork",
         "signature": ""
       },
       {
@@ -4592,8 +4383,12 @@
     {
       "id": "client_side_encryption",
       "label": "Client-side encryption",
-      "python_hits": [],
-      "status": "missing_in_python",
+      "python_hits": [
+        "aes256",
+        "ecies",
+        "EncryptionHeader"
+      ],
+      "status": "matched",
       "ts_hits": [
         "aes256",
         "ecies",
@@ -4603,8 +4398,11 @@
     {
       "id": "peek_header",
       "label": "Encryption header peek",
-      "python_hits": [],
-      "status": "missing_in_python",
+      "python_hits": [
+        "peek_header",
+        "EncryptionHeader"
+      ],
+      "status": "matched",
       "ts_hits": [
         "peekHeader",
         "peek-header"
@@ -4614,9 +4412,11 @@
       "id": "network_modes",
       "label": "Network and storage modes",
       "python_hits": [
-        "turbo"
+        "turbo",
+        "standard",
+        "indexer-storage-testnet-standard"
       ],
-      "status": "needs_review",
+      "status": "matched",
       "ts_hits": [
         "StorageMode",
         "turbo",
@@ -4653,15 +4453,15 @@
       ]
     }
   ],
-  "generated_at": "2026-05-17T15:55:48.617089+00:00",
+  "generated_at": "2026-05-18T17:45:25.872750+00:00",
   "summary": {
-    "matched_count": 3,
-    "missing_feature_count": 2,
-    "needs_review_count": 2,
-    "python_only_count": 343,
-    "python_surface_count": 347,
-    "review_feature_count": 1,
-    "ts_only_count": 34,
+    "matched_count": 10,
+    "missing_feature_count": 0,
+    "needs_review_count": 5,
+    "python_only_count": 372,
+    "python_surface_count": 384,
+    "review_feature_count": 0,
+    "ts_only_count": 24,
     "typescript_surface_count": 42
   },
   "upstream": {

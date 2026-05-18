@@ -83,6 +83,49 @@ if err is None:
 err = indexer.download(result["rootHash"], "./output.txt")
 ```
 
+## Client-side encryption
+
+Files can be encrypted before upload using AES-256-CTR (v1) or ECIES on
+secp256k1 (v2). Both schemes are wire-compatible with the TS SDK and the
+Go storage client.
+
+```python
+import os
+from core.indexer import Indexer
+
+indexer = Indexer(INDEXER_URL)
+file = ZgFile.from_file_path("./secret.txt")
+
+# v1 — symmetric (you generate and manage a 32-byte key out-of-band)
+key = os.urandom(32)
+result, err = indexer.upload(file, BLOCKCHAIN_RPC, signer, upload_opts={
+    "encryption": {"type": "aes256", "key": key},
+})
+
+# Download + auto-decrypt (best-effort; raw bytes on disk if no match)
+indexer.download(result["rootHash"], "./secret.txt", symmetric_key=key)
+
+# v2 — ECIES (anyone with `recipient_pub` can encrypt; only the holder of
+# the matching private key can decrypt)
+recipient_pub = "0x031b84c5...078f"  # 33-byte compressed secp256k1 pubkey
+result, err = indexer.upload(file, BLOCKCHAIN_RPC, signer, upload_opts={
+    "encryption": {"type": "ecies", "recipient_pub_key": recipient_pub},
+})
+indexer.download(result["rootHash"], "./secret.txt", private_key=PRIVATE_KEY_HEX)
+```
+
+To detect whether a stored file is encrypted before downloading:
+
+```python
+header, err = indexer.peek_header(root_hash)
+if header is None:
+    print("Plaintext file")
+elif header.version == 1:
+    print("AES-256 — supply symmetric_key=...")
+elif header.version == 2:
+    print("ECIES — supply private_key=...")
+```
+
 ## Compute a merkle root locally
 
 No network calls — pure local hashing:

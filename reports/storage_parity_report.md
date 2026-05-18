@@ -1,6 +1,6 @@
 # Storage SDK Parity Report
 
-Generated: `2026-05-17T15:55:48.617089+00:00`
+Generated: `2026-05-18T17:45:25.872750+00:00`
 Upstream: `0g-storage-ts-starter` `2.0.0`
 Commit: `6a308551f4a4d2ccb57dea0ec1adee35c4cbbfe3`
 Source path: `/Users/damiafo/Documents/projects/og-py-sdk/.cache/storage_ts_starter_kit`
@@ -9,12 +9,12 @@ Scope: `sdk`
 ## Summary
 
 - TypeScript surface items: `42`
-- Python surface items: `347`
-- Matched items: `3`
-- Needs review: `2`
-- Present in TS only: `34`
-- Present in Python only: `343`
-- Missing feature probes: `2`
+- Python surface items: `384`
+- Matched items: `10`
+- Needs review: `5`
+- Present in TS only: `24`
+- Present in Python only: `372`
+- Missing feature probes: `0`
 
 ## Feature Probes
 
@@ -24,9 +24,9 @@ Scope: `sdk`
 | matched | File download | `downloadFile, indexer\.download, downloadToBlob` | `download, Downloader, download_segment` |
 | matched | In-memory data upload | `uploadData, MemData` | `from_bytes, ZgFile\.from_bytes` |
 | matched | Batch upload wrapper | `batchUpload, batch-upload` | `splitable_upload, Uploader` |
-| missing_in_python | Client-side encryption | `aes256, ecies, EncryptionHeader` | `-` |
-| missing_in_python | Encryption header peek | `peekHeader, peek-header` | `-` |
-| needs_review | Network and storage modes | `StorageMode, turbo, standard` | `turbo` |
+| matched | Client-side encryption | `aes256, ecies, EncryptionHeader` | `aes256, ecies, EncryptionHeader` |
+| matched | Encryption header peek | `peekHeader, peek-header` | `peek_header, EncryptionHeader` |
+| matched | Network and storage modes | `StorageMode, turbo, standard` | `turbo, standard, indexer-storage-testnet-standard` |
 | matched | Merkle roots and proofs | `merkleTree, rootHash, proof` | `merkle_tree, root_hash, Proof` |
 | matched | KV storage | `key-value, stream` | `KvClient, Batcher, StreamDataBuilder` |
 
@@ -42,117 +42,7 @@ Use this section as the handoff for implementation or review work.
 
 ### Prioritized Action Items
 
-#### 1. P1 - Client-side encryption
-
-- Status: `missing_in_python`
-- Why: Upstream evidence was found, but the checker found no matching Python evidence.
-- Suggested next step: Start by reading the upstream implementation for Client-side encryption, then decide whether to port it into Python.
-- Upstream evidence patterns: `aes256, ecies, EncryptionHeader`
-- Python evidence patterns: `-`
-
-Upstream refs:
-- `EncryptionHeader` in `src/index.ts:39`
-- `generateAes256Key` in `src/index.ts:15`
-- `batchUpload` in `src/storage.ts:259`
-- `downloadFile` in `src/storage.ts:152`
-- `peekHeader` in `src/storage.ts:198`
-- `uploadData` in `src/storage.ts:214`
-- `uploadFile` in `src/storage.ts:99`
-- `generateAes256Key` in `src/config.ts:125`
-
-Likely Python refs:
-- `Downloader` in `0g_py_storage/core/downloader.py:23`
-- `download` in `0g_py_storage/simple_download.py:19`
-- `main` in `0g_py_storage/test_download.py:22`
-- `Downloader.check_exist` in `0g_py_storage/core/downloader.py:381`
-- `Downloader.download` in `0g_py_storage/core/downloader.py:49`
-- `Downloader.download_file` in `0g_py_storage/core/downloader.py:148`
-- `Downloader.download_file_helper` in `0g_py_storage/core/downloader.py:317`
-- `Downloader.download_fragments` in `0g_py_storage/core/downloader.py:75`
-
-Name-only matches to inspect:
-- TS `hexToBytes`<br>`src/index.ts:15` -> Python `hex_to_bytes`<br>`0g_py_storage/utils/crypto.py:64`
-
-Acceptance criteria:
-- Confirm whether the upstream behavior is a real Python SDK parity requirement.
-- If porting, implement the Python API or behavior with tests and docs/examples where user-facing.
-- If already covered or intentionally different, update the parity tracker with the decision and rationale.
-- Rerun this parity checker and the relevant Python test suite after changes.
-
-#### 2. P1 - Encryption header peek
-
-- Status: `missing_in_python`
-- Why: Upstream evidence was found, but the checker found no matching Python evidence.
-- Suggested next step: Start by reading the upstream implementation for Encryption header peek, then decide whether to port it into Python.
-- Upstream evidence patterns: `peekHeader, peek-header`
-- Python evidence patterns: `-`
-
-Upstream refs:
-- `peekHeader` in `src/storage.ts:198`
-- `peekHeader` in `src/index.ts:2`
-- `batchUpload` in `src/storage.ts:259`
-- `downloadFile` in `src/storage.ts:152`
-- `uploadData` in `src/storage.ts:214`
-- `uploadFile` in `src/storage.ts:99`
-- `DownloadResult` in `src/storage.ts:27`
-- `UploadResult` in `src/storage.ts:22`
-
-Likely Python refs:
-- `Downloader` in `0g_py_storage/core/downloader.py:23`
-- `download` in `0g_py_storage/simple_download.py:19`
-- `main` in `0g_py_storage/test_download.py:22`
-- `Downloader.check_exist` in `0g_py_storage/core/downloader.py:381`
-- `Downloader.download` in `0g_py_storage/core/downloader.py:49`
-- `Downloader.download_file` in `0g_py_storage/core/downloader.py:148`
-- `Downloader.download_file_helper` in `0g_py_storage/core/downloader.py:317`
-- `Downloader.download_fragments` in `0g_py_storage/core/downloader.py:75`
-
-Name-only matches to inspect:
-- TS `hexToBytes`<br>`src/index.ts:15` -> Python `hex_to_bytes`<br>`0g_py_storage/utils/crypto.py:64`
-
-Acceptance criteria:
-- Confirm whether the upstream behavior is a real Python SDK parity requirement.
-- If porting, implement the Python API or behavior with tests and docs/examples where user-facing.
-- If already covered or intentionally different, update the parity tracker with the decision and rationale.
-- Rerun this parity checker and the relevant Python test suite after changes.
-
-#### 3. P2 - Network and storage modes
-
-- Status: `needs_review`
-- Why: Both sides have some evidence, but the match is incomplete or name-only and needs source review.
-- Suggested next step: Compare the upstream and Python implementations for Network and storage modes; decide whether the Python behavior is complete.
-- Upstream evidence patterns: `StorageMode, turbo, standard`
-- Python evidence patterns: `turbo`
-
-Upstream refs:
-- `StorageMode` in `src/config.ts:8`
-- `createIndexer` in `src/config.ts:169`
-- `createSigner` in `src/config.ts:161`
-- `generateAes256Key` in `src/config.ts:125`
-- `getConfig` in `src/config.ts:92`
-- `getNetwork` in `src/config.ts:65`
-- `pubKeyFromPrivateKey` in `src/config.ts:130`
-- `NETWORKS` in `src/config.ts:50`
-
-Likely Python refs:
-- `Indexer` in `0g_py_storage/core/indexer.py:28`
-- `SegmentTreeNode` in `0g_py_storage/core/node_selector.py:17`
-- `StorageNode` in `0g_py_storage/core/storage_node.py:17`
-- `check_replica` in `0g_py_storage/core/node_selector.py:181`
-- `insert` in `0g_py_storage/core/node_selector.py:65`
-- `is_valid_config` in `0g_py_storage/core/node_selector.py:219`
-- `pushdown` in `0g_py_storage/core/node_selector.py:37`
-- `select_nodes` in `0g_py_storage/core/node_selector.py:124`
-
-Name-only matches to inspect:
-- TS `hexToBytes`<br>`src/config.ts:112` -> Python `hex_to_bytes`<br>`0g_py_storage/utils/crypto.py:64`
-
-Acceptance criteria:
-- Confirm whether the upstream behavior is a real Python SDK parity requirement.
-- If porting, implement the Python API or behavior with tests and docs/examples where user-facing.
-- If already covered or intentionally different, update the parity tracker with the decision and rationale.
-- Rerun this parity checker and the relevant Python test suite after changes.
-
+No missing or partial feature probes were detected. Review the TypeScript-only surface table for lower-priority drift.
 
 ## TypeScript Only
 
@@ -161,14 +51,7 @@ Acceptance criteria:
 | `config` | `function` | `createIndexer` | `src/config.ts:169` |
 | `config` | `function` | `createSigner` | `src/config.ts:161` |
 | `config` | `function` | `generateAes256Key` | `src/config.ts:125` |
-| `config` | `function` | `getConfig` | `src/config.ts:92` |
-| `config` | `function` | `getNetwork` | `src/config.ts:65` |
 | `config` | `function` | `pubKeyFromPrivateKey` | `src/config.ts:130` |
-| `config` | `interface` | `AppConfig` | `src/config.ts:27` |
-| `config` | `interface` | `ConfigOverrides` | `src/config.ts:84` |
-| `config` | `interface` | `DecryptionConfig` | `src/config.ts:22` |
-| `config` | `interface` | `NetworkConfig` | `src/config.ts:9` |
-| `config` | `type` | `EncryptionConfig` | `src/config.ts:18` |
 | `config` | `type` | `NetworkName` | `src/config.ts:6` |
 | `config` | `type` | `StorageMode` | `src/config.ts:8` |
 | `config` | `constant` | `NETWORKS` | `src/config.ts:50` |
@@ -179,15 +62,12 @@ Acceptance criteria:
 | `shared` | `function` | `uploadFile` | `src/storage.ts:99` |
 | `shared` | `interface` | `DownloadResult` | `src/storage.ts:27` |
 | `shared` | `interface` | `UploadResult` | `src/storage.ts:22` |
-| `shared` | `re_export` | `EncryptionHeader` | `src/index.ts:39` |
 | `shared` | `re_export` | `NETWORKS` | `src/index.ts:15` |
 | `shared` | `re_export` | `batchUpload` | `src/index.ts:2` |
 | `shared` | `re_export` | `createIndexer` | `src/index.ts:15` |
 | `shared` | `re_export` | `createSigner` | `src/index.ts:15` |
 | `shared` | `re_export` | `downloadFile` | `src/index.ts:2` |
 | `shared` | `re_export` | `generateAes256Key` | `src/index.ts:15` |
-| `shared` | `re_export` | `getConfig` | `src/index.ts:15` |
-| `shared` | `re_export` | `getNetwork` | `src/index.ts:15` |
 | `shared` | `re_export` | `peekHeader` | `src/index.ts:2` |
 | `shared` | `re_export` | `pubKeyFromPrivateKey` | `src/index.ts:15` |
 | `shared` | `re_export` | `uploadData` | `src/index.ts:2` |
@@ -198,12 +78,16 @@ Acceptance criteria:
 | TypeScript | Python | Reason |
 | --- | --- | --- |
 | `hexToBytes`<br>`src/config.ts:112` | `hex_to_bytes`<br>`0g_py_storage/utils/crypto.py:64` | `name_only` |
+| `EncryptionHeader`<br>`src/index.ts:39` | `EncryptionHeader`<br>`0g_py_storage/core/encryption.py:46` | `name_only` |
+| `getConfig`<br>`src/index.ts:15` | `get_config`<br>`0g_py_storage/config.py:220` | `name_only` |
+| `getNetwork`<br>`src/index.ts:15` | `get_network`<br>`0g_py_storage/config.py:187` | `name_only` |
 | `hexToBytes`<br>`src/index.ts:15` | `hex_to_bytes`<br>`0g_py_storage/utils/crypto.py:64` | `name_only` |
 
 ## Python Only
 
 | Domain | Kind | Item | Location |
 | --- | --- | --- | --- |
+| `config` | `method` | `EncryptionConfig.to_upload_opt` | `0g_py_storage/config.py:147` |
 | `contracts` | `class` | `FlowContract` | `0g_py_storage/contracts/flow.py:15` |
 | `contracts` | `export` | `FLOW_CONTRACT_ABI` | `0g_py_storage/contracts/__init__.py:12` |
 | `contracts` | `export` | `FlowContract` | `0g_py_storage/contracts/__init__.py:12` |
@@ -264,8 +148,27 @@ Acceptance criteria:
 | `download` | `class` | `Downloader` | `0g_py_storage/core/downloader.py:23` |
 | `download` | `function` | `download` | `0g_py_storage/simple_download.py:19` |
 | `download` | `function` | `main` | `0g_py_storage/test_download.py:22` |
+| `download` | `method` | `Downloader.check_exist` | `0g_py_storage/core/downloader.py:410` |
+| `download` | `method` | `Downloader.download` | `0g_py_storage/core/downloader.py:49` |
+| `download` | `method` | `Downloader.download_file` | `0g_py_storage/core/downloader.py:148` |
+| `download` | `method` | `Downloader.download_file_helper` | `0g_py_storage/core/downloader.py:346` |
+| `download` | `method` | `Downloader.download_fragments` | `0g_py_storage/core/downloader.py:75` |
+| `download` | `method` | `Downloader.download_task` | `0g_py_storage/core/downloader.py:268` |
+| `download` | `method` | `Downloader.query_file` | `0g_py_storage/core/downloader.py:222` |
+| `encryption` | `class` | `EncryptedFile` | `0g_py_storage/core/encrypted_file.py:39` |
+| `encryption` | `class` | `EncryptedFileFragment` | `0g_py_storage/core/encrypted_file.py:107` |
+| `encryption` | `class` | `FragmentDecryptResult` | `0g_py_storage/core/encryption.py:311` |
+| `encryption` | `class` | `TryDecryptResult` | `0g_py_storage/core/decryption.py:44` |
+| `encryption` | `function` | `crypt_at` | `0g_py_storage/core/encryption.py:129` |
+| `encryption` | `function` | `decrypt_file` | `0g_py_storage/core/encryption.py:299` |
+| `encryption` | `function` | `decrypt_fragment_data` | `0g_py_storage/core/encryption.py:316` |
+| `encryption` | `function` | `derive_ecies_decrypt_key` | `0g_py_storage/core/encryption.py:271` |
+| `encryption` | `function` | `derive_ecies_encrypt_key` | `0g_py_storage/core/encryption.py:249` |
+| `encryption` | `function` | `new_ecies_encrypted_file` | `0g_py_storage/core/encrypted_file.py:150` |
+| `encryption` | `function` | `new_ecies_header` | `0g_py_storage/core/encryption.py:286` |
+| `encryption` | `function` | `new_symmetric_encrypted_file` | `0g_py_storage/core/encrypted_file.py:143` |
 
-Showing first `60` of `343` items. See JSON for the full list.
+Showing first `80` of `372` items. See JSON for the full list.
 
 ## Maintainer Notes
 
