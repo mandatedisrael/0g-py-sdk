@@ -30,6 +30,11 @@ try:
         segment_range
     )
     from ..core.node_selector import check_replica
+    from ..core.encrypted_file import (
+        EncryptedFile,
+        new_ecies_encrypted_file,
+        new_symmetric_encrypted_file,
+    )
 except ImportError:
     from contracts.flow import FlowContract
     from core.storage_node import StorageNode
@@ -47,6 +52,11 @@ except ImportError:
         segment_range
     )
     from core.node_selector import check_replica
+    from core.encrypted_file import (
+        EncryptedFile,
+        new_ecies_encrypted_file,
+        new_symmetric_encrypted_file,
+    )
 
 
 class Uploader:
@@ -114,6 +124,11 @@ class Uploader:
         Returns:
             Tuple of (result_dict, error)
         """
+        # TS line 63-64: wrap with encryption before computing the merkle tree.
+        encryption = opts.get('encryption')
+        if encryption:
+            file = self._wrap_encryption(file, encryption)
+
         # TS line 23-28
         tree, err = file.merkle_tree()
         if err is not None or tree is None or tree.root_hash() is None:
@@ -932,3 +947,27 @@ class Uploader:
             return 'null response error'
         else:
             return 'retryable error'
+
+    def _wrap_encryption(self, file, encryption: Dict[str, Any]):
+        """
+        Wrap ``file`` with an EncryptedFile per the ``encryption`` option.
+
+        Mirrors TS ``Uploader.wrapEncryption``. Accepted shapes:
+            {"type": "aes256", "key": bytes}
+            {"type": "ecies", "recipient_pub_key": bytes | hex_str}
+        """
+        enc_type = encryption.get('type')
+        if enc_type == 'aes256':
+            key = encryption.get('key')
+            if key is None:
+                raise ValueError("aes256 encryption requires 'key'")
+            return new_symmetric_encrypted_file(file, key)
+        if enc_type == 'ecies':
+            recipient = (
+                encryption.get('recipient_pub_key')
+                or encryption.get('recipientPubKey')
+            )
+            if recipient is None:
+                raise ValueError("ecies encryption requires 'recipient_pub_key'")
+            return new_ecies_encrypted_file(file, recipient)
+        raise ValueError(f"unsupported encryption type: {enc_type!r}")
