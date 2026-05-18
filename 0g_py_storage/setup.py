@@ -5,9 +5,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="0g-storage-sdk",
-    version="0.3.0",
-    author="0G Labs",
-    author_email="support@0g.ai",
+    version="0.4.0",
+    author="notmartin",
+    author_email="damibugh@gmail.com",
     description="Official Python SDK for 0G Storage - A decentralized storage network with merkle tree verification",
     long_description=long_description,
     long_description_content_type="text/markdown",
