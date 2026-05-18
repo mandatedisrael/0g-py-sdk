@@ -5,15 +5,29 @@ This module handles service discovery, provider acknowledgment,
 and request management for AI inference services.
 """
 
-from typing import List, Dict, Any, Optional
+import json
+import threading
+import time
+from typing import IO, Any, Dict, List, Optional, Union
+
+import requests
 from web3 import Web3
 from web3.contract import Contract
 from eth_account.signers.local import LocalAccount
-import threading
-import requests
 
 
-from .models import ServiceMetadata, Account, AccountWithDetail, Refund, RefundDetail, AdditionalInfo, AutoFundingConfig
+from .models import (
+    Account,
+    AccountWithDetail,
+    AdditionalInfo,
+    AsyncInferenceJob,
+    AsyncInferenceSubmission,
+    AsyncServiceMetadata,
+    AutoFundingConfig,
+    Refund,
+    RefundDetail,
+    ServiceMetadata,
+)
 from .exceptions import (
     ContractError,
     ServiceNotFoundError,
@@ -32,6 +46,13 @@ from .extractors import (
     SpeechToTextExtractor
 )
 from .lora import LoRAProcessor, LoRADependencies
+
+
+AsyncFilePayload = Union[
+    bytes,
+    IO[bytes],
+    tuple,
+]
 
 
 class InferenceManager:
@@ -478,6 +499,173 @@ class InferenceManager:
             "endpoint": f"{service.url}/v1/proxy",
             "model": service.model
         }
+
+    def get_async_service_metadata(
+        self, provider_address: str
+    ) -> AsyncServiceMetadata:
+        """
+        Get async inference endpoint and model information for a provider.
+
+        Mirrors the TypeScript SDK's documented async flow, where the normal
+        ``/v1/proxy`` endpoint is rewritten to ``/v1/async`` for job-based
+        image generation and edit requests.
+        """
+        metadata = self.get_service_metadata(provider_address)
+        return AsyncServiceMetadata(
+            endpoint=metadata["endpoint"].replace("/v1/proxy", "/v1/async"),
+            model=metadata["model"],
+        )
+
+    def submit_async_request(
+        self,
+        provider_address: str,
+        path: str,
+        *,
+        json_body: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        files: Optional[Dict[str, AsyncFilePayload]] = None,
+        timeout: int = 30,
+    ) -> AsyncInferenceSubmission:
+        """
+        Submit a generic async inference job.
+
+        Args:
+            provider_address: Provider wallet address
+            path: Async route under ``/v1/async`` such as
+                ``images/generations`` or ``images/edits``
+            json_body: JSON request body for JSON-based endpoints
+            data: Form fields for multipart endpoints
+            files: Multipart file payloads for endpoints like image edits
+            timeout: Per-request HTTP timeout in seconds
+        """
+        metadata = self.get_async_service_metadata(provider_address)
+        route = path.strip("/")
+        url = f"{metadata.endpoint}/{route}"
+        content = json.dumps(json_body) if json_body is not None else ""
+        headers = self.get_request_headers(provider_address, content)
+
+        if json_body is not None:
+            headers = {"Content-Type": "application/json", **headers}
+
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=json_body,
+                data=data,
+                files=files,
+                timeout=timeout,
+            )
+            response.raise_for_status()
+        except requests.RequestException as e:
+            raise NetworkError(f"Failed to submit async request: {e}", url) from e
+
+        payload = response.json() if response.content else {}
+        return AsyncInferenceSubmission.from_dict(payload)
+
+    def submit_async_image_generation(
+        self,
+        provider_address: str,
+        request_body: Dict[str, Any],
+        *,
+        timeout: int = 30,
+    ) -> AsyncInferenceSubmission:
+        """
+        Submit an async image generation job to ``/v1/async/images/generations``.
+        """
+        return self.submit_async_request(
+            provider_address,
+            "images/generations",
+            json_body=request_body,
+            timeout=timeout,
+        )
+
+    def submit_async_image_edit(
+        self,
+        provider_address: str,
+        data: Dict[str, Any],
+        files: Dict[str, AsyncFilePayload],
+        *,
+        timeout: int = 30,
+    ) -> AsyncInferenceSubmission:
+        """
+        Submit an async image edit job to ``/v1/async/images/edits``.
+        """
+        return self.submit_async_request(
+            provider_address,
+            "images/edits",
+            data=data,
+            files=files,
+            timeout=timeout,
+        )
+
+    def get_async_job(
+        self,
+        provider_address: str,
+        job_id: str,
+        *,
+        timeout: int = 30,
+    ) -> AsyncInferenceJob:
+        """
+        Fetch the latest status for an async inference job.
+        """
+        metadata = self.get_async_service_metadata(provider_address)
+        url = f"{metadata.endpoint}/jobs/{job_id}"
+        headers = self.get_request_headers(provider_address)
+
+        try:
+            response = requests.get(url, headers=headers, timeout=timeout)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            raise NetworkError(f"Failed to fetch async job: {e}", url) from e
+
+        retry_after = self._parse_retry_after(response.headers.get("Retry-After"))
+        payload = response.json() if response.content else {}
+        return AsyncInferenceJob.from_dict(
+            payload,
+            job_id=job_id,
+            retry_after=retry_after,
+        )
+
+    def wait_for_async_job(
+        self,
+        provider_address: str,
+        job_id: str,
+        *,
+        timeout_seconds: int = 300,
+        poll_interval_seconds: float = 5.0,
+    ) -> AsyncInferenceJob:
+        """
+        Poll an async job until it leaves ``pending`` / ``processing``.
+        """
+        deadline = time.time() + timeout_seconds
+
+        while True:
+            job = self.get_async_job(provider_address, job_id)
+            if job.status not in {"pending", "processing"}:
+                return job
+
+            delay = (
+                job.retry_after
+                if job.retry_after is not None
+                else poll_interval_seconds
+            )
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"Timed out waiting for async job {job_id} after "
+                    f"{timeout_seconds} seconds"
+                )
+            time.sleep(min(delay, remaining))
+
+    @staticmethod
+    def _parse_retry_after(value: Optional[str]) -> Optional[float]:
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
     
     def get_extractor(self, provider_address: str) -> Extractor:
         """

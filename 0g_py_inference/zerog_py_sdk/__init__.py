@@ -40,6 +40,9 @@ from .models import (
     LedgerDetail,
     AdditionalInfo,
     AutoFundingConfig,
+    AsyncServiceMetadata,
+    AsyncInferenceSubmission,
+    AsyncInferenceJob,
 )
 from .session import (
     SessionMode,
@@ -143,6 +146,9 @@ __all__ = [
     "LedgerDetail",
     "AdditionalInfo",
     "AutoFundingConfig",
+    "AsyncServiceMetadata",
+    "AsyncInferenceSubmission",
+    "AsyncInferenceJob",
 
     # Session (new auth system)
     "SessionMode",
