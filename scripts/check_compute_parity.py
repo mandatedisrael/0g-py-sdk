@@ -70,13 +70,10 @@ FEATURE_PROBES = [
         "ts": [r"createApiKey", r"revokeApiKey", r"listApiKey"],
         "py": [r"create_api_key", r"revoke_api_key", r"list_api_key"],
     },
-    {
-        "id": "async_inference",
-        "label": "Async inference requests",
-        "scopes": ["sdk", "package"],
-        "ts": [r"async.*inference", r"getAsyncResult", r"asyncRequest"],
-        "py": [r"async.*inference", r"get_async_result", r"async_request"],
-    },
+    # Async inference: TS SDK does not expose async-job broker methods.
+    # The `/v1/async/...` HTTP pattern is documented only in `src.ts/example/`
+    # and Python mirrors that by exposing `get_request_headers` + direct HTTP.
+    # No SDK-level probe applies here.
     {
         "id": "response_verification",
         "label": "TEE response verification",
@@ -131,7 +128,6 @@ FEATURE_PROBES = [
 ACTION_DOMAIN_HINTS = {
     "session_tokens": ["auth_session", "inference"],
     "persistent_api_keys": ["auth_session", "inference"],
-    "async_inference": ["inference"],
     "response_verification": ["verification", "inference"],
     "read_only_broker": ["inference", "broker"],
     "fine_tuning": ["fine_tuning"],
