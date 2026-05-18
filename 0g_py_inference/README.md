@@ -15,7 +15,7 @@ Python SDK for the [0G Compute Network](https://docs.0g.ai/developer-hub/buildin
 - **Pay-per-request billing** — on-chain ledger with provider sub-accounts; no signups, no credit cards
 - **TEE attestation** — every response is cryptographically signed; verify on-chain
 - **API keys** — persistent, individually revocable tokens for server applications
-- **Auto-funding** — background top-ups keep long-running services alive
+- **Auto-funding** — background top-ups keep long-running services alive, and header generation performs an inline balance check when background funding is not running
 - **Read-only mode** — list providers without connecting a wallet
 - **Native Python crypto** — Baby JubJub, EdDSA, Pedersen — no Node.js dependency
 
