@@ -12,8 +12,8 @@ The verification process:
 
 import json
 import requests
-from typing import Optional, Dict, Any, Tuple
-from dataclasses import dataclass
+from typing import Callable, List, Literal, Optional, Dict, Any, Tuple
+from dataclasses import dataclass, field
 from eth_account.messages import encode_defunct
 from eth_account import Account as EthAccount
 
@@ -25,13 +25,168 @@ from .exceptions import InvalidResponseError
 class ResponseSignature:
     """
     Signature data fetched from provider.
-    
+
     Attributes:
         text: The original response text
         signature: The cryptographic signature
     """
     text: str
     signature: str
+
+
+# ---------------------------------------------------------------------------
+# verify_service() typed result + step types — mirror TS
+# ``src.ts/sdk/inference/broker/verifier.ts`` exports 1:1.
+# ---------------------------------------------------------------------------
+
+VerificationStepType = Literal["info", "success", "error", "warning", "step"]
+ProviderType = Literal["decentralized", "centralized"]
+
+
+@dataclass
+class VerificationStep:
+    """A single step emitted during ``verify_service``."""
+
+    type: VerificationStepType
+    message: str
+
+
+@dataclass
+class SignerRAVerificationResult:
+    """Whether a signer's RA report is valid plus the signing address."""
+
+    valid: Optional[bool]
+    signing_address: str
+
+
+@dataclass
+class SignerReportMatch:
+    """One report's signer-address comparison against the contract value."""
+
+    report_type: str
+    address: str
+    match: bool
+
+
+@dataclass
+class SignerVerification:
+    """Aggregated signer verification across the broker/llm/combined reports."""
+
+    contract_address: str
+    report_addresses: List[SignerReportMatch] = field(default_factory=list)
+    all_match: bool = False
+
+
+@dataclass
+class EventLogEntry:
+    """One entry from a TEE attestation event log."""
+
+    event: str
+    event_payload: Optional[str] = None
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class AttestationReport:
+    """A TEE attestation report (broker, llm, or combined)."""
+
+    tcb_info: Optional[Dict[str, Any]] = None
+    info: Optional[Dict[str, Any]] = None
+    event_log: List[EventLogEntry] = field(default_factory=list)
+    raw: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ReportsData:
+    """Bundle of broker / llm / combined attestation reports."""
+
+    broker: Optional[AttestationReport] = None
+    llm: Optional[AttestationReport] = None
+    combined: Optional[AttestationReport] = None
+
+
+@dataclass
+class ComposeVerificationDetail:
+    """Per-report compose-hash verification detail."""
+
+    calculated_hash: Optional[str] = None
+    event_log_hash: Optional[str] = None
+    error: Optional[str] = None
+
+
+@dataclass
+class ComposeVerification:
+    """Aggregated compose-hash verification across reports."""
+
+    passed: bool
+    details: Dict[str, ComposeVerificationDetail] = field(default_factory=dict)
+
+
+@dataclass
+class ComposeVerificationResult:
+    """Result of a single compose-hash verification."""
+
+    is_valid: bool
+    error: Optional[str] = None
+    calculated_hash: Optional[str] = None
+    event_log_hash: Optional[str] = None
+    compose_hash_event: Optional[EventLogEntry] = None
+
+
+@dataclass
+class VerificationSummary:
+    """High-level summary of all verifications performed."""
+
+    compose_verification: bool = False
+    signer_address_verification: bool = False
+    signer_address_matches: int = 0
+    total_reports: int = 0
+    all_verifications_passed: bool = False
+
+
+@dataclass
+class VerificationResult:
+    """
+    Structured result from ``InferenceManager.verify_service``.
+
+    Mirrors the TS SDK's ``VerificationResult`` interface field-for-field
+    (snake_case) and adds Python-side discovery fields collected during
+    verification (provider, model, service_type, quote data, etc.) so callers
+    don't lose access to information the Python SDK already gathered.
+    """
+
+    # --- TS-parity fields ---
+    success: bool = False
+    tee_verifier: Optional[str] = None
+    target_separated: bool = False
+    verifier_url: Optional[str] = None
+    reports_generated: List[str] = field(default_factory=list)
+    output_directory: Optional[str] = None
+    reports_data: Optional[ReportsData] = None
+    signer_verification: Optional[SignerVerification] = None
+    compose_verification: Optional[ComposeVerification] = None
+    docker_images: List[str] = field(default_factory=list)
+    steps: List[VerificationStep] = field(default_factory=list)
+
+    # --- Python-side extras (data already collected; kept to avoid loss) ---
+    provider: Optional[str] = None
+    service_type: Optional[str] = None
+    model: Optional[str] = None
+    verifiability: Optional[str] = None
+    tee_signer: Optional[str] = None
+    quote_available: bool = False
+    quote_data: Dict[str, Any] = field(default_factory=dict)
+    attestation_format: Optional[str] = None
+    attestation_verified: Optional[bool] = None
+    attestation_method: Optional[str] = None
+    is_acknowledged: Optional[bool] = None
+    expected_signer: Optional[str] = None
+    signer_match: Optional[bool] = None
+    errors: List[str] = field(default_factory=list)
+    timestamp: Optional[int] = None
+
+
+VerificationLogger = Callable[[VerificationStep], None]
 
 
 class ResponseVerifier:
