@@ -238,7 +238,9 @@ class Indexer(HttpProvider):
         self,
         root_hash: str,
         file_path: str,
-        proof: bool = False
+        proof: bool = False,
+        symmetric_key: Optional[bytes] = None,
+        private_key: Optional[Any] = None,
     ) -> Optional[Exception]:
         """
         Download file from storage network.
@@ -249,15 +251,34 @@ class Indexer(HttpProvider):
             root_hash: File root hash
             file_path: Output file path
             proof: Whether to download with proof
+            symmetric_key: Optional 32-byte AES key (v1-encrypted files).
+            private_key: Optional secp256k1 private key (v2/ECIES files).
 
         Returns:
             Error if download failed, None otherwise
         """
-        # TS line 88-91
+        downloader, err = self._new_downloader_from_indexer_nodes(root_hash)
+        if err is not None or downloader is None:
+            return err
+        return downloader.download_file(
+            root_hash,
+            file_path,
+            proof,
+            symmetric_key=symmetric_key,
+            private_key=private_key,
+        )
+
+    def _new_downloader_from_indexer_nodes(
+        self, root_hash: str
+    ) -> Tuple[Optional["Downloader"], Optional[Exception]]:
+        """
+        Build a ``Downloader`` from the indexer's file-location list.
+
+        Mirrors TS ``Indexer.newDownloaderFromIndexerNodes`` for reuse across
+        ``download`` and ``peek_header``.
+        """
         locations = self.get_file_locations(root_hash)
 
-        # If indexer doesn't have file locations (returns None or empty),
-        # prefer sharded nodes from the indexer to ensure shard coverage
         if locations is None or len(locations) == 0:
             print("Indexer doesn't have file locations, querying storage nodes directly...")
             sharded = self.get_sharded_nodes()
@@ -267,7 +288,7 @@ class Indexer(HttpProvider):
             if candidates is None or len(candidates) == 0:
                 node_locations = self.get_node_locations()
                 if node_locations is None or len(node_locations) == 0:
-                    return Exception('failed to get storage node locations')
+                    return None, Exception('failed to get storage node locations')
                 locations = [{'url': f'http://{ip}:5678'} for ip in node_locations.keys()]
             else:
                 locations = candidates
@@ -282,5 +303,54 @@ class Indexer(HttpProvider):
                 continue
             clients.append(sn)
 
-        downloader = Downloader(clients)
-        return downloader.download_file(root_hash, file_path, proof)
+        if not clients:
+            return None, Exception('no usable storage node clients')
+
+        return Downloader(clients), None
+
+    def peek_header(
+        self, root_hash: str
+    ) -> Tuple[Optional["EncryptionHeader"], Optional[Exception]]:
+        """
+        Inspect the first segment of ``root_hash`` and return its parsed
+        ``EncryptionHeader`` if it carries one, ``(None, None)`` if not, or
+        ``(None, error)`` on transport failure. Mirrors TS
+        ``Indexer.peekHeader``.
+
+        Useful for rendering a "this file is encrypted, supply a key"
+        prompt before committing to a full download.
+        """
+        try:
+            from .encryption import parse_encryption_header
+        except ImportError:  # pragma: no cover
+            from core.encryption import parse_encryption_header
+
+        downloader, err = self._new_downloader_from_indexer_nodes(root_hash)
+        if err is not None or downloader is None:
+            return None, err
+
+        # The Python Downloader currently writes to disk. To mirror TS's
+        # "download to bytes" + slice the first 50 bytes, we use a temp file.
+        import os
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp_path = tmp.name
+        os.unlink(tmp_path)  # download_file rejects existing paths
+
+        try:
+            dl_err = downloader.download_file(root_hash, tmp_path, False)
+            if dl_err is not None:
+                return None, dl_err
+            with open(tmp_path, 'rb') as f:
+                prefix = f.read(50)
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+        try:
+            return parse_encryption_header(prefix), None
+        except Exception:
+            return None, None

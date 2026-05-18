@@ -149,7 +149,9 @@ class Downloader:
         self,
         root: str,
         file_path: str,
-        proof: bool = False
+        proof: bool = False,
+        symmetric_key: Optional[bytes] = None,
+        private_key: Optional[Any] = None,
     ) -> Optional[Exception]:
         """
         Download file from storage network.
@@ -160,6 +162,13 @@ class Downloader:
             root: File root hash
             file_path: Output file path
             proof: Whether to download with proof verification
+            symmetric_key: Optional 32-byte AES key for v1-encrypted files.
+                If the downloaded file starts with a v1 encryption header and
+                this key is provided, the file is decrypted in place after
+                download. Best-effort: if decryption fails for any reason,
+                the raw ciphertext is left on disk.
+            private_key: Optional secp256k1 private key (bytes or hex) for
+                v2 (ECIES) encrypted files. Best-effort, same fallback.
 
         Returns:
             Error if download failed, None otherwise
@@ -186,9 +195,29 @@ class Downloader:
 
         # TS line 37
         err = self.download_file_helper(file_path, info, proof)
+        if err is not None:
+            return err
 
-        # TS line 38
-        return err
+        # TS Indexer.downloadToBlob calls tryDecrypt on the final bytes.
+        # Mirror that here: if a key was supplied, attempt best-effort
+        # decrypt and rewrite the file with the plaintext on success.
+        if symmetric_key is not None or private_key is not None:
+            try:
+                from .decryption import try_decrypt
+            except ImportError:  # pragma: no cover
+                from core.decryption import try_decrypt
+            try:
+                with open(file_path, 'rb') as f:
+                    raw = f.read()
+                result = try_decrypt(raw, symmetric_key, private_key)
+                if result.decrypted:
+                    with open(file_path, 'wb') as f:
+                        f.write(result.bytes)
+            except Exception:
+                # Best-effort: leave the file alone on any I/O issue.
+                pass
+
+        return None
 
     def query_file(self, root: str) -> Tuple[Optional[Dict[str, Any]], Optional[Exception]]:
         """
