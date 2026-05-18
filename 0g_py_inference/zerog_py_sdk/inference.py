@@ -93,6 +93,7 @@ class InferenceManager:
         self.ledger_manager = ledger_manager
         self._acknowledged_providers = set()
         self._auto_funding_stops: Dict[str, threading.Event] = {}
+        self._cached_fees: Dict[str, Dict[str, Any]] = {}
 
         # Initialize session manager for new authorization system
         self._session_manager = SessionManager(account, web3, contract)
@@ -738,6 +739,9 @@ class InferenceManager:
                 content
             )
 
+        if self.ledger_manager is not None and not self.has_auto_funding(provider_address):
+            self._check_and_fund(provider_address, AutoFundingConfig().buffer_multiplier)
+
         # Use new session token authentication
         return self._session_manager.get_request_headers(provider_address)
 
@@ -1109,6 +1113,10 @@ class InferenceManager:
             ... )
         """
         service = self.get_service(provider_address)
+        extractor = self.get_extractor(provider_address)
+        fee = self._calculate_fee(extractor, content)
+        if fee > 0:
+            self._update_cached_fee(provider_address, fee)
 
         # If service is not verifiable, always return True
         if not service.is_verifiable():
@@ -1636,7 +1644,8 @@ class InferenceManager:
     # ==================== Auto-Funding ====================
 
     # Minimum locked balance threshold (in wei) — mirrors TS SDK constant
-    _MIN_LOCKED_BALANCE = 500
+    _MIN_LOCKED_BALANCE = 10 ** 18
+    _FEE_CACHE_TTL_SECONDS = 24 * 60 * 60
 
     def start_auto_funding(
         self,
@@ -1673,28 +1682,10 @@ class InferenceManager:
         stop_event = threading.Event()
         self._auto_funding_stops[provider_address] = stop_event
 
-        required = config.buffer_multiplier * self._MIN_LOCKED_BALANCE
-
-        def _check_and_fund() -> None:
-            try:
-                account_data = self.contract.functions.getAccount(
-                    self.account.address,
-                    provider_address,
-                ).call()
-                balance = account_data[3]
-                pending_refund = account_data[4]
-                available = balance - pending_refund
-
-                if available < required:
-                    top_up = required - available
-                    self.ledger_manager.transfer_fund(provider_address, "inference", top_up)
-            except Exception:
-                pass  # Never crash the background thread
-
         def _loop() -> None:
-            _check_and_fund()
+            self._check_and_fund(provider_address, config.buffer_multiplier)
             while not stop_event.wait(timeout=config.interval_ms / 1000):
-                _check_and_fund()
+                self._check_and_fund(provider_address, config.buffer_multiplier)
 
         thread = threading.Thread(target=_loop, daemon=True, name=f"auto-fund-{provider_address[:8]}")
         thread.start()
@@ -1721,3 +1712,93 @@ class InferenceManager:
         """Return True if auto-funding is active for the given provider."""
         provider_address = format_address(provider_address)
         return provider_address in self._auto_funding_stops
+
+    def _calculate_fee(self, extractor: Extractor, content: str) -> int:
+        service = extractor.get_svc_info()
+        output_count = extractor.get_output_count(content)
+        input_count = extractor.get_input_count(content)
+        return (
+            int(output_count) * int(service.output_price)
+            + int(input_count) * int(service.input_price)
+        )
+
+    def _update_cached_fee(self, provider_address: str, fee: int) -> None:
+        provider_address = format_address(provider_address)
+        current_fee = self._get_cached_fee(provider_address)
+        self._cached_fees[provider_address] = {
+            "fee": current_fee + int(fee),
+            "expires_at": time.time() + self._FEE_CACHE_TTL_SECONDS,
+        }
+
+    def _clear_cached_fee(self, provider_address: str) -> None:
+        provider_address = format_address(provider_address)
+        self._cached_fees[provider_address] = {
+            "fee": 0,
+            "expires_at": time.time() + self._FEE_CACHE_TTL_SECONDS,
+        }
+
+    def _get_cached_fee(self, provider_address: str) -> int:
+        provider_address = format_address(provider_address)
+        cached = self._cached_fees.get(provider_address)
+        if not cached:
+            return 0
+        if cached["expires_at"] <= time.time():
+            self._cached_fees.pop(provider_address, None)
+            return 0
+        return int(cached["fee"])
+
+    def _fetch_unsettled_fee(self, provider_address: str) -> int:
+        provider_address = format_address(provider_address)
+        try:
+            service = self.get_service(provider_address)
+            headers = self._session_manager.get_request_headers(provider_address)
+            url = f"{service.url}/v1/user/{self.account.address}/unsettledfee"
+            response = requests.get(url, headers=headers, timeout=15)
+            if response.status_code != 200:
+                return self._get_cached_fee(provider_address)
+
+            data = response.json()
+            fee = int(data.get("unsettledFee", 0))
+            self._cached_fees[provider_address] = {
+                "fee": fee,
+                "expires_at": time.time() + self._FEE_CACHE_TTL_SECONDS,
+            }
+            return fee
+        except Exception:
+            return self._get_cached_fee(provider_address)
+
+    def _get_transfer_deficit(self, provider_address: str, required_balance: int) -> int:
+        provider_address = format_address(provider_address)
+        try:
+            account_data = self.contract.functions.getAccount(
+                self.account.address,
+                provider_address,
+            ).call()
+            balance = int(account_data[3])
+            pending_refund = int(account_data[4])
+            locked_balance = balance - pending_refund
+            if locked_balance >= required_balance:
+                return 0
+            return required_balance - locked_balance
+        except Exception:
+            return required_balance
+
+    def _do_auto_funding_transfer(self, provider_address: str, amount: int) -> None:
+        transfer_amount = max(int(amount), self._MIN_LOCKED_BALANCE)
+        self.ledger_manager.transfer_fund(provider_address, "inference", transfer_amount)
+        self._clear_cached_fee(provider_address)
+
+    def _check_and_fund(self, provider_address: str, buffer_multiplier: int) -> None:
+        if self.ledger_manager is None:
+            return
+
+        provider_address = format_address(provider_address)
+        try:
+            unsettled_fee = self._fetch_unsettled_fee(provider_address)
+            required_balance = unsettled_fee + buffer_multiplier * self._MIN_LOCKED_BALANCE
+            deficit = self._get_transfer_deficit(provider_address, required_balance)
+            if deficit > 0:
+                self._do_auto_funding_transfer(provider_address, deficit)
+        except Exception:
+            # Auto-funding should never break inference calls or background threads.
+            return
