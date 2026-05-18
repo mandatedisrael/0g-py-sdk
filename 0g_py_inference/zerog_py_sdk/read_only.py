@@ -32,6 +32,11 @@ class VerifiabilityEnum(str, Enum):
     ZKML = "ZKML"
 
 
+def is_verifiability(value: str) -> bool:
+    """Mirror of TS ``isVerifiability`` type guard."""
+    return value in (item.value for item in VerifiabilityEnum)
+
+
 class HealthStatus(str, Enum):
     """Health status for services."""
     HEALTHY = "healthy"
@@ -554,3 +559,41 @@ def create_read_only_broker(
         contract_address = addresses.inference
     
     return ReadOnlyInferenceBroker(web3, contract_address)
+
+
+class ZGComputeNetworkReadOnlyBroker:
+    """
+    Combined read-only broker bundling inference and fine-tuning read-only access.
+
+    Mirrors the TS SDK's ``ZGComputeNetworkReadOnlyBroker`` exposing
+    ``inference`` and ``fine_tuning`` sub-brokers without a wallet connection.
+    """
+
+    def __init__(
+        self,
+        inference: ReadOnlyInferenceBroker,
+        fine_tuning: "ReadOnlyFineTuningBroker",
+    ):
+        self.inference = inference
+        self.fine_tuning = fine_tuning
+
+
+def create_zg_compute_network_read_only_broker(
+    rpc_url: Optional[str] = None,
+    network: Optional[str] = None,
+    chain_id: Optional[int] = None,
+) -> "ZGComputeNetworkReadOnlyBroker":
+    """
+    Create a combined read-only broker (inference + fine-tuning) without a wallet.
+
+    Mirrors the TS SDK's ``createZGComputeNetworkReadOnlyBroker``.
+    """
+    from .fine_tuning.broker import create_read_only_fine_tuning_broker
+
+    inference = create_read_only_broker(rpc_url=rpc_url, network=network)
+    fine_tuning = create_read_only_fine_tuning_broker(
+        network=network,
+        rpc_url=rpc_url,
+        chain_id=chain_id,
+    )
+    return ZGComputeNetworkReadOnlyBroker(inference=inference, fine_tuning=fine_tuning)
