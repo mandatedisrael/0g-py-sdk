@@ -79,6 +79,40 @@ response = requests.post(
 print(response.json()["choices"][0]["message"]["content"])
 ```
 
+## Async image jobs
+
+The network's async image APIs live under ``/v1/async`` instead of
+``/v1/proxy``. The SDK exposes thin helpers for job submission and polling:
+
+```python
+async_meta = broker.inference.get_async_service_metadata(provider)
+
+submission = broker.inference.submit_async_image_generation(
+    provider,
+    {
+        "model": async_meta.model,
+        "prompt": "A cute baby sea otter",
+        "n": 1,
+        "size": "512x512",
+        "response_format": "b64_json",
+    },
+)
+
+job = broker.inference.wait_for_async_job(provider, submission.job_id)
+if job.status == "failed":
+    raise RuntimeError(job.error_message or "Async job failed")
+
+images = job.data["data"]
+print(f"Generated {len(images)} image(s)")
+```
+
+For lower-level control, use:
+
+- `broker.inference.submit_async_request(...)`
+- `broker.inference.get_async_job(...)`
+- `broker.inference.wait_for_async_job(...)`
+- `broker.inference.submit_async_image_edit(...)`
+
 ## Browse without a wallet
 
 ```python
@@ -173,7 +207,7 @@ The SDK exposes everything from the top-level `zerog_py_sdk` package:
 | `create_broker_from_env(env_file=".env")` | Load credentials from a `.env` file |
 | `create_read_only_broker(network=None)` | No wallet required — for browsing services |
 | `broker.ledger` | `LedgerManager` — deposits, transfers, refunds |
-| `broker.inference` | `InferenceManager` — service discovery, requests, API keys |
+| `broker.inference` | `InferenceManager` — service discovery, sync/async requests, API keys |
 | `broker.inference.lora` | `LoRAProcessor` — deploy LoRA adapters, chat |
 | `broker.fine_tuning` | `FineTuningBroker` — datasets, tasks, model delivery |
 | `og_to_wei`, `wei_to_og` | OG ↔ wei conversion helpers (`zerog_py_sdk.utils`) |
