@@ -2,6 +2,124 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-05-18
+
+### Breaking Changes
+
+- **`verify_service` returns a typed result.** Replaces the previous
+  `dict` return with a `VerificationResult` dataclass, and adds an
+  optional `on_log: Callable[[VerificationStep], None]` callback. The
+  method is now **silent by default** (no stdout writes) — opt in to
+  terminal output via `on_log`, or iterate `result.steps` after the
+  call to replay the verification trace.
+
+  ```python
+  # before
+  result = broker.inference.verify_service(provider)
+  if result["is_valid"]:
+      ...
+
+  # after
+  result = broker.inference.verify_service(provider)
+  if result.success:
+      ...
+
+  # stream progress
+  broker.inference.verify_service(
+      provider,
+      on_log=lambda step: print(step.message),
+  )
+  ```
+
+  Field renames: `is_valid` → `success`, `report_path` →
+  `reports_generated[0]`. All other fields keep their names as
+  dataclass attributes.
+
+- **Removed async-inference broker methods.** `submit_async_request`,
+  `submit_async_image_generation`, `submit_async_image_edit`,
+  `get_async_job`, `wait_for_async_job`,
+  `get_async_service_metadata`, and the `AsyncServiceMetadata` /
+  `AsyncInferenceSubmission` / `AsyncInferenceJob` dataclasses are
+  gone. Async image jobs are now driven by callers issuing
+  `/v1/async/...` HTTP themselves with headers from
+  `broker.inference.get_request_headers(...)`. See the README for
+  the new pattern.
+
+### Added
+
+- **Provider signer administration.** New helpers on the inference
+  broker for managing on-chain TEE signer state:
+  `check_provider_signer_status`, `acknowledge_provider_tee_signer`,
+  `acknowledge_tee_signer_by_owner`,
+  `revoke_provider_tee_signer_acknowledgement`, `revoke_tokens`,
+  `list_accounts`, `get_chain_id`, `get_user_address`, `lock_time`.
+
+- **Typed verifier surface.** New dataclasses exported from
+  `zerog_py_sdk`: `VerificationStep`, `VerificationResult`,
+  `VerificationSummary`, `SignerVerification`, `SignerReportMatch`,
+  `SignerRAVerificationResult`, `AttestationReport`, `EventLogEntry`,
+  `ReportsData`, `ComposeVerification`,
+  `ComposeVerificationDetail`, `ComposeVerificationResult`,
+  `ProviderType`, `VerificationLogger`.
+
+- **`is_verifiability(value)`** — type guard returning `True` iff
+  `value` matches a `VerifiabilityEnum` member.
+
+- **Combined read-only broker.** `ZGComputeNetworkReadOnlyBroker` +
+  `create_zg_compute_network_read_only_broker` bundle the inference
+  and fine-tuning read-only sub-brokers behind one object for
+  wallet-less browsing of the full network surface.
+
+- **Top-level broker aliases.** `ZGComputeNetworkBroker` and
+  `create_zg_compute_network_broker` are now exported as alternative
+  names for `ZGServingBroker` and `create_broker`.
+
+- **Extractor name aliases.** `ChatBot`, `TextToImage`,
+  `ImageEditing`, and `SpeechToText` are now exported alongside the
+  existing `*Extractor` classes.
+
+- **`ServingRequestHeaders`** — alias for `RequestHeaders` so callers
+  can use whichever name reads better in their codebase.
+
+- **Ledger: `list_ledger(offset, limit)`** — paginated enumeration of
+  all ledger accounts via `getAllLedgers`.
+
+- **Fine-tuning model retrieval.** `acknowledge_model` gains a
+  default `auto` strategy that tries 0G Storage first, falls back to
+  TEE LoRA download with hash verification, then acknowledges the
+  deliverable on-chain. New companion helpers:
+  `acknowledge_deliverable`, advanced
+  `download_model_from_0g_storage`, and directory-aware
+  `download_lora_from_tee` with configurable retry options.
+
+- **Read-only service detail enrichment.** `list_service_with_detail`
+  now augments services with status-API model metadata and parsed
+  `tiered_pricing` / `cache_token_billing` fields where providers
+  expose them.
+
+- **Contract ABI.** Added bindings for `acknowledgeTEESignerByOwner`
+  and `getAllAccounts`; the `getService` return tuple now includes
+  `teeSignerAddress` and `teeSignerAcknowledged`.
+
+### Changed
+
+- **Auto-funding.** Inline auto-funding checks are tightened so
+  balance top-ups respect the configured interval and
+  buffer-multiplier consistently across rapid request bursts.
+
+### Removed
+
+- The async-inference broker methods and dataclasses listed under
+  Breaking Changes.
+
+### Tests
+
+- `tests/test_inference_admin_parity.py`
+- `tests/test_fine_tuning_model_retrieval.py`
+- `tests/test_verify_service_structured.py`
+- `tests/test_auto_funding.py`
+- `tests/test_read_only_detail.py`
+
 ## [0.5.0] - 2026-03-23
 
 ### Breaking Changes - Contract ABI Update
@@ -222,26 +340,3 @@ None currently identified.
 ### 🙏 Credits
 
 - Python implementation: [@damiclone](https://x.com/damiclone)
-
----
-
-## [Unreleased]
-
-### Planned Features
-
-- [ ] Automatic balance top-up when low
-- [ ] Response verification with TEE attestation
-- [ ] Streaming support for chat completions
-- [ ] Batch request handling
-- [ ] Provider health monitoring
-- [ ] Gas price optimization
-- [ ] Retry logic for failed requests
-
-### Future Improvements
-
-- [ ] Publish to PyPI as `og-compute-sdk`
-- [ ] Add pytest test suite
-- [ ] CI/CD with GitHub Actions
-- [ ] Type hints with mypy validation
-- [ ] Performance benchmarks
-- [ ] More example scripts
