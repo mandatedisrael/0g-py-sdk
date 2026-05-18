@@ -82,36 +82,50 @@ print(response.json()["choices"][0]["message"]["content"])
 ## Async image jobs
 
 The network's async image APIs live under ``/v1/async`` instead of
-``/v1/proxy``. The SDK exposes thin helpers for job submission and polling:
+``/v1/proxy``. Following the TypeScript SDK pattern, the broker only signs
+requests via ``get_request_headers``; callers issue the HTTP requests
+themselves:
 
 ```python
-async_meta = broker.inference.get_async_service_metadata(provider)
+import json, time, requests
 
-submission = broker.inference.submit_async_image_generation(
-    provider,
-    {
-        "model": async_meta.model,
-        "prompt": "A cute baby sea otter",
-        "n": 1,
-        "size": "512x512",
-        "response_format": "b64_json",
-    },
+metadata = broker.inference.get_service_metadata(provider)
+base_url = metadata["endpoint"].replace("/v1/proxy", "")
+
+# Submit
+body = {
+    "model": metadata["model"],
+    "prompt": "A cute baby sea otter",
+    "n": 1,
+    "size": "512x512",
+    "response_format": "b64_json",
+}
+headers = broker.inference.get_request_headers(provider, json.dumps(body))
+submit = requests.post(
+    f"{base_url}/v1/async/images/generations",
+    headers={"Content-Type": "application/json", **headers},
+    json=body,
 )
+job_id = submit.json()["jobId"]
 
-job = broker.inference.wait_for_async_job(provider, submission.job_id)
-if job.status == "failed":
-    raise RuntimeError(job.error_message or "Async job failed")
+# Poll
+while True:
+    poll_headers = broker.inference.get_request_headers(provider)
+    resp = requests.get(f"{base_url}/v1/async/jobs/{job_id}", headers=poll_headers)
+    payload = resp.json()
+    if payload["status"] in ("completed", "failed"):
+        break
+    time.sleep(float(resp.headers.get("Retry-After", 5)))
 
-images = job.data["data"]
+if payload["status"] == "failed":
+    raise RuntimeError(payload.get("errorMessage", "Async job failed"))
+
+images = payload["data"]["data"]
 print(f"Generated {len(images)} image(s)")
 ```
 
-For lower-level control, use:
-
-- `broker.inference.submit_async_request(...)`
-- `broker.inference.get_async_job(...)`
-- `broker.inference.wait_for_async_job(...)`
-- `broker.inference.submit_async_image_edit(...)`
+Image edits use the same flow against ``/v1/async/images/edits`` with
+``multipart/form-data``.
 
 ## Browse without a wallet
 
@@ -146,6 +160,10 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
+Persistent keys can be revoked with `revoke_api_key(provider, token_id)`,
+`revoke_tokens(provider, [token_id, ...])`, or
+`revoke_all_tokens(provider)`.
+
 ## Fine-tuning
 
 ```python
@@ -178,6 +196,19 @@ deploy = broker.inference.lora.deploy_adapter(
 response = broker.inference.lora.chat(PROVIDER, deploy.adapter_name, "Who are you?")
 ```
 
+`acknowledge_model()` mirrors the TypeScript SDK retrieval flow: by default it
+tries 0G Storage first, falls back to TEE download, verifies the TEE-downloaded
+artifact hash when available, then acknowledges the deliverable on-chain. You
+can force a path with `download_method="tee"` or `download_method="0g-storage"`.
+For recovery cases where you already retrieved the artifact elsewhere,
+`acknowledge_deliverable(PROVIDER, task_id)` releases the on-chain queue without
+downloading.
+
+Fine-tuning provider helpers are also exposed on the broker:
+`get_provider_url()`, `get_quote()`, `get_pending_task_counter()`,
+`get_customized_models()`, `get_customized_model()`, and
+`download_model_usage()`.
+
 See [examples/fine_tuning/fine_tuning_example.py](./examples/fine_tuning/fine_tuning_example.py) for a complete end-to-end script.
 
 ## Verify TEE-signed responses
@@ -193,10 +224,24 @@ is_valid = broker.inference.process_response(
 )
 ```
 
-For a full attestation check (TEE signer extraction, optional Automata contract verification, signed report):
+For a full attestation check (TEE signer extraction, optional Automata contract verification, signed report). ``verify_service`` is silent by default — pass ``on_log`` to stream progress, or iterate ``result.steps`` after the call:
 
 ```python
+# Silent — returns a typed VerificationResult
 result = broker.inference.verify_service(provider, output_dir="./reports")
+if result.success:
+    print(result.tee_signer)
+
+# Stream progress while running
+result = broker.inference.verify_service(
+    provider,
+    output_dir="./reports",
+    on_log=lambda step: print(step.message),
+)
+
+# Or replay the steps after the fact
+for step in result.steps:
+    print(f"[{step.type}] {step.message}")
 ```
 
 ## SDK reference
