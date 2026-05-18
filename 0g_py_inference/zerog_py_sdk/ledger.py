@@ -305,6 +305,22 @@ class LedgerManager:
         except Exception as e:
             raise ContractError("getLedger", str(e))
     
+    def list_ledger(self, offset: int = 0, limit: int = 50) -> List[tuple]:
+        """
+        List all ledger accounts on the contract (paginated).
+
+        Mirrors the TS SDK's ``LedgerProcessor.listLedger`` which proxies
+        ``getAllLedgers(offset, limit)``.
+
+        Returns:
+            List of raw ledger tuples (user, availableBalance, totalBalance, additionalInfo).
+        """
+        try:
+            ledgers, _total = self.contract.functions.getAllLedgers(offset, limit).call()
+            return list(ledgers)
+        except Exception as e:
+            raise ContractError("listLedger", str(e))
+
     def retrieve_fund(self, service_type: str = "inference") -> Dict[str, Any]:
         """
         Request refund from all providers of a specific service type.
