@@ -4,6 +4,7 @@
 
 # Cryptography
 pycryptodome>=3.23.0
+cryptography>=45.0.0
 
 # Web3 and Ethereum
 web3>=7.14.0
