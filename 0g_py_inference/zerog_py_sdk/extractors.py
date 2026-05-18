@@ -293,3 +293,10 @@ EXTRACTOR_REGISTRY = {
     'image-editing': ImageEditingExtractor,
     'speech-to-text': SpeechToTextExtractor,
 }
+
+
+# TS-SDK name aliases (TS uses bare names without an ``Extractor`` suffix).
+ChatBot = ChatBotExtractor
+TextToImage = TextToImageExtractor
+ImageEditing = ImageEditingExtractor
+SpeechToText = SpeechToTextExtractor
