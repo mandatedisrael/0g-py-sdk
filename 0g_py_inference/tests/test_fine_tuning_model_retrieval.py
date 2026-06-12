@@ -204,6 +204,27 @@ def test_download_lora_from_tee_retries_and_writes_inside_directory(
     assert post.call_count == 2
     assert post.call_args.kwargs["timeout"] == (30, 1)
 
+
+def test_download_model_usage_writes_module_zip_inside_directory(tmp_path):
+    provider = FineTuningProvider(FakeProviderContract(), FakeAccount())
+    destination = tmp_path / "custom-a.zip"
+    destination.write_bytes(b"stale")
+
+    with patch.object(
+        provider_mod.requests, "get", return_value=FakeResponse()
+    ) as get:
+        provider.download_model_usage(
+            PROVIDER, "custom-a", str(tmp_path)
+        )
+
+    assert destination.read_bytes() == b"model"
+    get.assert_called_once_with(
+        "https://ft.example.com/v1/model/desc/custom-a",
+        timeout=provider_mod.DOWNLOAD_TIMEOUT,
+        stream=True,
+    )
+
+
 def test_fine_tuning_broker_exposes_provider_helpers():
     broker = object.__new__(FineTuningBroker)
     broker._provider = MagicMock()

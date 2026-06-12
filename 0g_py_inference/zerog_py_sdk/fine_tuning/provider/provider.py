@@ -192,16 +192,24 @@ class FineTuningProvider:
         self, provider_address: str, model_name: str, output_path: str
     ) -> None:
         url = self._get_provider_url(provider_address)
+        dest_file = output_path
+        if os.path.isdir(output_path):
+            dest_file = os.path.join(output_path, f"{model_name}.zip")
+
         try:
+            if os.path.exists(dest_file):
+                os.unlink(dest_file)
+
             resp = requests.get(
                 f"{url}/v1/model/desc/{model_name}",
                 timeout=DOWNLOAD_TIMEOUT,
                 stream=True,
             )
             resp.raise_for_status()
-            with open(output_path, "wb") as f:
+            with open(dest_file, "wb") as f:
                 for chunk in resp.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                    if chunk:
+                        f.write(chunk)
         except requests.RequestException as e:
             raise NetworkError(
                 str(e), endpoint=f"{url}/v1/model/desc/{model_name}"
