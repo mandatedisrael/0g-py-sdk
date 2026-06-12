@@ -23,6 +23,7 @@ from zerog_py_sdk.lora import (
     LoRAProcessor,
     make_adapter_name,
 )
+from zerog_py_sdk.inference import InferenceManager
 
 
 PROVIDER = "0xprovider"
@@ -331,3 +332,85 @@ class TestChat:
         assert body["messages"][1]["content"] == "hello"
         # Headers were generated with body content (signed payload).
         assert deps.headers_calls[-1] is not None
+
+
+class TestInferenceManagerLoRAParity:
+    @pytest.fixture
+    def manager(self):
+        manager = InferenceManager.__new__(InferenceManager)
+        manager.lora = MagicMock(spec=LoRAProcessor)
+        return manager
+
+    def test_list_and_status_forward_to_lora_processor(self, manager):
+        adapters = [MagicMock(spec=AdapterInfo)]
+        status = MagicMock(spec=AdapterStatusResponse)
+        manager.lora.list_adapters.return_value = adapters
+        manager.lora.get_adapter_status.return_value = status
+
+        assert manager.list_adapters(PROVIDER) is adapters
+        assert manager.get_adapter_status(PROVIDER, EXPECTED_NAME) is status
+        manager.lora.list_adapters.assert_called_once_with(PROVIDER)
+        manager.lora.get_adapter_status.assert_called_once_with(
+            PROVIDER, EXPECTED_NAME
+        )
+
+    def test_resolve_and_deploy_forward_all_options(self, manager):
+        callback = MagicMock()
+        deployed = DeployResponse("ok", EXPECTED_NAME)
+        manager.lora.resolve_adapter_name.return_value = EXPECTED_NAME
+        manager.lora.deploy_adapter.return_value = deployed
+
+        assert (
+            manager.resolve_adapter_name(PROVIDER, TASK_ID, BASE_MODEL)
+            == EXPECTED_NAME
+        )
+        assert manager.deploy_adapter(
+            PROVIDER,
+            BASE_MODEL,
+            TASK_ID,
+            wait=True,
+            timeout_seconds=45,
+            on_progress=callback,
+        ) is deployed
+        manager.lora.deploy_adapter.assert_called_once_with(
+            PROVIDER,
+            BASE_MODEL,
+            TASK_ID,
+            wait=True,
+            timeout_seconds=45,
+            on_progress=callback,
+        )
+
+    def test_deploy_by_name_and_chat_match_ts_surface(self, manager):
+        callback = MagicMock()
+        deployed = DeployResponse("ok", EXPECTED_NAME)
+        response = {"choices": []}
+        manager.lora.deploy_adapter_by_name.return_value = deployed
+        manager.lora.chat.return_value = response
+
+        assert manager.deploy_adapter_by_name(
+            PROVIDER,
+            EXPECTED_NAME,
+            wait=True,
+            timeout_seconds=60,
+            on_progress=callback,
+        ) is deployed
+        assert manager.chat_with_fine_tuned_model(
+            PROVIDER,
+            EXPECTED_NAME,
+            "hello",
+            system_prompt="Be concise.",
+        ) is response
+        manager.lora.deploy_adapter_by_name.assert_called_once_with(
+            PROVIDER,
+            EXPECTED_NAME,
+            wait=True,
+            timeout_seconds=60,
+            on_progress=callback,
+        )
+        manager.lora.chat.assert_called_once_with(
+            PROVIDER,
+            EXPECTED_NAME,
+            "hello",
+            system_prompt="Be concise.",
+        )

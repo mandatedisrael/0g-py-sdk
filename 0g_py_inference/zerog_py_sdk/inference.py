@@ -42,7 +42,13 @@ from .extractors import (
     ImageEditingExtractor,
     SpeechToTextExtractor
 )
-from .lora import LoRAProcessor, LoRADependencies
+from .lora import (
+    AdapterInfo,
+    AdapterStatusResponse,
+    DeployResponse,
+    LoRADependencies,
+    LoRAProcessor,
+)
 from .verifier import (
     SignerReportMatch,
     SignerVerification,
@@ -111,6 +117,78 @@ class InferenceManager:
                 )
 
         self.lora = LoRAProcessor(_LoRADeps())
+
+    def list_adapters(self, provider_address: str) -> List[AdapterInfo]:
+        """List LoRA adapters registered by an inference provider."""
+        return self.lora.list_adapters(provider_address)
+
+    def get_adapter_status(
+        self, provider_address: str, adapter_name: str
+    ) -> AdapterStatusResponse:
+        """Get the lifecycle state of a LoRA adapter."""
+        return self.lora.get_adapter_status(provider_address, adapter_name)
+
+    def resolve_adapter_name(
+        self, provider_address: str, task_id: str, base_model: str
+    ) -> str:
+        """Resolve the provider's adapter name for a fine-tuning task."""
+        return self.lora.resolve_adapter_name(
+            provider_address, task_id, base_model
+        )
+
+    def deploy_adapter(
+        self,
+        provider_address: str,
+        base_model: str,
+        task_id: str,
+        *,
+        wait: bool = False,
+        timeout_seconds: int = 120,
+        on_progress: Optional[Callable[[str], None]] = None,
+    ) -> DeployResponse:
+        """Deploy a fine-tuned adapter to an inference provider."""
+        return self.lora.deploy_adapter(
+            provider_address,
+            base_model,
+            task_id,
+            wait=wait,
+            timeout_seconds=timeout_seconds,
+            on_progress=on_progress,
+        )
+
+    def deploy_adapter_by_name(
+        self,
+        provider_address: str,
+        adapter_name: str,
+        *,
+        wait: bool = False,
+        timeout_seconds: int = 120,
+        on_progress: Optional[Callable[[str], None]] = None,
+    ) -> DeployResponse:
+        """Deploy an adapter when its provider-side name is already known."""
+        return self.lora.deploy_adapter_by_name(
+            provider_address,
+            adapter_name,
+            wait=wait,
+            timeout_seconds=timeout_seconds,
+            on_progress=on_progress,
+        )
+
+    def chat_with_fine_tuned_model(
+        self,
+        provider_address: str,
+        adapter_name: str,
+        message: str,
+        *,
+        system_prompt: str = "You are a helpful assistant.",
+    ) -> Dict[str, Any]:
+        """Send a chat request to a deployed fine-tuned adapter."""
+        return self.lora.chat(
+            provider_address,
+            adapter_name,
+            message,
+            system_prompt=system_prompt,
+        )
     
     def list_service(
         self,
