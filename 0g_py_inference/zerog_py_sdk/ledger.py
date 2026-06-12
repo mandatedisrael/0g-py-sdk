@@ -108,6 +108,21 @@ class LedgerManager:
 
         self._service_names = names
         return names
+
+    def _resolve_service_name(self, service_type: str, operation: str) -> str:
+        """Resolve a canonical service key to its registered on-chain name."""
+        if service_type not in self._CANONICAL_SERVICE_TYPES:
+            return service_type
+
+        resolved = self._resolve_service_names().get(service_type)
+        if not resolved:
+            raise ContractError(
+                operation,
+                f"Could not resolve on-chain service name for "
+                f"{service_type!r}. The service contract may not be "
+                f"registered on this network.",
+            )
+        return resolved
     
     def add_ledger(self, amount: str) -> Dict[str, Any]:
         """
@@ -340,10 +355,13 @@ class LedgerManager:
             >>> receipt = ledger.retrieve_fund("inference")
         """
         try:
+            resolved_name = self._resolve_service_name(
+                service_type, "retrieveFund"
+            )
             # Use getLedgerProviders to get the provider list for this service type
             providers = self.contract.functions.getLedgerProviders(
                 self.account.address,
-                service_type
+                resolved_name
             ).call()
             
             if not providers or len(providers) == 0:
@@ -352,7 +370,7 @@ class LedgerManager:
             # retrieveFund(providers[], serviceType)
             tx = self.contract.functions.retrieveFund(
                 providers,
-                service_type
+                resolved_name
             ).build_transaction({
                 'from': self.account.address,
                 'gas': 200000,
@@ -441,18 +459,9 @@ class LedgerManager:
                 amount_og,
             )
 
-        resolved_name = service_type
-        if service_type in self._CANONICAL_SERVICE_TYPES:
-            names = self._resolve_service_names()
-            resolved = names.get(service_type)
-            if not resolved:
-                raise ContractError(
-                    "transferFund",
-                    f"Could not resolve on-chain service name for "
-                    f"{service_type!r}. The service contract may not be "
-                    f"registered on this network.",
-                )
-            resolved_name = resolved
+        resolved_name = self._resolve_service_name(
+            service_type, "transferFund"
+        )
 
         try:
             # Call transferFund on THIS contract (LedgerManager)
@@ -566,10 +575,13 @@ class LedgerManager:
         """
         try:
             provider_address = self.web3.to_checksum_address(provider_address)
+            resolved_name = self._resolve_service_name(
+                service_type, "retrieveFundFromProvider"
+            )
 
             tx = self.contract.functions.retrieveFund(
                 [provider_address],
-                service_type,
+                resolved_name,
             ).build_transaction({
                 'from': self.account.address,
                 'gas': 200000,

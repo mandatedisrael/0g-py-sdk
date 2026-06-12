@@ -172,3 +172,47 @@ class TestServiceNameResolution:
             mgr.transfer_fund("0xabc", "custom-service-name", 10 ** 18)
         args, _ = mgr.contract.functions.transferFund.call_args
         assert args[1] == "custom-service-name"
+
+    @staticmethod
+    def _prepare_successful_transaction(mgr):
+        mgr.account.sign_transaction.return_value = MagicMock(
+            raw_transaction=b""
+        )
+        mgr.web3.eth.send_raw_transaction.return_value = b""
+        mgr.web3.eth.wait_for_transaction_receipt.return_value = {
+            "status": 1,
+            "transactionHash": b"\x00" * 32,
+            "blockNumber": 1,
+            "gasUsed": 0,
+        }
+
+    def test_retrieve_fund_uses_registered_service_name(self):
+        mgr = self._manager_with_registry("0G-InferenceServing-v1.2")
+        provider = "0x0000000000000000000000000000000000000004"
+        mgr.contract.functions.getLedgerProviders.return_value.call.return_value = [
+            provider
+        ]
+        mgr.contract.functions.retrieveFund.return_value.build_transaction.return_value = {}
+        self._prepare_successful_transaction(mgr)
+
+        mgr.retrieve_fund("inference")
+
+        mgr.contract.functions.getLedgerProviders.assert_called_once_with(
+            mgr.account.address, "0G-InferenceServing-v1.2"
+        )
+        mgr.contract.functions.retrieveFund.assert_called_once_with(
+            [provider], "0G-InferenceServing-v1.2"
+        )
+
+    def test_retrieve_from_provider_uses_registered_service_name(self):
+        mgr = self._manager_with_registry("0G-InferenceServing-v1.2")
+        provider = "0x0000000000000000000000000000000000000004"
+        mgr.web3.to_checksum_address.return_value = provider
+        mgr.contract.functions.retrieveFund.return_value.build_transaction.return_value = {}
+        self._prepare_successful_transaction(mgr)
+
+        mgr.retrieve_fund_from_provider(provider, "inference")
+
+        mgr.contract.functions.retrieveFund.assert_called_once_with(
+            [provider], "0G-InferenceServing-v1.2"
+        )
