@@ -19,6 +19,7 @@ from zerog_py_sdk.read_only import (
     ServiceHealthMetric,
     ServiceWithDetail,
     TieredPricingInfo,
+    _attach_model_health,
     parse_multi_model_info,
 )
 
@@ -349,3 +350,72 @@ def test_get_provider_models_rejects_invalid_provider_response_shape():
     with patch("zerog_py_sdk.read_only.requests.get", return_value=response):
         with pytest.raises(Exception, match='missing "data" array'):
             broker.get_provider_models(VALID_PROVIDER)
+
+
+def test_single_model_health_falls_back_when_provider_ids_drift():
+    model = ProviderModelInfo(id="provider-model", provider=VALID_PROVIDER)
+    health = ServiceHealthMetric(
+        service_type="chatbot",
+        model="status-api-model",
+        provider=VALID_PROVIDER,
+        status="healthy",
+    )
+
+    _attach_model_health(VALID_PROVIDER, [model], [health])
+
+    assert model.health_metrics == health
+
+
+def test_get_provider_models_ignores_status_api_failure():
+    broker = _build_broker()
+    broker.get_service = MagicMock(
+        return_value=ServiceWithDetail(
+            provider=VALID_PROVIDER,
+            service_type="chatbot",
+            url="https://provider.example.com",
+            input_price=1,
+            output_price=2,
+            updated_at=3,
+            model="default-model",
+            verifiability="",
+        )
+    )
+    provider_response = MagicMock()
+    provider_response.headers = {}
+    provider_response.iter_content.return_value = [
+        b'{"object":"list","data":[{"id":"provider-model"}]}'
+    ]
+
+    with patch(
+        "zerog_py_sdk.read_only.requests.get",
+        side_effect=[provider_response, RuntimeError("status unavailable")],
+    ):
+        result = broker.get_provider_models(VALID_PROVIDER)
+
+    assert [model.id for model in result.models] == ["provider-model"]
+    assert result.models[0].health_metrics is None
+
+
+def test_get_provider_models_rejects_oversized_catalog_before_reading_body():
+    broker = _build_broker()
+    broker.get_service = MagicMock(
+        return_value=ServiceWithDetail(
+            provider=VALID_PROVIDER,
+            service_type="chatbot",
+            url="https://provider.example.com",
+            input_price=1,
+            output_price=2,
+            updated_at=3,
+            model="default-model",
+            verifiability="",
+        )
+    )
+    response = MagicMock()
+    response.headers = {"Content-Length": "5000001"}
+
+    with patch("zerog_py_sdk.read_only.requests.get", return_value=response):
+        with pytest.raises(Exception, match="exceeds 5000000 bytes"):
+            broker.get_provider_models(VALID_PROVIDER)
+
+    response.iter_content.assert_not_called()
+    response.close.assert_called_once()
