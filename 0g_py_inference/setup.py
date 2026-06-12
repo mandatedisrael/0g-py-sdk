@@ -17,7 +17,7 @@ if (this_directory / "requirements.txt").exists():
 
 setup(
     name="0g-inference-sdk",
-    version="0.7.0",
+    version="0.8.0",
     author="notmartin",
     author_email="damibugh@gmail.com",
     description="Python SDK for the 0G Compute Network - AI inference services on decentralized infrastructure",

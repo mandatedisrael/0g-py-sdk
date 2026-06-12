@@ -139,7 +139,43 @@ for s in browser.list_service():
 
 `list_service_with_detail()` adds health metrics (uptime, response time) from the network's monitoring API.
 It also enriches services with status-API model metadata plus parsed
-`tiered_pricing` and `cache_token_billing` details when providers expose them.
+`tiered_pricing`, `cache_token_billing`, multi-model metadata, and per-model
+health details when providers expose them.
+
+### Multi-model providers
+
+Use `get_provider_models()` to fetch the provider's authoritative public
+catalog. For multi-model providers, pass one of the returned IDs to
+`get_service_metadata()`:
+
+```python
+catalog = broker.inference.get_provider_models(provider)
+
+for model in catalog.models:
+    print(model.id, model.canonical_id, model.pricing)
+
+selected = catalog.models[0].id
+metadata = broker.inference.get_service_metadata(provider, selected)
+headers = broker.inference.get_request_headers(provider)
+
+response = requests.post(
+    f"{metadata['endpoint']}/chat/completions",
+    headers={"Content-Type": "application/json", **headers},
+    json={
+        "model": metadata["model"],
+        "messages": [{"role": "user", "content": "Hello!"}],
+    },
+)
+```
+
+The SDK forwards the selected model unchanged. The provider validates it and
+applies that model's price. Omitting the model preserves the on-chain default.
+
+The wallet-free broker exposes the same catalog:
+
+```python
+catalog = browser.get_provider_models(provider)
+```
 
 ## Use with the OpenAI Python SDK
 
@@ -255,6 +291,7 @@ The SDK exposes everything from the top-level `zerog_py_sdk` package:
 | `create_read_only_broker(network=None)` | No wallet required — for browsing services |
 | `broker.ledger` | `LedgerManager` — deposits, transfers, refunds |
 | `broker.inference` | `InferenceManager` — service discovery, sync/async requests, API keys |
+| `broker.inference.get_provider_models(provider)` | Live provider model catalog and per-model health |
 | `broker.inference.lora` | `LoRAProcessor` — deploy LoRA adapters, chat |
 | `broker.fine_tuning` | `FineTuningBroker` — datasets, tasks, model delivery |
 | `og_to_wei`, `wei_to_og` | OG ↔ wei conversion helpers (`zerog_py_sdk.utils`) |

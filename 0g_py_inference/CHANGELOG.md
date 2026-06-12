@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-06-12
+
+Parity release for `@0gfoundation/0g-compute-ts-sdk` `0.9.0-beta.0`
+at commit `acaba1ec073cb565a67ef94a5f351d1ab0709bbf`.
+
+### Added
+
+- **Multi-model provider discovery.** `get_provider_models(provider_address)`
+  is available on authenticated and read-only inference brokers. It fetches
+  the provider's authoritative `/v1/models` catalog and returns
+  `ProviderModels`, including the on-chain default model, multi-model flag,
+  price denomination, canonical model IDs, pricing, and per-model health.
+- **Multi-model service detail.** `list_service_with_detail()` now includes
+  `multi_model`, `price_denomination`, and the provider's complete `models`
+  list when available.
+- **New public parity types.** `MultiModelInfo`, `ProviderModels`, and
+  `ServiceHealthMetric`, plus `parse_multi_model_info()`.
+
+### Changed
+
+- **Request-time model selection.**
+  `get_service_metadata(provider_address, model=None)` now accepts an optional
+  model ID. The SDK forwards the requested ID unchanged and falls back to the
+  on-chain default when omitted, matching the TypeScript SDK.
+- **Speech-to-text billing.** `SpeechToTextExtractor` now supports both
+  duration-billed usage (`{"type":"duration","seconds":N}`) and token-billed
+  usage (`{"type":"tokens","input_tokens":N,"output_tokens":N}`), including
+  TypeScript-compatible rounding and malformed-input handling.
+- Provider model catalog responses are capped at 5 MB and schema-validated.
+  Provider lookup failures are surfaced; status API health enrichment remains
+  best-effort.
+
+### Tests
+
+- Added direct ports of the TypeScript speech-to-text billing cases.
+- Added multi-model parsing, catalog, health matching, response validation,
+  and authenticated model-selection coverage.
+
 ## [0.7.0] - 2026-05-18
 
 ### Breaking Changes
