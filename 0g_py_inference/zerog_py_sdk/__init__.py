@@ -72,6 +72,7 @@ from .constants import (
     HARDHAT_CHAIN_ID,
     CONTRACT_ADDRESSES,
     get_contract_addresses,
+    get_network_type,
     get_rpc_url,
     is_dev_mode,
 )
@@ -215,6 +216,7 @@ __all__ = [
     "HARDHAT_CHAIN_ID",
     "CONTRACT_ADDRESSES",
     "get_contract_addresses",
+    "get_network_type",
     "get_rpc_url",
     "is_dev_mode",
     

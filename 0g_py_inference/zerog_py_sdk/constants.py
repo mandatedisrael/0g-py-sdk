@@ -105,6 +105,22 @@ def get_network_from_chain_id(chain_id: int) -> str:
         return "mainnet"
 
 
+def get_network_type(chain_id: int) -> str:
+    """
+    Return the canonical network type used by the TypeScript SDK.
+
+    Unlike get_network_from_chain_id(), this helper does not apply dev-mode
+    overrides and reports unknown chain IDs explicitly.
+    """
+    if chain_id == MAINNET_CHAIN_ID:
+        return "mainnet"
+    if chain_id == TESTNET_CHAIN_ID:
+        return "testnet"
+    if chain_id == HARDHAT_CHAIN_ID:
+        return "hardhat"
+    return "unknown"
+
+
 def get_contract_addresses(
     network: Optional[str] = None,
     chain_id: Optional[int] = None
