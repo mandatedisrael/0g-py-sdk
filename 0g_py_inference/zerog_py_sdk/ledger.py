@@ -53,6 +53,8 @@ class LedgerManager:
         web3: Web3,
         inference_address: Optional[str] = None,
         fine_tuning_address: Optional[str] = None,
+        inference_contract: Optional[Contract] = None,
+        fine_tuning_contract: Optional[Contract] = None,
     ):
         """
         Initialize the LedgerManager.
@@ -65,6 +67,8 @@ class LedgerManager:
                 resolve the registered service name for inference transfers.
             fine_tuning_address: FineTuningServing contract address. Optional;
                 if omitted, fine-tuning transfers must supply an explicit name.
+            inference_contract: Optional pre-built inference contract.
+            fine_tuning_contract: Optional pre-built fine-tuning contract.
         """
         self.contract = contract
         self.account = account
@@ -72,6 +76,24 @@ class LedgerManager:
         self._inference_address = inference_address
         self._fine_tuning_address = fine_tuning_address
         self._service_names: Optional[Dict[str, Optional[str]]] = None
+
+        if inference_contract is None and inference_address:
+            from .contracts.abis import SERVING_CONTRACT_ABI
+
+            inference_contract = web3.eth.contract(
+                address=Web3.to_checksum_address(inference_address),
+                abi=SERVING_CONTRACT_ABI,
+            )
+        if fine_tuning_contract is None and fine_tuning_address:
+            from .fine_tuning.contract.abi import FINE_TUNING_SERVING_ABI
+
+            fine_tuning_contract = web3.eth.contract(
+                address=Web3.to_checksum_address(fine_tuning_address),
+                abi=FINE_TUNING_SERVING_ABI,
+            )
+
+        self._inference_contract = inference_contract
+        self._fine_tuning_contract = fine_tuning_contract
 
     def _resolve_service_names(self) -> Dict[str, Optional[str]]:
         """
@@ -358,11 +380,17 @@ class LedgerManager:
             resolved_name = self._resolve_service_name(
                 service_type, "retrieveFund"
             )
-            # Use getLedgerProviders to get the provider list for this service type
-            providers = self.contract.functions.getLedgerProviders(
-                self.account.address,
-                resolved_name
-            ).call()
+            detail = self.get_ledger_with_detail()
+            provider_details = (
+                detail.inference_providers
+                if service_type == "inference"
+                else detail.fine_tuning_providers
+            )
+            providers = [
+                provider
+                for provider, balance, pending_refund in provider_details
+                if balance - pending_refund >= 0
+            ]
             
             if not providers or len(providers) == 0:
                 raise ContractError("retrieveFund", f"No providers found for service type: {service_type}")
@@ -532,28 +560,32 @@ class LedgerManager:
         except Exception as e:
             raise ContractError("deleteLedger", str(e))
     
-    def get_providers_with_balance(self, service_type: str = "inference") -> List[str]:
+    def get_providers_with_balance(
+        self, service_type: str = "inference"
+    ) -> List[Tuple[str, int, int]]:
         """
-        Return the list of provider addresses that the user has a sub-account with
-        for the given service type.
+        Return providers with a non-zero balance or pending refund.
 
         Args:
             service_type: "inference" or "fineTuning"
 
         Returns:
-            List of provider addresses (checksummed)
+            List of (provider, balance, pending_refund) tuples
 
         Raises:
             ContractError: If the contract call fails
         """
-        try:
-            providers = self.contract.functions.getLedgerProviders(
-                self.account.address,
-                service_type,
-            ).call()
-            return [self.web3.to_checksum_address(p) for p in providers]
-        except Exception as e:
-            raise ContractError("getLedgerProviders", str(e))
+        detail = self.get_ledger_with_detail()
+        providers = (
+            detail.inference_providers
+            if service_type == "inference"
+            else detail.fine_tuning_providers
+        )
+        return [
+            provider
+            for provider in providers
+            if provider[1] > 0 or provider[2] > 0
+        ]
 
     def retrieve_fund_from_provider(
         self,
@@ -627,6 +659,13 @@ class LedgerManager:
             ...     print(f"Provider {provider}: {balance} (pending: {pending})")
         """
         try:
+            inference_contract = (
+                inference_contract or self._inference_contract
+            )
+            fine_tuning_contract = (
+                fine_tuning_contract or self._fine_tuning_contract
+            )
+
             # Get base ledger info
             ledger_data = self.contract.functions.getLedger(self.account.address).call()
             
@@ -634,8 +673,27 @@ class LedgerManager:
             available_balance = ledger_data[1]
             total_balance = ledger_data[2]
             locked_balance = total_balance - available_balance
-            inference_provider_addresses = ledger_data[5] if len(ledger_data) > 5 else []
-            fine_tuning_provider_addresses = ledger_data[6] if len(ledger_data) > 6 else []
+
+            service_names = self._resolve_service_names()
+            inference_name = service_names.get("inference")
+            if not inference_name:
+                raise ContractError(
+                    "getLedgerWithDetail",
+                    "Inference service name is not available",
+                )
+
+            inference_provider_addresses = self.contract.functions.getLedgerProviders(
+                self.account.address, inference_name
+            ).call()
+
+            fine_tuning_name = service_names.get("fine-tuning")
+            fine_tuning_provider_addresses = []
+            if fine_tuning_contract and fine_tuning_name:
+                fine_tuning_provider_addresses = (
+                    self.contract.functions.getLedgerProviders(
+                        self.account.address, fine_tuning_name
+                    ).call()
+                )
             
             # Get inference provider details
             inference_providers = []
@@ -649,13 +707,16 @@ class LedgerManager:
                         # Account: (user, provider, nonce, balance, pendingRefund, ...)
                         balance = account[3]
                         pending_refund = account[4]
-                        inference_providers.append((provider, balance, pending_refund))
+                        inference_providers.append((
+                            self.web3.to_checksum_address(provider),
+                            balance,
+                            pending_refund,
+                        ))
                     except Exception:
                         # If account doesn't exist, skip
                         pass
             else:
-                # Just return addresses without details
-                inference_providers = [(addr, 0, 0) for addr in inference_provider_addresses]
+                inference_providers = []
             
             # Get fine-tuning provider details
             fine_tuning_providers = []
@@ -668,11 +729,15 @@ class LedgerManager:
                         ).call()
                         balance = account[3]
                         pending_refund = account[4]
-                        fine_tuning_providers.append((provider, balance, pending_refund))
+                        fine_tuning_providers.append((
+                            self.web3.to_checksum_address(provider),
+                            balance,
+                            pending_refund,
+                        ))
                     except Exception:
                         pass
             else:
-                fine_tuning_providers = [(addr, 0, 0) for addr in fine_tuning_provider_addresses]
+                fine_tuning_providers = []
             
             return LedgerDetail(
                 total_balance=total_balance,

@@ -189,27 +189,137 @@ class TestServiceNameResolution:
     def test_retrieve_fund_uses_registered_service_name(self):
         mgr = self._manager_with_registry("0G-InferenceServing-v1.2")
         provider = "0x0000000000000000000000000000000000000004"
-        mgr.contract.functions.getLedgerProviders.return_value.call.return_value = [
-            provider
-        ]
+        detail = MagicMock()
+        detail.inference_providers = [(provider, 10, 0)]
+        mgr.get_ledger_with_detail = MagicMock(return_value=detail)
         mgr.contract.functions.retrieveFund.return_value.build_transaction.return_value = {}
         self._prepare_successful_transaction(mgr)
 
         mgr.retrieve_fund("inference")
 
-        mgr.contract.functions.getLedgerProviders.assert_called_once_with(
-            mgr.account.address, "0G-InferenceServing-v1.2"
-        )
         mgr.contract.functions.retrieveFund.assert_called_once_with(
             [provider], "0G-InferenceServing-v1.2"
         )
 
+
+class TestProviderBalanceParity:
+    def _make_manager(self):
+        contract = MagicMock()
+        account = MagicMock()
+        account.address = "0x0000000000000000000000000000000000000001"
+        web3 = MagicMock()
+        web3.to_checksum_address.side_effect = lambda address: address
+        inference_contract = MagicMock()
+        fine_tuning_contract = MagicMock()
+        manager = LedgerManager(
+            contract,
+            account,
+            web3,
+            inference_address="0x0000000000000000000000000000000000000002",
+            fine_tuning_address="0x0000000000000000000000000000000000000003",
+            inference_contract=inference_contract,
+            fine_tuning_contract=fine_tuning_contract,
+        )
+        manager._service_names = {
+            "inference": "0G-InferenceServing-v1.2",
+            "fine-tuning": "0G-FineTuningServing-v1.2",
+        }
+        contract.functions.getLedger.return_value.call.return_value = (
+            account.address,
+            40,
+            100,
+            "",
+        )
+
+        inference_providers = ["0xprovider1", "0xprovider2", "0xprovider3"]
+        fine_tuning_providers = ["0xfine1"]
+
+        def _providers(_user, service_name):
+            providers = (
+                inference_providers
+                if service_name == "0G-InferenceServing-v1.2"
+                else fine_tuning_providers
+            )
+            return MagicMock(call=lambda: providers)
+
+        contract.functions.getLedgerProviders.side_effect = _providers
+        inference_accounts = {
+            "0xprovider1": (account.address, "0xprovider1", 0, 10, 0),
+            "0xprovider2": (account.address, "0xprovider2", 0, 0, 0),
+            "0xprovider3": (account.address, "0xprovider3", 0, 5, 7),
+        }
+        inference_contract.functions.getAccount.side_effect = (
+            lambda _user, provider: MagicMock(
+                call=lambda: inference_accounts[provider]
+            )
+        )
+        fine_tuning_contract.functions.getAccount.return_value.call.return_value = (
+            account.address,
+            "0xfine1",
+            0,
+            8,
+            2,
+        )
+        return manager
+
+    def test_get_ledger_with_detail_uses_current_provider_api(self):
+        manager = self._make_manager()
+
+        detail = manager.get_ledger_with_detail()
+
+        assert detail.total_balance == 100
+        assert detail.locked_balance == 60
+        assert detail.available_balance == 40
+        assert detail.inference_providers == [
+            ("0xprovider1", 10, 0),
+            ("0xprovider2", 0, 0),
+            ("0xprovider3", 5, 7),
+        ]
+        assert detail.fine_tuning_providers == [("0xfine1", 8, 2)]
+
+    def test_get_providers_with_balance_filters_zero_accounts(self):
+        manager = self._make_manager()
+
+        assert manager.get_providers_with_balance("inference") == [
+            ("0xprovider1", 10, 0),
+            ("0xprovider3", 5, 7),
+        ]
+
+    def test_retrieve_fund_filters_overdrawn_pending_refunds(self):
+        manager = self._make_manager()
+        manager.contract.functions.retrieveFund.return_value.build_transaction.return_value = {}
+        manager.account.sign_transaction.return_value = MagicMock(
+            raw_transaction=b""
+        )
+        manager.web3.eth.send_raw_transaction.return_value = b""
+        manager.web3.eth.wait_for_transaction_receipt.return_value = {
+            "status": 1,
+            "transactionHash": b"\x00" * 32,
+            "blockNumber": 1,
+            "gasUsed": 0,
+        }
+
+        manager.retrieve_fund("inference")
+
+        manager.contract.functions.retrieveFund.assert_called_once_with(
+            ["0xprovider1", "0xprovider2"],
+            "0G-InferenceServing-v1.2",
+        )
+
     def test_retrieve_from_provider_uses_registered_service_name(self):
-        mgr = self._manager_with_registry("0G-InferenceServing-v1.2")
+        mgr = self._make_manager()
         provider = "0x0000000000000000000000000000000000000004"
-        mgr.web3.to_checksum_address.return_value = provider
         mgr.contract.functions.retrieveFund.return_value.build_transaction.return_value = {}
-        self._prepare_successful_transaction(mgr)
+        mgr.account.sign_transaction.return_value = MagicMock(
+            raw_transaction=b""
+        )
+        mgr.web3.eth.send_raw_transaction.return_value = b""
+        mgr.web3.eth.wait_for_transaction_receipt.return_value = {
+            "status": 1,
+            "transactionHash": b"\x00" * 32,
+            "blockNumber": 1,
+            "gasUsed": 0,
+        }
 
         mgr.retrieve_fund_from_provider(provider, "inference")
 

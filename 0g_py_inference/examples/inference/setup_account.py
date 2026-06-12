@@ -94,8 +94,11 @@ This will:
             providers = broker.ledger.get_providers_with_balance("inference")
             if providers:
                 print(f"✓ Found {len(providers)} inference provider(s):")
-                for p in providers:
-                    print(f"  - {p}")
+                for provider, balance, pending_refund in providers:
+                    print(
+                        f"  - {provider}: balance={balance}, "
+                        f"pending_refund={pending_refund}"
+                    )
             else:
                 print(f"✗ No inference providers found")
                 print(f"  To transfer funds to Whisper provider:")

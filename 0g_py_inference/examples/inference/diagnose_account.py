@@ -111,8 +111,11 @@ def main():
         providers = broker.ledger.get_providers_with_balance("inference")
         if providers:
             print(f"✓ You have {len(providers)} inference provider sub-account(s):")
-            for provider in providers:
-                print(f"  - {provider}")
+            for provider, balance, pending_refund in providers:
+                print(
+                    f"  - {provider}: balance={balance}, "
+                    f"pending_refund={pending_refund}"
+                )
         else:
             print("✗ No inference provider sub-accounts")
             print("  You need to transfer funds from your main account to a provider")
