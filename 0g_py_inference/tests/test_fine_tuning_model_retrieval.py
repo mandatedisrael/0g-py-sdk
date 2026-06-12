@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from zerog_py_sdk.exceptions import ContractError
 from zerog_py_sdk.fine_tuning.broker.broker import FineTuningBroker
+from zerog_py_sdk.fine_tuning.broker.dataset import DatasetProcessor
 from zerog_py_sdk.fine_tuning.broker.model import ModelProcessor
 from zerog_py_sdk.fine_tuning.contract.types import (
     CustomizedModel,
@@ -222,6 +223,81 @@ def test_download_model_usage_writes_module_zip_inside_directory(tmp_path):
         "https://ft.example.com/v1/model/desc/custom-a",
         timeout=provider_mod.DOWNLOAD_TIMEOUT,
         stream=True,
+    )
+
+
+def test_upload_dataset_to_tee_honors_timeout_override(tmp_path):
+    provider = FineTuningProvider(FakeProviderContract(), FakeAccount())
+    dataset = tmp_path / "train.jsonl"
+    dataset.write_text('{"messages":[]}\n')
+    response = MagicMock()
+    response.json.return_value = {"datasetHash": "0xhash", "message": "ok"}
+
+    with patch.object(
+        provider_mod.requests, "post", return_value=response
+    ) as post:
+        result = provider.upload_dataset_to_tee(
+            PROVIDER,
+            str(dataset),
+            max_file_size_mb=1,
+            timeout_ms=125_000,
+        )
+
+    assert result == {"datasetHash": "0xhash", "message": "ok"}
+    assert post.call_args.kwargs["timeout"] == 125
+    assert post.call_args.kwargs["files"]["file"].name == str(dataset)
+
+
+def test_upload_dataset_to_tee_rejects_oversized_file(tmp_path):
+    provider = FineTuningProvider(FakeProviderContract(), FakeAccount())
+    dataset = tmp_path / "train.jsonl"
+    dataset.write_bytes(b"x")
+
+    with patch.object(provider_mod.requests, "post") as post:
+        with pytest.raises(ValueError, match="exceeds maximum allowed size"):
+            provider.upload_dataset_to_tee(
+                PROVIDER,
+                str(dataset),
+                max_file_size_mb=0,
+            )
+
+    post.assert_not_called()
+
+
+def test_dataset_upload_options_flow_through_processor_and_broker():
+    provider = MagicMock()
+    processor = DatasetProcessor(MagicMock(), provider)
+    provider.upload_dataset_to_tee.return_value = {"datasetHash": "0xhash"}
+
+    result = processor.upload_dataset_to_tee(
+        PROVIDER,
+        "/tmp/train.jsonl",
+        max_file_size_mb=25,
+        timeout_ms=180_000,
+    )
+
+    assert result == {"datasetHash": "0xhash"}
+    provider.upload_dataset_to_tee.assert_called_once_with(
+        PROVIDER,
+        "/tmp/train.jsonl",
+        max_file_size_mb=25,
+        timeout_ms=180_000,
+    )
+
+    broker = object.__new__(FineTuningBroker)
+    broker._dataset = MagicMock()
+    broker._dataset.upload_dataset_to_tee.return_value = result
+    assert broker.upload_dataset_to_tee(
+        PROVIDER,
+        "/tmp/train.jsonl",
+        max_file_size_mb=25,
+        timeout_ms=180_000,
+    ) == result
+    broker._dataset.upload_dataset_to_tee.assert_called_once_with(
+        PROVIDER,
+        "/tmp/train.jsonl",
+        max_file_size_mb=25,
+        timeout_ms=180_000,
     )
 
 

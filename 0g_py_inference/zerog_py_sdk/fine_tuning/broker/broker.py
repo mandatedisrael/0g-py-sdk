@@ -247,11 +247,19 @@ class FineTuningBroker:
     # --- Dataset management ---
 
     def upload_dataset_to_tee(
-        self, provider_address: str, dataset_path: str
+        self,
+        provider_address: str,
+        dataset_path: str,
+        *,
+        max_file_size_mb: float = 100,
+        timeout_ms: Optional[int] = None,
     ) -> dict:
         try:
             return self._dataset.upload_dataset_to_tee(
-                provider_address, dataset_path
+                provider_address,
+                dataset_path,
+                max_file_size_mb=max_file_size_mb,
+                timeout_ms=timeout_ms,
             )
         except Exception as e:
             raise ContractError("uploadDatasetToTEE", str(e))

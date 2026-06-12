@@ -1,4 +1,6 @@
 import json
+import logging
+import math
 import os
 import time
 from typing import List, Optional
@@ -14,6 +16,8 @@ from ..contract.types import Task, CustomizedModel, TdxQuoteResponse
 
 REQUEST_TIMEOUT = 30
 DOWNLOAD_TIMEOUT = 300
+
+logger = logging.getLogger(__name__)
 
 
 class FineTuningProvider:
@@ -309,10 +313,40 @@ class FineTuningProvider:
     # --- Dataset upload to TEE ---
 
     def upload_dataset_to_tee(
-        self, provider_address: str, dataset_path: str
+        self,
+        provider_address: str,
+        dataset_path: str,
+        *,
+        max_file_size_mb: float = 100,
+        timeout_ms: Optional[int] = None,
     ) -> dict:
         url = self._get_provider_url(provider_address)
         user_addr = self._user_address()
+        file_size_bytes = os.path.getsize(dataset_path)
+        file_size_mb = file_size_bytes / (1024 * 1024)
+        max_file_size_bytes = max_file_size_mb * 1024 * 1024
+
+        if file_size_bytes > max_file_size_bytes:
+            raise ValueError(
+                f"File size ({file_size_mb:.2f}MB) exceeds maximum allowed "
+                f"size ({max_file_size_mb}MB). Consider using 0G Storage "
+                f"for large datasets."
+            )
+
+        if file_size_mb > 10:
+            logger.warning(
+                "Large dataset detected (%.2fMB). Upload may take longer; "
+                "consider 0G Storage for better reliability.",
+                file_size_mb,
+            )
+
+        calculated_timeout_ms = max(
+            60_000,
+            60_000 + math.ceil(file_size_mb / 10) * 30_000,
+        )
+        request_timeout = (
+            timeout_ms if timeout_ms is not None else calculated_timeout_ms
+        ) / 1000
 
         timestamp = int(time.time())
         message = user_addr + str(timestamp)
@@ -329,7 +363,7 @@ class FineTuningProvider:
                     f"{url}/v1/user/{user_addr}/dataset",
                     files=files,
                     data=data,
-                    timeout=DOWNLOAD_TIMEOUT,
+                    timeout=request_timeout,
                 )
             resp.raise_for_status()
             return resp.json()

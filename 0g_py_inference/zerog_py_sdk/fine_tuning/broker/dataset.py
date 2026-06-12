@@ -16,9 +16,19 @@ class DatasetProcessor:
         self.provider = provider
 
     def upload_dataset_to_tee(
-        self, provider_address: str, dataset_path: str
+        self,
+        provider_address: str,
+        dataset_path: str,
+        *,
+        max_file_size_mb: float = 100,
+        timeout_ms: Optional[int] = None,
     ) -> dict:
-        return self.provider.upload_dataset_to_tee(provider_address, dataset_path)
+        return self.provider.upload_dataset_to_tee(
+            provider_address,
+            dataset_path,
+            max_file_size_mb=max_file_size_mb,
+            timeout_ms=timeout_ms,
+        )
 
     def upload_dataset(
         self,
