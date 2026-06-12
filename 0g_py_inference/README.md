@@ -210,7 +210,12 @@ broker.fine_tuning.acknowledge_provider_signer(PROVIDER)
 broker.ledger.transfer_fund(PROVIDER, "fine-tuning", og_to_wei("1"))
 
 # Upload dataset and create task
-upload  = broker.fine_tuning.upload_dataset_to_tee(PROVIDER, "./train.jsonl")
+upload  = broker.fine_tuning.upload_dataset_to_tee(
+    PROVIDER,
+    "./train.jsonl",
+    max_file_size_mb=100,
+    timeout_ms=180_000,
+)
 task_id = broker.fine_tuning.create_task(
     provider_address       = PROVIDER,
     pre_trained_model_name = MODEL,
@@ -221,7 +226,7 @@ task_id = broker.fine_tuning.create_task(
 # After training completes, acknowledge the model and deploy LoRA
 broker.fine_tuning.acknowledge_model(PROVIDER, task_id, "./lora.bin")
 
-deploy = broker.inference.lora.deploy_adapter(
+deploy = broker.inference.deploy_adapter(
     provider_address = PROVIDER,
     base_model       = MODEL,
     task_id          = task_id,
@@ -229,7 +234,11 @@ deploy = broker.inference.lora.deploy_adapter(
 )
 
 # Chat with the fine-tuned adapter
-response = broker.inference.lora.chat(PROVIDER, deploy.adapter_name, "Who are you?")
+response = broker.inference.chat_with_fine_tuned_model(
+    PROVIDER,
+    deploy.adapter_name,
+    "Who are you?",
+)
 ```
 
 `acknowledge_model()` mirrors the TypeScript SDK retrieval flow: by default it
@@ -287,13 +296,18 @@ The SDK exposes everything from the top-level `zerog_py_sdk` package:
 | Symbol | Purpose |
 |--------|---------|
 | `create_broker(private_key, network=None, rpc_url=None)` | Main factory — returns `ZGServingBroker` |
+| `create_ledger_broker(...)` | Standalone ledger broker factory |
+| `create_inference_broker(...)` | Standalone inference broker factory |
+| `create_fine_tuning_broker(...)` | Standalone fine-tuning broker factory |
 | `create_broker_from_env(env_file=".env")` | Load credentials from a `.env` file |
 | `create_read_only_broker(network=None)` | No wallet required — for browsing services |
 | `broker.ledger` | `LedgerManager` — deposits, transfers, refunds |
 | `broker.inference` | `InferenceManager` — service discovery, sync/async requests, API keys |
 | `broker.inference.get_provider_models(provider)` | Live provider model catalog and per-model health |
 | `broker.inference.lora` | `LoRAProcessor` — deploy LoRA adapters, chat |
+| `broker.inference.deploy_adapter(...)` | Direct TS-parity LoRA deployment method |
 | `broker.fine_tuning` | `FineTuningBroker` — datasets, tasks, model delivery |
+| `get_network_type(chain_id)` | Canonical network name, including `unknown` |
 | `og_to_wei`, `wei_to_og` | OG ↔ wei conversion helpers (`zerog_py_sdk.utils`) |
 | `ServiceMetadata`, `LedgerAccount`, `Account`, `ApiKeyInfo` | Data classes |
 | `ZGServingBrokerError`, `InsufficientBalanceError`, `ContractError`, ... | Exception hierarchy |

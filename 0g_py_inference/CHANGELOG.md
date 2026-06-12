@@ -19,6 +19,16 @@ at commit `acaba1ec073cb565a67ef94a5f351d1ab0709bbf`.
   list when available.
 - **New public parity types.** `MultiModelInfo`, `ProviderModels`, and
   `ServiceHealthMetric`, plus `parse_multi_model_info()`.
+- **Standalone broker factories.** Added `create_ledger_broker()`,
+  `create_inference_broker()`, and `create_fine_tuning_broker()`, plus
+  `LedgerBroker`, `InferenceBroker`, and
+  `create_read_only_inference_broker` aliases.
+- **Direct LoRA broker methods.** The inference broker now exposes
+  `list_adapters()`, `get_adapter_status()`, `resolve_adapter_name()`,
+  `deploy_adapter()`, `deploy_adapter_by_name()`, and
+  `chat_with_fine_tuned_model()`, matching the official broker surface.
+- **Canonical network detection.** `get_network_type(chain_id)` returns
+  `mainnet`, `testnet`, `hardhat`, or `unknown` without dev-mode overrides.
 
 ### Changed
 
@@ -33,12 +43,25 @@ at commit `acaba1ec073cb565a67ef94a5f351d1ab0709bbf`.
 - Provider model catalog responses are capped at 5 MB and schema-validated.
   Provider lookup failures are surfaced; status API health enrichment remains
   best-effort.
+- **Ledger provider details.** `get_providers_with_balance()` now returns
+  `(provider, balance, pending_refund)` tuples, filters empty accounts, and
+  reads provider lists through the current `getLedgerProviders` contract API.
+- **Ledger refunds.** `retrieve_fund()` and
+  `retrieve_fund_from_provider()` resolve registered service names before
+  submitting transactions. Bulk refunds filter accounts using the same
+  balance and pending-refund rule as TypeScript.
+- **Fine-tuning downloads and uploads.** Model-usage downloads accept an
+  output directory and write `<model>.zip`. TEE dataset uploads support
+  `max_file_size_mb` and `timeout_ms`, including TS-compatible size checks
+  and calculated timeouts.
 
 ### Tests
 
 - Added direct ports of the TypeScript speech-to-text billing cases.
 - Added multi-model parsing, catalog, health matching, response validation,
   and authenticated model-selection coverage.
+- Added network helper, direct LoRA broker, ledger detail/refund,
+  fine-tuning transfer, and standalone factory coverage.
 
 ## [0.7.0] - 2026-05-18
 
