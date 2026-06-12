@@ -261,6 +261,90 @@ def _attach_model_health(
             model.health_metrics = health
 
 
+def _fetch_service_health_metrics_from_endpoint(
+    endpoint: str,
+) -> List[ServiceHealthMetric]:
+    try:
+        response = requests.get(f"{endpoint}/health", timeout=10)
+        if response.status_code != 200:
+            return []
+
+        data = response.json()
+        health_services = (
+            data.get("services", []) if isinstance(data, dict) else []
+        )
+        if not isinstance(health_services, list):
+            return []
+        return [
+            ServiceHealthMetric.from_dict(metric)
+            for metric in health_services
+            if isinstance(metric, dict)
+        ]
+    except Exception:
+        return []
+
+
+def _fetch_provider_models(
+    service: Any,
+    status_api_endpoint: str,
+) -> ProviderModels:
+    multi_model_info = parse_multi_model_info(service.additional_info)
+    base_url = service.url.rstrip("/")
+    response = requests.get(
+        f"{base_url}/v1/models",
+        timeout=10,
+        stream=True,
+    )
+    try:
+        response.raise_for_status()
+        content_length = response.headers.get("Content-Length")
+        if content_length is not None and int(content_length) > 5_000_000:
+            raise ValueError(
+                "provider /v1/models response exceeds 5000000 bytes"
+            )
+
+        chunks = []
+        size = 0
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            if not chunk:
+                continue
+            size += len(chunk)
+            if size > 5_000_000:
+                raise ValueError(
+                    "provider /v1/models response exceeds 5000000 bytes"
+                )
+            chunks.append(chunk)
+        payload = json.loads(b"".join(chunks).decode("utf-8"))
+    finally:
+        response.close()
+
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, list):
+        raise ValueError(
+            'provider /v1/models returned an unexpected response '
+            'shape (missing "data" array)'
+        )
+
+    models = [
+        ProviderModelInfo.from_dict(item)
+        for item in data
+        if isinstance(item, dict)
+    ]
+    _attach_model_health(
+        service.provider,
+        models,
+        _fetch_service_health_metrics_from_endpoint(status_api_endpoint),
+    )
+    return ProviderModels(
+        provider=service.provider,
+        url=service.url,
+        multi_model=multi_model_info.multi_model,
+        price_denomination=multi_model_info.price_denomination,
+        default_model=service.model,
+        models=models,
+    )
+
+
 def parse_tiered_pricing(additional_info: str) -> Optional[TieredPricingInfo]:
     """Parse tiered pricing from a service's ``additional_info`` JSON string."""
     try:
@@ -536,65 +620,11 @@ class ReadOnlyInferenceBroker:
         health enrichment is best-effort, matching the TypeScript SDK.
         """
         service = self.get_service(provider_address)
-        multi_model_info = parse_multi_model_info(service.additional_info)
-        base_url = service.url.rstrip("/")
 
         try:
-            response = requests.get(
-                f"{base_url}/v1/models",
-                timeout=10,
-                stream=True,
-            )
-            try:
-                response.raise_for_status()
-                content_length = response.headers.get("Content-Length")
-                if (
-                    content_length is not None
-                    and int(content_length) > 5_000_000
-                ):
-                    raise ValueError(
-                        "provider /v1/models response exceeds 5000000 bytes"
-                    )
-
-                chunks = []
-                size = 0
-                for chunk in response.iter_content(chunk_size=64 * 1024):
-                    if not chunk:
-                        continue
-                    size += len(chunk)
-                    if size > 5_000_000:
-                        raise ValueError(
-                            "provider /v1/models response exceeds 5000000 bytes"
-                        )
-                    chunks.append(chunk)
-                payload = json.loads(b"".join(chunks).decode("utf-8"))
-            finally:
-                response.close()
-
-            data = payload.get("data") if isinstance(payload, dict) else None
-            if not isinstance(data, list):
-                raise ValueError(
-                    'provider /v1/models returned an unexpected response '
-                    'shape (missing "data" array)'
-                )
-
-            models = [
-                ProviderModelInfo.from_dict(item)
-                for item in data
-                if isinstance(item, dict)
-            ]
-            _attach_model_health(
-                service.provider,
-                models,
-                self._fetch_service_health_metrics(),
-            )
-            return ProviderModels(
-                provider=service.provider,
-                url=service.url,
-                multi_model=multi_model_info.multi_model,
-                price_denomination=multi_model_info.price_denomination,
-                default_model=service.model,
-                models=models,
+            return _fetch_provider_models(
+                service,
+                self._get_status_api_endpoint(),
             )
         except Exception as exc:
             raise Exception(
@@ -603,25 +633,9 @@ class ReadOnlyInferenceBroker:
 
     def _fetch_service_health_metrics(self) -> List[ServiceHealthMetric]:
         """Fetch raw per-model health metrics from the monitoring API."""
-        try:
-            endpoint = self._get_status_api_endpoint()
-            response = requests.get(f"{endpoint}/health", timeout=10)
-            if response.status_code != 200:
-                return []
-
-            data = response.json()
-            health_services = (
-                data.get("services", []) if isinstance(data, dict) else []
-            )
-            if not isinstance(health_services, list):
-                return []
-            return [
-                ServiceHealthMetric.from_dict(metric)
-                for metric in health_services
-                if isinstance(metric, dict)
-            ]
-        except Exception:
-            return []
+        return _fetch_service_health_metrics_from_endpoint(
+            self._get_status_api_endpoint()
+        )
 
     def _fetch_health_metrics(self) -> Dict[str, HealthMetrics]:
         """Fetch provider-level health metrics for backward compatibility."""

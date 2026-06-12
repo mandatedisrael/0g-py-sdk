@@ -49,6 +49,7 @@ from .verifier import (
     VerificationResult,
     VerificationStep,
 )
+from .read_only import ProviderModels, _fetch_provider_models
 
 
 class InferenceManager:
@@ -481,12 +482,18 @@ class InferenceManager:
         print(f"   ⚠ Could not extract signer - no supported format found")
         return None, None
 
-    def get_service_metadata(self, provider_address: str) -> Dict[str, str]:
+    def get_service_metadata(
+        self,
+        provider_address: str,
+        model: Optional[str] = None,
+    ) -> Dict[str, str]:
         """
         Get service endpoint and model information for a provider.
         
         Args:
             provider_address: Provider's wallet address
+            model: Optional model ID for multi-model providers. The provider
+                validates the ID; the SDK forwards it unchanged.
             
         Returns:
             Dictionary with 'endpoint' and 'model' keys
@@ -500,8 +507,29 @@ class InferenceManager:
 
         return {
             "endpoint": f"{service.url}/v1/proxy",
-            "model": service.model
+            "model": model if model is not None else service.model,
         }
+
+    def get_provider_models(self, provider_address: str) -> ProviderModels:
+        """
+        Fetch the models served by a provider from its public ``/v1/models``.
+
+        Works for both single-model and multi-model providers. The provider
+        catalog is authoritative; status API health enrichment is best-effort.
+        """
+        service = self.get_service(provider_address)
+        chain_id = self.web3.eth.chain_id
+        status_api_endpoint = (
+            "https://compute-status.0g.ai"
+            if chain_id == 16661
+            else "https://compute-status-testnet.0g.ai"
+        )
+        try:
+            return _fetch_provider_models(service, status_api_endpoint)
+        except Exception as exc:
+            raise NetworkError(
+                f"Failed to get provider models for {provider_address}: {exc}"
+            ) from exc
 
     def get_extractor(self, provider_address: str) -> Extractor:
         """

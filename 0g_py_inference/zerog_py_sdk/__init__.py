@@ -27,8 +27,11 @@ from .read_only import (
     ServiceWithDetail,
     HealthMetrics,
     HealthStatus,
+    ServiceHealthMetric,
     VerifiabilityEnum,
     ProviderModelInfo,
+    ProviderModels,
+    MultiModelInfo,
     PricingTier,
     TieredPricingInfo,
     CacheTokenBillingInfo,
@@ -36,6 +39,7 @@ from .read_only import (
     parse_tiered_pricing_from_model_info,
     parse_cache_token_billing,
     parse_cache_token_billing_from_model_info,
+    parse_multi_model_info,
 )
 from .models import (
     ServiceMetadata,
@@ -166,8 +170,11 @@ __all__ = [
     "ServiceWithDetail",
     "HealthMetrics",
     "HealthStatus",
+    "ServiceHealthMetric",
     "VerifiabilityEnum",
     "ProviderModelInfo",
+    "ProviderModels",
+    "MultiModelInfo",
     "PricingTier",
     "TieredPricingInfo",
     "CacheTokenBillingInfo",
@@ -175,6 +182,7 @@ __all__ = [
     "parse_tiered_pricing_from_model_info",
     "parse_cache_token_billing",
     "parse_cache_token_billing_from_model_info",
+    "parse_multi_model_info",
     
     # Models
     "ServiceMetadata",
