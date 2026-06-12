@@ -168,6 +168,69 @@ class ZGServingBroker:
         return self.account.address
 
 
+def create_ledger_broker(
+    account: LocalAccount,
+    web3: Web3,
+    ledger_address: str,
+    inference_address: str,
+    fine_tuning_address: Optional[str] = None,
+) -> LedgerManager:
+    """Create a standalone ledger broker, matching the TS SDK factory."""
+    ledger_contract = web3.eth.contract(
+        address=Web3.to_checksum_address(ledger_address),
+        abi=LEDGER_CONTRACT_ABI,
+    )
+    return LedgerManager(
+        ledger_contract,
+        account,
+        web3,
+        inference_address=inference_address,
+        fine_tuning_address=fine_tuning_address,
+    )
+
+
+def create_inference_broker(
+    account: LocalAccount,
+    web3: Web3,
+    inference_address: str,
+    ledger: LedgerManager,
+) -> InferenceManager:
+    """Create a standalone inference broker, matching the TS SDK factory."""
+    serving_contract = web3.eth.contract(
+        address=Web3.to_checksum_address(inference_address),
+        abi=SERVING_CONTRACT_ABI,
+    )
+    auth_manager = AuthManager(serving_contract, account, web3)
+    return InferenceManager(
+        serving_contract,
+        account,
+        web3,
+        auth_manager,
+        ledger,
+    )
+
+
+def create_fine_tuning_broker(
+    account: LocalAccount,
+    web3: Web3,
+    fine_tuning_address: str,
+    ledger: LedgerManager,
+    gas_price: Optional[int] = None,
+    max_gas_price: Optional[int] = None,
+    step: int = 11,
+) -> FineTuningBroker:
+    """Create a standalone fine-tuning broker, matching the TS SDK factory."""
+    return FineTuningBroker(
+        account=account,
+        web3=web3,
+        contract_address=fine_tuning_address,
+        ledger_manager=ledger,
+        gas_price=gas_price,
+        max_gas_price=max_gas_price,
+        step=step,
+    )
+
+
 def create_broker(
     private_key: str,
     network: Optional[str] = None,

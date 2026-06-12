@@ -27,6 +27,14 @@ from .constants import (
     get_storage_config,
 )
 
+
+def create_fine_tuning_broker(*args, **kwargs):
+    """Create a standalone fine-tuning broker."""
+    from ..broker import create_fine_tuning_broker as create
+
+    return create(*args, **kwargs)
+
+
 __all__ = [
     "Quota",
     "Deliverable",
@@ -40,6 +48,7 @@ __all__ = [
     "FineTuningContract",
     "FineTuningProvider",
     "FineTuningBroker",
+    "create_fine_tuning_broker",
     "ReadOnlyFineTuningBroker",
     "create_read_only_fine_tuning_broker",
     "FineTuningVerifier",

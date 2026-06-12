@@ -17,7 +17,16 @@ Basic usage:
     >>> services = broker.list_service_with_detail()
 """
 
-from .broker import ZGServingBroker, create_broker, create_broker_from_env
+from .broker import (
+    ZGServingBroker,
+    create_broker,
+    create_broker_from_env,
+    create_fine_tuning_broker,
+    create_inference_broker,
+    create_ledger_broker,
+)
+from .inference import InferenceManager
+from .ledger import LedgerManager
 from .read_only import (
     ReadOnlyInferenceBroker,
     create_read_only_broker,
@@ -154,18 +163,27 @@ __version__ = "0.8.0"
 # TS-SDK name aliases for the combined broker / factory.
 ZGComputeNetworkBroker = ZGServingBroker
 create_zg_compute_network_broker = create_broker
+InferenceBroker = InferenceManager
+LedgerBroker = LedgerManager
+create_read_only_inference_broker = create_read_only_broker
 
 __all__ = [
     # Main classes
     "ZGServingBroker",
     "create_broker",
     "create_broker_from_env",
+    "create_fine_tuning_broker",
+    "create_inference_broker",
+    "create_ledger_broker",
     "ZGComputeNetworkBroker",
     "create_zg_compute_network_broker",
+    "InferenceBroker",
+    "LedgerBroker",
 
     # Read-only broker
     "ReadOnlyInferenceBroker",
     "create_read_only_broker",
+    "create_read_only_inference_broker",
     "ZGComputeNetworkReadOnlyBroker",
     "create_zg_compute_network_read_only_broker",
     "ServiceWithDetail",
