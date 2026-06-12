@@ -4,20 +4,27 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from zerog_py_sdk.read_only import (
     CacheTokenBillingInfo,
     HealthMetrics,
+    MultiModelInfo,
     PricingTier,
     ProviderModelInfo,
+    ProviderModels,
     ReadOnlyInferenceBroker,
+    ServiceHealthMetric,
     ServiceWithDetail,
     TieredPricingInfo,
+    parse_multi_model_info,
 )
 
 
 PROVIDER = "0xABC"
+VALID_PROVIDER = "0x00000000000000000000000000000000000000aa"
 
 
 def _build_broker() -> ReadOnlyInferenceBroker:
@@ -72,15 +79,18 @@ def test_list_service_with_detail_merges_health_and_model_info():
             )
         ]
     )
-    broker._fetch_health_metrics = MagicMock(
-        return_value={
-            PROVIDER.lower(): HealthMetrics(
+    broker._fetch_service_health_metrics = MagicMock(
+        return_value=[
+            ServiceHealthMetric(
+                service_type="text-to-image",
+                model="flux-dev",
+                provider=PROVIDER,
                 status="healthy",
-                uptime=99.9,
-                avg_response_time=123,
+                checks={"uptime": 99.9},
+                performance={"response_time": {"avg": 123}},
                 last_check="2026-05-18T00:00:00Z",
             )
-        }
+        ]
     )
     broker._fetch_model_info = MagicMock(
         return_value={
@@ -143,7 +153,7 @@ def test_list_service_with_detail_prefers_additional_info_pricing():
             )
         ]
     )
-    broker._fetch_health_metrics = MagicMock(return_value={})
+    broker._fetch_service_health_metrics = MagicMock(return_value=[])
     broker._fetch_model_info = MagicMock(
         return_value={
             PROVIDER.lower(): [
@@ -197,3 +207,145 @@ def test_fetch_model_info_parses_status_api_payload():
     assert get.call_args.args[0].endswith("/models")
     assert PROVIDER.lower() in model_map
     assert model_map[PROVIDER.lower()][0].context_length == 8192
+
+
+def test_parse_multi_model_info_matches_typescript_behavior():
+    assert parse_multi_model_info(
+        '{"MultiModel":true,"priceDenomination":"USD"}'
+    ) == MultiModelInfo(multi_model=True, price_denomination="USD")
+    assert parse_multi_model_info('{"MultiModel":false}') == MultiModelInfo(
+        multi_model=False
+    )
+    assert parse_multi_model_info("not json") == MultiModelInfo(
+        multi_model=False
+    )
+
+
+def test_list_service_with_detail_adds_multi_model_catalog_and_health():
+    broker = _build_broker()
+    broker.list_service = MagicMock(
+        return_value=[
+            ServiceWithDetail(
+                provider=PROVIDER,
+                service_type="chatbot",
+                url="https://provider.example.com",
+                input_price=1,
+                output_price=2,
+                updated_at=3,
+                model="default-model",
+                verifiability="TeeML",
+                additional_info=(
+                    '{"MultiModel":true,"priceDenomination":"NATIVE"}'
+                ),
+            )
+        ]
+    )
+    health = ServiceHealthMetric(
+        service_type="chatbot",
+        model="canonical-model",
+        provider=PROVIDER,
+        status="healthy",
+        checks={"uptime": 99.5},
+        performance={"response_time": {"avg": 88}},
+        last_check="2026-06-12T00:00:00Z",
+    )
+    broker._fetch_service_health_metrics = MagicMock(return_value=[health])
+    model = ProviderModelInfo(
+        id="served-model",
+        provider=PROVIDER,
+        canonical_id="canonical-model",
+    )
+    broker._fetch_model_info = MagicMock(
+        return_value={PROVIDER.lower(): [model]}
+    )
+
+    service = broker.list_service_with_detail()[0]
+
+    assert service.multi_model is True
+    assert service.price_denomination == "NATIVE"
+    assert service.models == [model]
+    assert service.models[0].health_metrics == health
+
+
+def test_get_provider_models_uses_provider_catalog_and_enriches_health():
+    broker = _build_broker()
+    broker.get_service = MagicMock(
+        return_value=ServiceWithDetail(
+            provider=VALID_PROVIDER,
+            service_type="chatbot",
+            url="https://provider.example.com/",
+            input_price=1,
+            output_price=2,
+            updated_at=3,
+            model="default-model",
+            verifiability="TeeML",
+            additional_info=(
+                '{"MultiModel":true,"priceDenomination":"USD"}'
+            ),
+        )
+    )
+    provider_response = MagicMock()
+    provider_response.headers = {}
+    provider_response.iter_content.return_value = [
+        (
+            b'{"object":"list","data":[{"id":"provider-model",'
+            b'"canonical_id":"canonical-model","pricing":{"prompt":"1"}}]}'
+        )
+    ]
+    health_response = MagicMock(status_code=200)
+    health_response.json.return_value = {
+        "services": [
+            {
+                "serviceType": "chatbot",
+                "model": "canonical-model",
+                "provider": VALID_PROVIDER,
+                "status": "healthy",
+                "checks": {"uptime": 99.9},
+                "performance": {"response_time": {"avg": 50}},
+                "lastCheck": "2026-06-12T00:00:00Z",
+            }
+        ]
+    }
+
+    with patch(
+        "zerog_py_sdk.read_only.requests.get",
+        side_effect=[provider_response, health_response],
+    ) as get:
+        result = broker.get_provider_models(VALID_PROVIDER)
+
+    assert result == ProviderModels(
+        provider=VALID_PROVIDER,
+        url="https://provider.example.com/",
+        multi_model=True,
+        price_denomination="USD",
+        default_model="default-model",
+        models=result.models,
+    )
+    assert result.models[0].canonical_id == "canonical-model"
+    assert result.models[0].health_metrics is not None
+    assert get.call_args_list[0].args[0] == (
+        "https://provider.example.com/v1/models"
+    )
+
+
+def test_get_provider_models_rejects_invalid_provider_response_shape():
+    broker = _build_broker()
+    broker.get_service = MagicMock(
+        return_value=ServiceWithDetail(
+            provider=VALID_PROVIDER,
+            service_type="chatbot",
+            url="https://provider.example.com",
+            input_price=1,
+            output_price=2,
+            updated_at=3,
+            model="default-model",
+            verifiability="",
+        )
+    )
+    response = MagicMock()
+    response.headers = {}
+    response.iter_content.return_value = [b'{"error":"bad response"}']
+
+    with patch("zerog_py_sdk.read_only.requests.get", return_value=response):
+        with pytest.raises(Exception, match='missing "data" array'):
+            broker.get_provider_models(VALID_PROVIDER)

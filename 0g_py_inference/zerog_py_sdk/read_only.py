@@ -55,6 +55,44 @@ class HealthMetrics:
 
 
 @dataclass
+class ServiceHealthMetric:
+    """Raw per-provider, per-model health data returned by the status API."""
+
+    service_type: str
+    model: str
+    provider: str
+    status: str
+    checks: Dict[str, Any] = field(default_factory=dict)
+    performance: Dict[str, Any] = field(default_factory=dict)
+    last_check: str = ""
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ServiceHealthMetric":
+        checks = data.get("checks")
+        performance = data.get("performance")
+        return cls(
+            service_type=data.get("serviceType", ""),
+            model=data.get("model", ""),
+            provider=data.get("provider", ""),
+            status=data.get("status", "unknown"),
+            checks=checks if isinstance(checks, dict) else {},
+            performance=performance if isinstance(performance, dict) else {},
+            last_check=data.get("lastCheck", ""),
+        )
+
+    def to_health_metrics(self) -> HealthMetrics:
+        response_time = self.performance.get("response_time")
+        if not isinstance(response_time, dict):
+            response_time = {}
+        return HealthMetrics(
+            status=self.status,
+            uptime=self.checks.get("uptime", 0),
+            avg_response_time=response_time.get("avg", 0),
+            last_check=self.last_check,
+        )
+
+
+@dataclass
 class PricingTier:
     """One tier in the provider's tiered pricing schedule."""
 
@@ -83,6 +121,7 @@ class ProviderModelInfo:
 
     id: str
     provider: Optional[str] = None
+    canonical_id: Optional[str] = None
     object: Optional[str] = None
     created: Optional[int] = None
     owned_by: Optional[str] = None
@@ -101,12 +140,14 @@ class ProviderModelInfo:
     tee_attested: Optional[bool] = None
     tee_type: Optional[str] = None
     tee_verifier: Optional[str] = None
+    health_metrics: Optional[ServiceHealthMetric] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ProviderModelInfo":
         return cls(
             id=data.get("id", ""),
             provider=data.get("provider"),
+            canonical_id=data.get("canonical_id"),
             object=data.get("object"),
             created=data.get("created"),
             owned_by=data.get("owned_by"),
@@ -129,6 +170,26 @@ class ProviderModelInfo:
 
 
 @dataclass
+class MultiModelInfo:
+    """Multi-model serving metadata parsed from on-chain additional info."""
+
+    multi_model: bool
+    price_denomination: Optional[str] = None
+
+
+@dataclass
+class ProviderModels:
+    """Authoritative model catalog fetched from a provider's ``/v1/models``."""
+
+    provider: str
+    url: str
+    multi_model: bool
+    default_model: str
+    models: List[ProviderModelInfo] = field(default_factory=list)
+    price_denomination: Optional[str] = None
+
+
+@dataclass
 class ServiceWithDetail:
     """Service information with optional health, model, and pricing detail."""
     provider: str
@@ -146,6 +207,58 @@ class ServiceWithDetail:
     model_info: Optional[ProviderModelInfo] = None
     tiered_pricing: Optional[TieredPricingInfo] = None
     cache_token_billing: Optional[CacheTokenBillingInfo] = None
+    multi_model: Optional[bool] = None
+    price_denomination: Optional[str] = None
+    models: Optional[List[ProviderModelInfo]] = None
+
+
+def parse_multi_model_info(additional_info: str) -> MultiModelInfo:
+    """Parse the TS SDK's ``MultiModel`` and ``priceDenomination`` fields."""
+    try:
+        parsed = json.loads(additional_info)
+    except (TypeError, json.JSONDecodeError):
+        return MultiModelInfo(multi_model=False)
+
+    if isinstance(parsed, dict) and parsed.get("MultiModel") is True:
+        denomination = parsed.get("priceDenomination")
+        return MultiModelInfo(
+            multi_model=True,
+            price_denomination=(
+                denomination if isinstance(denomination, str) else None
+            ),
+        )
+    return MultiModelInfo(multi_model=False)
+
+
+def _attach_model_health(
+    provider: str,
+    models: List[ProviderModelInfo],
+    metrics: List[ServiceHealthMetric],
+) -> None:
+    provider_key = provider.lower()
+    provider_metrics = [
+        metric
+        for metric in metrics
+        if metric.provider
+        and metric.provider.lower() == provider_key
+        and metric.model
+    ]
+    if not provider_metrics:
+        return
+
+    by_model = {metric.model: metric for metric in provider_metrics}
+    for model in models:
+        health = by_model.get(model.id)
+        if health is None and model.canonical_id:
+            health = by_model.get(model.canonical_id)
+        if (
+            health is None
+            and len(models) == 1
+            and len(provider_metrics) == 1
+        ):
+            health = provider_metrics[0]
+        if health is not None:
+            model.health_metrics = health
 
 
 def parse_tiered_pricing(additional_info: str) -> Optional[TieredPricingInfo]:
@@ -380,8 +493,16 @@ class ReadOnlyInferenceBroker:
             include_unacknowledged=include_unacknowledged,
         )
 
-        health_map = self._fetch_health_metrics()
+        health_metrics = self._fetch_service_health_metrics()
         model_map = self._fetch_model_info()
+
+        health_map = {
+            metric.provider.lower(): metric.to_health_metrics()
+            for metric in health_metrics
+            if metric.provider
+        }
+        for provider, provider_models in model_map.items():
+            _attach_model_health(provider, provider_models, health_metrics)
 
         for service in services:
             health = health_map.get(service.provider.lower())
@@ -400,46 +521,115 @@ class ReadOnlyInferenceBroker:
                 parse_cache_token_billing(service.additional_info)
                 or parse_cache_token_billing_from_model_info(service.model_info)
             )
+            multi_model_info = parse_multi_model_info(service.additional_info)
+            service.multi_model = multi_model_info.multi_model
+            service.price_denomination = multi_model_info.price_denomination
+            service.models = provider_models or None
 
         return services
-    
-    def _fetch_health_metrics(self) -> Dict[str, HealthMetrics]:
-        """Fetch health metrics from monitoring API."""
+
+    def get_provider_models(self, provider_address: str) -> ProviderModels:
+        """
+        Fetch a provider's authoritative model catalog from ``/v1/models``.
+
+        The provider response is required and schema-validated. Status API
+        health enrichment is best-effort, matching the TypeScript SDK.
+        """
+        service = self.get_service(provider_address)
+        multi_model_info = parse_multi_model_info(service.additional_info)
+        base_url = service.url.rstrip("/")
+
         try:
-            # Determine endpoint based on chain ID
-            chain_id = self.web3.eth.chain_id
-            if chain_id == MAINNET_CHAIN_ID:
-                endpoint = self.HEALTH_API_MAINNET
-            else:
-                endpoint = self.HEALTH_API_TESTNET
-            
+            response = requests.get(
+                f"{base_url}/v1/models",
+                timeout=10,
+                stream=True,
+            )
+            try:
+                response.raise_for_status()
+                content_length = response.headers.get("Content-Length")
+                if (
+                    content_length is not None
+                    and int(content_length) > 5_000_000
+                ):
+                    raise ValueError(
+                        "provider /v1/models response exceeds 5000000 bytes"
+                    )
+
+                chunks = []
+                size = 0
+                for chunk in response.iter_content(chunk_size=64 * 1024):
+                    if not chunk:
+                        continue
+                    size += len(chunk)
+                    if size > 5_000_000:
+                        raise ValueError(
+                            "provider /v1/models response exceeds 5000000 bytes"
+                        )
+                    chunks.append(chunk)
+                payload = json.loads(b"".join(chunks).decode("utf-8"))
+            finally:
+                response.close()
+
+            data = payload.get("data") if isinstance(payload, dict) else None
+            if not isinstance(data, list):
+                raise ValueError(
+                    'provider /v1/models returned an unexpected response '
+                    'shape (missing "data" array)'
+                )
+
+            models = [
+                ProviderModelInfo.from_dict(item)
+                for item in data
+                if isinstance(item, dict)
+            ]
+            _attach_model_health(
+                service.provider,
+                models,
+                self._fetch_service_health_metrics(),
+            )
+            return ProviderModels(
+                provider=service.provider,
+                url=service.url,
+                multi_model=multi_model_info.multi_model,
+                price_denomination=multi_model_info.price_denomination,
+                default_model=service.model,
+                models=models,
+            )
+        except Exception as exc:
+            raise Exception(
+                f"Failed to get provider models for {provider_address}: {exc}"
+            ) from exc
+
+    def _fetch_service_health_metrics(self) -> List[ServiceHealthMetric]:
+        """Fetch raw per-model health metrics from the monitoring API."""
+        try:
+            endpoint = self._get_status_api_endpoint()
             response = requests.get(f"{endpoint}/health", timeout=10)
             if response.status_code != 200:
-                return {}
-            
+                return []
+
             data = response.json()
-            health_services = data.get("services", [])
-            
-            health_map = {}
-            for metric in health_services:
-                provider = metric.get("provider", "").lower()
-                if provider:
-                    checks = metric.get("checks", {})
-                    performance = metric.get("performance", {})
-                    response_time = performance.get("response_time", {})
-                    
-                    health_map[provider] = HealthMetrics(
-                        status=metric.get("status", "unknown"),
-                        uptime=checks.get("uptime", 0),
-                        avg_response_time=response_time.get("avg", 0),
-                        last_check=metric.get("lastCheck", ""),
-                    )
-            
-            return health_map
-            
+            health_services = (
+                data.get("services", []) if isinstance(data, dict) else []
+            )
+            if not isinstance(health_services, list):
+                return []
+            return [
+                ServiceHealthMetric.from_dict(metric)
+                for metric in health_services
+                if isinstance(metric, dict)
+            ]
         except Exception:
-            # Return empty map if health API fails
-            return {}
+            return []
+
+    def _fetch_health_metrics(self) -> Dict[str, HealthMetrics]:
+        """Fetch provider-level health metrics for backward compatibility."""
+        return {
+            metric.provider.lower(): metric.to_health_metrics()
+            for metric in self._fetch_service_health_metrics()
+            if metric.provider
+        }
 
     def _fetch_model_info(self) -> Dict[str, List[ProviderModelInfo]]:
         """Fetch aggregated provider model metadata from the status API."""
