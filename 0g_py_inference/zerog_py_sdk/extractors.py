@@ -22,8 +22,10 @@ Usage:
 """
 
 from abc import ABC, abstractmethod
-from typing import Union
+import math
 import json
+import re
+from typing import Any, Dict, Optional, Union
 
 from .models import ServiceMetadata
 
@@ -217,41 +219,74 @@ class ImageEditingExtractor(Extractor):
 class SpeechToTextExtractor(Extractor):
     """
     Extractor for speech-to-text (transcription) services.
-    
-    Billing is based on output tokens only:
-    - Input: Always 0 (audio input not counted)
-    - Output: usage.output_tokens
-    
-    Example content:
-        {"output_tokens": 250}
+
+    Providers use one of two billing modes:
+    - Duration: ``{"type":"duration","seconds":N}``
+    - Tokens: ``{"type":"tokens","input_tokens":N,"output_tokens":N}``
+
+    An explicit ``type`` discriminator wins. Without one, a positive
+    ``seconds`` value selects duration billing, matching the TypeScript SDK.
     """
-    
-    def get_input_count(self, content: str) -> int:
-        """
-        Input count is always 0 for speech-to-text.
-        
-        Audio input is handled separately from token counting.
-        """
-        return 0
-    
-    def get_output_count(self, content: str) -> int:
-        """
-        Extract output_tokens from usage data.
-        
-        Args:
-            content: JSON string with usage data
-            
-        Returns:
-            Number of output tokens
-        """
+
+    @staticmethod
+    def _parse_usage(content: str) -> Optional[Dict[str, Any]]:
+        if not content:
+            return None
         try:
-            if not content:
-                return 0
             usage = json.loads(content)
-            tokens = usage.get('output_tokens', 0)
-            return int(tokens) if tokens else 0
-        except (json.JSONDecodeError, ValueError, TypeError):
+        except (json.JSONDecodeError, TypeError):
+            return None
+        return usage if isinstance(usage, dict) else None
+
+    @staticmethod
+    def _to_count(value: Any) -> Union[int, float]:
+        if isinstance(value, str):
+            # JavaScript parseInt(value, 10) accepts a leading integer prefix.
+            match = re.match(r"^[\s]*([+-]?\d+)", value)
+            if not match:
+                return 0
+            value = int(match.group(1), 10)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
             return 0
+        if not math.isfinite(value) or value <= 0:
+            return 0
+        return value
+
+    @staticmethod
+    def _is_duration_usage(usage: Dict[str, Any]) -> bool:
+        seconds = usage.get("seconds")
+        if isinstance(seconds, bool) or not isinstance(seconds, (int, float)):
+            seconds = 0
+        return usage.get("type") == "duration" or (
+            usage.get("type") != "tokens" and seconds > 0
+        )
+
+    @staticmethod
+    def _billable_seconds(usage: Dict[str, Any]) -> int:
+        seconds = usage.get("seconds")
+        if isinstance(seconds, bool) or not isinstance(seconds, (int, float)):
+            return 0
+        if not math.isfinite(seconds) or seconds <= 0:
+            return 0
+        # Math.round(x) for positive x is floor(x + 0.5), unlike Python's
+        # bankers-rounding behavior at .5.
+        return max(math.floor(seconds + 0.5), 1)
+
+    def get_input_count(self, content: str) -> Union[int, float]:
+        usage = self._parse_usage(content)
+        if not usage:
+            return 0
+        if self._is_duration_usage(usage):
+            return self._billable_seconds(usage)
+        return self._to_count(usage.get("input_tokens"))
+
+    def get_output_count(self, content: str) -> Union[int, float]:
+        usage = self._parse_usage(content)
+        if not usage:
+            return 0
+        if self._is_duration_usage(usage):
+            return 0
+        return self._to_count(usage.get("output_tokens"))
 
 
 def create_extractor(service: ServiceMetadata) -> Extractor:
