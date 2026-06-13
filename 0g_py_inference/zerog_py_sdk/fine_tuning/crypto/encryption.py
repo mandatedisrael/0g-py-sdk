@@ -77,7 +77,12 @@ def aes_gcm_decrypt_to_file(
         )
 
     try:
-        key = bytes.fromhex(key_hex.removeprefix("0x").removeprefix("0X"))
+        normalized_key = (
+            key_hex[2:]
+            if isinstance(key_hex, str) and key_hex[:2].lower() == "0x"
+            else key_hex
+        )
+        key = bytes.fromhex(normalized_key)
         aesgcm = AESGCM(key)
     except (TypeError, ValueError) as e:
         raise ModelVerificationError(
