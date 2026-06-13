@@ -96,6 +96,14 @@ class BinaryResolver:
         self._validate_name(name)
         return self.cache_dir / name
 
+    def has_override(self, name: str) -> bool:
+        """Return whether a caller explicitly selected this binary."""
+        self._validate_name(name)
+        return bool(
+            self._configured_paths().get(name)
+            or os.environ.get(ENVIRONMENT_VARIABLES[name])
+        )
+
     def install_verified(
         self,
         name: str,

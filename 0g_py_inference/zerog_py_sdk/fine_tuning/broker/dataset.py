@@ -1,9 +1,19 @@
+import os
+import subprocess
+import tempfile
+from pathlib import Path
 from typing import Optional
 
-from ...exceptions import ContractError
+from ...exceptions import ConfigurationError, ContractError
 from ..contract.contract import FineTuningContract
 from ..provider.provider import FineTuningProvider
-from ..constants import get_storage_config, get_model_config
+from ..constants import (
+    TOKEN_COUNTER_FILE_HASH,
+    TOKEN_COUNTER_MERKLE_ROOT,
+    get_storage_config,
+    get_model_config,
+)
+from ..binaries import TOKEN_COUNTER
 from ..storage import StorageClient
 
 
@@ -133,17 +143,22 @@ class DatasetProcessor:
 
         return total_tokens
 
-    @staticmethod
     def _calculate_token_binary(
-        dataset_path: str, data_type: str, tokenizer_path: str
+        self,
+        dataset_path: str,
+        data_type: str,
+        tokenizer_path: str,
     ) -> int:
-        import subprocess
-
-        cmd = ["token_counter", dataset_path, data_type, tokenizer_path]
+        binary_path = self._resolve_token_counter()
+        cmd = [binary_path, dataset_path, data_type, tokenizer_path]
 
         try:
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=300
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,
+                check=False,
             )
             if result.returncode != 0:
                 raise ContractError(
@@ -152,12 +167,69 @@ class DatasetProcessor:
                 )
             parts = result.stdout.strip().split()
             return int(parts[0])
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             raise ContractError(
                 "calculateToken",
-                "token_counter binary not found. Use use_python=True instead.",
-            )
-        except (ValueError, IndexError):
+                "Resolved token_counter executable was not found",
+            ) from e
+        except subprocess.TimeoutExpired as e:
+            raise ContractError(
+                "calculateToken",
+                "Token counter timed out after 300s",
+            ) from e
+        except OSError as e:
+            raise ContractError(
+                "calculateToken",
+                f"Could not execute token_counter: {e}",
+            ) from e
+        except (ValueError, IndexError) as e:
             raise ContractError(
                 "calculateToken", "Could not parse token counter output"
+            ) from e
+
+    def _resolve_token_counter(self) -> str:
+        resolver = self.storage_client.binary_resolver
+        try:
+            binary_path = resolver.resolve(TOKEN_COUNTER)
+        except ConfigurationError as e:
+            if resolver.has_override(TOKEN_COUNTER):
+                raise ContractError("calculateToken", str(e)) from e
+            return self._download_token_counter()
+
+        actual_hash = resolver.file_sha256(Path(binary_path))
+        if actual_hash.lower() == TOKEN_COUNTER_FILE_HASH.lower():
+            return binary_path
+
+        cached_path = resolver.cache_path(TOKEN_COUNTER).resolve()
+        if Path(binary_path).resolve() == cached_path:
+            try:
+                os.unlink(binary_path)
+            except FileNotFoundError:
+                pass
+            return self._download_token_counter()
+
+        raise ContractError(
+            "calculateToken",
+            "Configured token_counter failed SHA-256 verification. "
+            f"Expected {TOKEN_COUNTER_FILE_HASH}, got {actual_hash}.",
+        )
+
+    def _download_token_counter(self) -> str:
+        chain_id = self.contract.get_chain_id()
+        config = get_storage_config(chain_id)
+        resolver = self.storage_client.binary_resolver
+        with tempfile.TemporaryDirectory(
+            prefix="0g-token-counter-"
+        ) as temporary_dir:
+            downloaded_path = os.path.join(temporary_dir, TOKEN_COUNTER)
+            self.storage_client.download(
+                data_path=downloaded_path,
+                data_root=TOKEN_COUNTER_MERKLE_ROOT,
+                indexer_url=config["indexer_url"],
+                operation="downloadTokenCounter",
+            )
+            return resolver.install_verified(
+                TOKEN_COUNTER,
+                downloaded_path,
+                TOKEN_COUNTER_FILE_HASH,
             )
