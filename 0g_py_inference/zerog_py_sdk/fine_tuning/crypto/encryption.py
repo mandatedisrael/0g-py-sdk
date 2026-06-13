@@ -1,8 +1,9 @@
 import logging
-from typing import Optional
 
+from eth_keys import keys
 from web3 import Web3
-from eth_account.messages import encode_defunct
+
+from ...exceptions import ModelVerificationError
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ def aes_gcm_decrypt_to_file(
     key_hex: str,
     encrypted_path: str,
     decrypted_path: str,
-    provider_signer: Optional[str] = None,
+    provider_signer: str,
 ) -> None:
     """
     Decrypt an AES-GCM encrypted model file with chunked processing.
@@ -62,7 +63,7 @@ def aes_gcm_decrypt_to_file(
         key_hex: Hex-encoded AES-256 key
         encrypted_path: Path to encrypted model file
         decrypted_path: Path to write decrypted output
-        provider_signer: Expected signer address for tag verification (optional)
+        provider_signer: Expected signer address for tag verification
     """
     try:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -106,9 +107,9 @@ def aes_gcm_decrypt_to_file(
             # Increment IV (big-endian counter)
             _increment_iv(iv)
 
-    # Verify tag signature if provider signer is given
-    if provider_signer and tag_sig and all_tags:
-        _verify_tag_signature(all_tags, tag_sig, provider_signer)
+    if not all_tags:
+        raise ModelVerificationError("Encrypted model contains no authenticated chunks")
+    _verify_tag_signature(all_tags, tag_sig, provider_signer)
 
 
 def _increment_iv(iv: bytearray) -> None:
@@ -121,20 +122,34 @@ def _increment_iv(iv: bytearray) -> None:
 def _verify_tag_signature(
     all_tags: bytes, tag_sig: bytes, expected_signer: str
 ) -> None:
+    if not expected_signer:
+        raise ModelVerificationError("Provider TEE signer address is missing")
+    if len(tag_sig) != SIG_LENGTH:
+        raise ModelVerificationError(
+            f"Tag signature must be {SIG_LENGTH} bytes, got {len(tag_sig)}"
+        )
+
     try:
         tags_hash = Web3.keccak(all_tags)
-        signable = encode_defunct(primitive=tags_hash)
-        from eth_account import Account
-
-        recovered = Account.recover_message(signable, signature=tag_sig)
+        normalized_signature = bytearray(tag_sig)
+        if normalized_signature[64] in (27, 28):
+            normalized_signature[64] -= 27
+        signature = keys.Signature(signature_bytes=bytes(normalized_signature))
+        recovered = signature.recover_public_key_from_msg_hash(
+            bytes(tags_hash)
+        ).to_checksum_address()
+        expected = Web3.to_checksum_address(expected_signer)
         if recovered.lower() != expected_signer.lower():
-            logger.warning(
-                "Tag signature signer mismatch. "
-                "Expected: %s, Recovered: %s",
-                expected_signer,
-                recovered,
+            raise ModelVerificationError(
+                "TEE tag signer does not match the provider signer",
+                expected_signer=expected,
+                recovered_signer=recovered,
             )
-        else:
-            logger.info("Tag signature verified successfully")
+        logger.info("Tag signature verified successfully")
+    except ModelVerificationError:
+        raise
     except Exception as e:
-        logger.warning("Could not verify tag signature: %s", e)
+        raise ModelVerificationError(
+            f"Invalid TEE tag signature: {e}",
+            expected_signer=expected_signer,
+        ) from e

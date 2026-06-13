@@ -78,6 +78,15 @@ class InvalidResponseError(ZGServingBrokerError):
         super().__init__(error_msg)
 
 
+class ModelVerificationError(ZGServingBrokerError):
+    """Raised when a fine-tuned model artifact fails cryptographic verification."""
+
+    def __init__(self, message: str, expected_signer: str = None, recovered_signer: str = None):
+        self.expected_signer = expected_signer
+        self.recovered_signer = recovered_signer
+        super().__init__(f"Model verification failed: {message}")
+
+
 class ContractError(ZGServingBrokerError):
     """
     Raised when a smart contract interaction fails.
