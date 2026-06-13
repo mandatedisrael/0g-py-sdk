@@ -27,6 +27,7 @@ from .broker import (
 )
 from .inference import InferenceManager
 from .ledger import LedgerManager
+from .automata import Automata
 from .read_only import (
     ReadOnlyInferenceBroker,
     create_read_only_broker,
@@ -180,6 +181,7 @@ __all__ = [
     "create_zg_compute_network_broker",
     "InferenceBroker",
     "LedgerBroker",
+    "Automata",
 
     # Read-only broker
     "ReadOnlyInferenceBroker",

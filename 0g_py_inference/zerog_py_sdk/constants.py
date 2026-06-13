@@ -57,6 +57,7 @@ CONTRACT_ADDRESSES: Dict[str, NetworkAddresses] = {
 }
 
 # Legacy aliases for backward compatibility
+AUTOMATA_RPC = "https://1rpc.io/ata"
 AUTOMATA_CONTRACT_ADDRESS = "0xE26E11B257856B0bEBc4C759aaBDdea72B64351F"
 
 
