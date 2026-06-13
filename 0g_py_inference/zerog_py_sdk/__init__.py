@@ -28,6 +28,12 @@ from .broker import (
 from .inference import InferenceManager
 from .ledger import LedgerManager
 from .automata import Automata
+from .contract_errors import (
+    DecodedContractError,
+    contract_error_from_exception,
+    decode_contract_error,
+    extract_revert_data,
+)
 from .read_only import (
     ReadOnlyInferenceBroker,
     create_read_only_broker,
@@ -183,6 +189,10 @@ __all__ = [
     "InferenceBroker",
     "LedgerBroker",
     "Automata",
+    "DecodedContractError",
+    "contract_error_from_exception",
+    "decode_contract_error",
+    "extract_revert_data",
 
     # Read-only broker
     "ReadOnlyInferenceBroker",

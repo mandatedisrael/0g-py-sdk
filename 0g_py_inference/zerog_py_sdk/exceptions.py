@@ -96,9 +96,20 @@ class ContractError(ZGServingBrokerError):
     - Contract function call fails
     - Network issues
     """
-    def __init__(self, operation: str, reason: str = None):
+    def __init__(
+        self,
+        operation: str,
+        reason: str = None,
+        *,
+        error_name: str = None,
+        error_args=None,
+        revert_data: str = None,
+    ):
         self.operation = operation
         self.reason = reason
+        self.error_name = error_name
+        self.error_args = tuple(error_args or ())
+        self.revert_data = revert_data
         error_msg = f"Contract operation '{operation}' failed"
         if reason:
             error_msg += f": {reason}"
