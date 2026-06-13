@@ -4,6 +4,7 @@ from web3.contract import Contract
 from eth_account.signers.local import LocalAccount
 
 from ...exceptions import ContractError
+from ...contract_errors import contract_error_from_exception
 from ...utils import parse_transaction_receipt
 from .abi import FINE_TUNING_SERVING_ABI
 from .types import (
@@ -92,7 +93,7 @@ class FineTuningContract:
                         current_gas_price = new_price
                         continue
 
-                raise ContractError(fn_name, str(e))
+                raise contract_error_from_exception(fn_name, e) from e
 
     # --- Read-only methods ---
 
@@ -100,7 +101,7 @@ class FineTuningContract:
         try:
             return self.contract.functions.lockTime().call()
         except Exception as e:
-            raise ContractError("lockTime", str(e))
+            raise contract_error_from_exception("lockTime", e) from e
 
     def get_chain_id(self) -> int:
         return self.web3.eth.chain_id
@@ -113,7 +114,7 @@ class FineTuningContract:
                 services = [s for s in services if s.tee_signer_acknowledged]
             return services
         except Exception as e:
-            raise ContractError("getAllServices", str(e))
+            raise contract_error_from_exception("getAllServices", e) from e
 
     def get_service(self, provider_address: str) -> FineTuningService:
         try:
@@ -121,7 +122,7 @@ class FineTuningContract:
             raw = self.contract.functions.getService(provider_address).call()
             return self._parse_service(raw)
         except Exception as e:
-            raise ContractError("getService", str(e))
+            raise contract_error_from_exception("getService", e) from e
 
     def get_account(self, provider_address: str) -> FineTuningAccountDetails:
         try:
@@ -131,7 +132,7 @@ class FineTuningContract:
             ).call()
             return self._parse_account(raw)
         except Exception as e:
-            raise ContractError("getAccount", str(e))
+            raise contract_error_from_exception("getAccount", e) from e
 
     def account_exists(self, provider_address: str) -> bool:
         try:
@@ -140,7 +141,7 @@ class FineTuningContract:
                 self.account.address, provider_address
             ).call()
         except Exception as e:
-            raise ContractError("accountExists", str(e))
+            raise contract_error_from_exception("accountExists", e) from e
 
     def get_deliverable(
         self, provider_address: str, deliverable_id: str
@@ -152,7 +153,7 @@ class FineTuningContract:
             ).call()
             return self._parse_deliverable(raw)
         except Exception as e:
-            raise ContractError("getDeliverable", str(e))
+            raise contract_error_from_exception("getDeliverable", e) from e
 
     def get_deliverables(self, provider_address: str) -> List[Deliverable]:
         try:
@@ -162,7 +163,7 @@ class FineTuningContract:
             ).call()
             return [self._parse_deliverable(d) for d in raw_list]
         except Exception as e:
-            raise ContractError("getDeliverables", str(e))
+            raise contract_error_from_exception("getDeliverables", e) from e
 
     def get_pending_refund(self, provider_address: str) -> int:
         try:
@@ -171,7 +172,7 @@ class FineTuningContract:
                 self.account.address, provider_address
             ).call()
         except Exception as e:
-            raise ContractError("getPendingRefund", str(e))
+            raise contract_error_from_exception("getPendingRefund", e) from e
 
     # --- Write methods ---
 
