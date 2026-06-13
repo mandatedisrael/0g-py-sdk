@@ -17,6 +17,7 @@ from .broker.read_only_broker import (
     create_read_only_fine_tuning_broker,
 )
 from .broker.verifier import Verifier as FineTuningVerifier
+from .binaries import BinaryConfig, BinaryResolver
 from .crypto.signing import sign_request, sign_task_id, sign_dataset_upload, get_nonce
 from .constants import (
     TESTNET_MODELS,
@@ -52,6 +53,8 @@ __all__ = [
     "ReadOnlyFineTuningBroker",
     "create_read_only_fine_tuning_broker",
     "FineTuningVerifier",
+    "BinaryConfig",
+    "BinaryResolver",
     "sign_request",
     "sign_task_id",
     "sign_dataset_upload",

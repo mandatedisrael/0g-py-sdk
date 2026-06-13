@@ -149,6 +149,7 @@ from .fine_tuning.broker import (
     ReadOnlyFineTuningBroker,
     create_read_only_fine_tuning_broker,
 )
+from .fine_tuning.binaries import BinaryConfig, BinaryResolver
 from .fine_tuning.contract.types import (
     Quota,
     Deliverable,
@@ -302,6 +303,8 @@ __all__ = [
 
     # Fine-tuning
     "FineTuningBroker",
+    "BinaryConfig",
+    "BinaryResolver",
     "ReadOnlyFineTuningBroker",
     "create_read_only_fine_tuning_broker",
     "Quota",
