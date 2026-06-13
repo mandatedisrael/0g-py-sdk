@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2026-06-13
+
+Production-hardening parity release for
+`@0gfoundation/0g-compute-ts-sdk` `0.9.0-beta.0` at commit
+`acaba1ec073cb565a67ef94a5f351d1ab0709bbf`.
+
+### Added
+
+- **Official Automata client.** Added a public `Automata` helper using the
+  official `https://1rpc.io/ata` RPC and
+  `verifyAndAttestOnChain(bytes) -> (bool, bytes)` contract interface.
+- **Managed fine-tuning binaries.** Added `BinaryConfig` and `BinaryResolver`
+  with explicit path, environment, user-cache, packaged-file, and `PATH`
+  resolution. Invalid explicit configuration fails immediately.
+- **Verified token counter bootstrap.** Missing `token_counter` executables can
+  be retrieved from the TypeScript SDK's pinned 0G Storage root, SHA-256
+  verified, and atomically installed in the user's SDK cache.
+- **ABI-aware contract errors.** `ContractError` now includes `error_name`,
+  `error_args`, and `revert_data` when Web3 exposes a Solidity custom error,
+  `Error(string)`, or `Panic(uint256)`.
+
+### Changed
+
+- **Model decryption now fails closed.** TEE tag signatures use the same raw
+  `keccak256(tags)` recovery as the TypeScript SDK. Missing signers, signer
+  mismatches, malformed signatures, invalid keys, and AES-GCM authentication
+  failures raise `ModelVerificationError`.
+- Decrypted model artifacts and 0G Storage downloads are written to temporary
+  files and atomically replace the destination only after verification or
+  successful completion.
+- `verify_service()` now distinguishes an explicit Automata rejection
+  (`attestation_verified=False`, verification fails) from an unavailable
+  Automata RPC (`attestation_verified=None`, signer verification can continue).
+- Dataset upload now forwards the TypeScript SDK's storage-client gas flags.
+  Model and dataset storage operations share one configured, validated binary.
+- Fine-tuning, ledger, and inference contract paths preserve decoded revert
+  metadata and the original exception cause.
+
+### Tests
+
+- Added real AES-GCM and secp256k1 model-artifact fixtures.
+- Added Automata ABI and rejected-versus-unavailable outcome coverage.
+- Added binary precedence, hash verification, atomic download, and subprocess
+  behavior coverage.
+- Added custom Solidity error, standard revert, panic, nested RPC, and Web3
+  exception coverage.
+
 ## [0.8.0] - 2026-06-12
 
 Parity release for `@0gfoundation/0g-compute-ts-sdk` `0.9.0-beta.0`

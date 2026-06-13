@@ -254,6 +254,46 @@ Fine-tuning provider helpers are also exposed on the broker:
 `get_customized_models()`, `get_customized_model()`, and
 `download_model_usage()`.
 
+### Fine-tuning helper binaries
+
+0G Storage operations use the official `0g-storage-client`. Configure an
+executable explicitly for production deployments:
+
+```python
+from zerog_py_sdk import BinaryConfig, create_broker
+
+broker = create_broker(
+    private_key="0x...",
+    binary_config=BinaryConfig(
+        storage_client_path="/opt/0g/bin/0g-storage-client",
+        token_counter_path="/opt/0g/bin/token_counter",  # optional
+    ),
+)
+```
+
+The equivalent environment variables are `ZG_STORAGE_CLIENT_PATH`,
+`ZG_TOKEN_COUNTER_PATH`, and `ZG_BINARY_CACHE_DIR`. Without an explicit path,
+the SDK checks its user cache, packaged assets, and `PATH`, in that order.
+
+Official `0g-storage-client` GitHub releases do not currently publish
+cross-platform executable assets, so the Python SDK does not download an
+unverified build. Build the client from the
+[official repository](https://github.com/0gfoundation/0g-storage-client) for
+your platform. When executable token counting is requested and no override is
+configured, `token_counter` is fetched through 0G Storage using the upstream
+Merkle root, SHA-256 verified, and atomically installed in the user cache.
+
+Model decryption requires the `fine-tuning` extra:
+
+```bash
+pip install "0g-inference-sdk[fine-tuning]"
+```
+
+Decryption is fail-closed. The destination is replaced only after AES-GCM
+authentication and the provider TEE signer's raw tag signature both verify.
+Failures raise `ModelVerificationError` and leave any existing destination
+unchanged.
+
 See [examples/fine_tuning/fine_tuning_example.py](./examples/fine_tuning/fine_tuning_example.py) for a complete end-to-end script.
 
 ## Verify TEE-signed responses
@@ -269,7 +309,12 @@ is_valid = broker.inference.process_response(
 )
 ```
 
-For a full attestation check (TEE signer extraction, optional Automata contract verification, signed report). ``verify_service`` is silent by default — pass ``on_log`` to stream progress, or iterate ``result.steps`` after the call:
+For a full attestation check (TEE signer extraction, optional Automata contract
+verification, signed report), `verify_service` is silent by default. Pass
+`on_log` to stream progress, or iterate `result.steps` after the call. An
+explicit Automata rejection sets `attestation_verified=False` and fails the
+verification; an RPC outage sets it to `None` and records
+`attestation_error`.
 
 ```python
 # Silent — returns a typed VerificationResult
@@ -311,6 +356,10 @@ The SDK exposes everything from the top-level `zerog_py_sdk` package:
 | `og_to_wei`, `wei_to_og` | OG ↔ wei conversion helpers (`zerog_py_sdk.utils`) |
 | `ServiceMetadata`, `LedgerAccount`, `Account`, `ApiKeyInfo` | Data classes |
 | `ZGServingBrokerError`, `InsufficientBalanceError`, `ContractError`, ... | Exception hierarchy |
+
+Decoded contract failures expose `ContractError.error_name`,
+`ContractError.error_args`, and `ContractError.revert_data`, while preserving
+the original exception as `__cause__`.
 
 For the full per-class API, browse the [Compute reference docs](https://og-py.vercel.app/) or read the source — every public method has a docstring.
 
