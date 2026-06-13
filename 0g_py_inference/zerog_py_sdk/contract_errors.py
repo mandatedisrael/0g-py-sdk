@@ -3,7 +3,7 @@
 import re
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from eth_abi import decode
 from web3 import Web3
@@ -44,6 +44,7 @@ class DecodedContractError:
     name: str
     signature: str
     args: Tuple[Any, ...]
+    input_names: Tuple[str, ...]
     named_args: Dict[str, Any]
     revert_data: str
 
@@ -66,11 +67,6 @@ class DecodedContractError:
             values.append(f"{name}={_format_value(value)}")
         suffix = f"({', '.join(values)})" if values else ""
         return f"Contract reverted with {self.name}{suffix}"
-
-    @property
-    def input_names(self) -> Tuple[str, ...]:
-        return tuple(self.named_args.keys())
-
 
 def decode_contract_error(
     value: Any,
@@ -109,6 +105,7 @@ def decode_contract_error(
         name=spec.name,
         signature=spec.signature,
         args=args,
+        input_names=spec.input_names,
         named_args=named_args,
         revert_data=revert_data,
     )
@@ -194,6 +191,11 @@ def extract_revert_data(value: Any) -> Optional[str]:
                     return found
             return None
         if isinstance(item, BaseException):
+            for attribute in ("data", "response", "details"):
+                if hasattr(item, attribute):
+                    found = walk(getattr(item, attribute))
+                    if found:
+                        return found
             found = walk(item.args)
             if found:
                 return found
