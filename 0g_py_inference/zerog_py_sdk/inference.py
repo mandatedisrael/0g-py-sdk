@@ -56,6 +56,7 @@ from .verifier import (
     VerificationStep,
 )
 from .read_only import ProviderModels, _fetch_provider_models
+from .automata import Automata
 
 
 class InferenceManager:
@@ -77,7 +78,8 @@ class InferenceManager:
         account: LocalAccount,
         web3: Web3,
         auth_manager: Any,  # Avoid circular import, type will be AuthManager
-        ledger_manager: Any = None  # Add ledger manager for account creation
+        ledger_manager: Any = None,  # Add ledger manager for account creation
+        automata: Optional[Automata] = None,
     ):
         """
         Initialize the InferenceManager.
@@ -88,12 +90,14 @@ class InferenceManager:
             web3: Web3 instance
             auth_manager: AuthManager instance for header generation (legacy)
             ledger_manager: LedgerManager instance for fund transfers
+            automata: Optional Automata client override
         """
         self.contract = contract
         self.account = account
         self.web3 = web3
         self.auth_manager = auth_manager
         self.ledger_manager = ledger_manager
+        self._automata = automata if automata is not None else Automata()
         self._acknowledged_providers = set()
         self._auto_funding_stops: Dict[str, threading.Event] = {}
         self._cached_fees: Dict[str, Dict[str, Any]] = {}
@@ -422,39 +426,12 @@ class InferenceManager:
             raise ContractError("addAccount", str(e))
 
     def _verify_quote_with_automata(self, quote: str) -> bool:
-        """
-        Verify TEE quote using Automata contract.
-
-        Args:
-            quote: Hex-encoded quote from provider
-
-        Returns:
-            True if quote is valid, False otherwise
-        """
-        from .contracts.abis import AUTOMATA_CONTRACT_ADDRESS
-
-        # Automata contract ABI for verifyQuote function
-        automata_abi = [{
-            "inputs": [{"internalType": "bytes", "name": "quote", "type": "bytes"}],
-            "name": "verifyQuote",
-            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-            "stateMutability": "view",
-            "type": "function"
-        }]
-
-        automata_contract = self.web3.eth.contract(
-            address=Web3.to_checksum_address(AUTOMATA_CONTRACT_ADDRESS),
-            abi=automata_abi
-        )
-
-        try:
-            # Convert hex string to bytes
-            quote_bytes = bytes.fromhex(quote.replace('0x', ''))
-            is_valid = automata_contract.functions.verifyQuote(quote_bytes).call()
-            return is_valid
-        except Exception as e:
-            print(f"Quote verification error: {e}")
-            return False
+        """Verify a TEE quote using Automata's dedicated attestation RPC."""
+        automata = getattr(self, "_automata", None)
+        if automata is None:
+            automata = Automata()
+            self._automata = automata
+        return automata.verify_quote(quote)
 
     def _extract_tee_signer_address(self, report: dict) -> tuple[Optional[str], Optional[str]]:
         """
@@ -853,20 +830,27 @@ class InferenceManager:
 
             if result.quote_available and "quote" in result.quote_data:
                 log("step", "Attempting Automata contract verification (optional)...")
+                result.attestation_method = "automata_contract"
                 try:
                     attestation_valid = self._verify_quote_with_automata(
                         result.quote_data["quote"]
                     )
                     result.attestation_verified = attestation_valid
-                    result.attestation_method = "automata_contract"
                     if attestation_valid:
                         log("success", "Automata contract verification passed")
                     else:
-                        log("info", "Automata contract verification not available (this is normal)")
+                        result.attestation_error = (
+                            "Automata rejected the provider's TEE quote"
+                        )
+                        result.errors.append(result.attestation_error)
+                        log("error", result.attestation_error)
                 except Exception as e:
                     result.attestation_verified = None
-                    result.attestation_method = None
-                    log("info", f"Automata verification skipped: {str(e)[:100]}")
+                    result.attestation_error = str(e)
+                    log(
+                        "info",
+                        f"Automata verification unavailable: {str(e)[:100]}",
+                    )
 
             current_tee_signer: Optional[str] = None
             try:
@@ -924,6 +908,7 @@ class InferenceManager:
 
             result.success = bool(
                 result.quote_available
+                and result.attestation_verified is not False
                 and (
                     (result.tee_signer is not None and bool(result.signer_match))
                     or (
@@ -956,6 +941,7 @@ class InferenceManager:
                                 "attestation_format": result.attestation_format,
                                 "attestation_verified": result.attestation_verified,
                                 "attestation_method": result.attestation_method,
+                                "attestation_error": result.attestation_error,
                                 "is_acknowledged": result.is_acknowledged,
                                 "errors": result.errors,
                                 "timestamp": result.timestamp,

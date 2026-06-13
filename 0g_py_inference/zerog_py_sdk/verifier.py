@@ -179,6 +179,7 @@ class VerificationResult:
     attestation_format: Optional[str] = None
     attestation_verified: Optional[bool] = None
     attestation_method: Optional[str] = None
+    attestation_error: Optional[str] = None
     is_acknowledged: Optional[bool] = None
     expected_signer: Optional[str] = None
     signer_match: Optional[bool] = None
