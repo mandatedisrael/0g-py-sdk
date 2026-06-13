@@ -1,7 +1,6 @@
 import hashlib
 import logging
 import os
-import subprocess
 from typing import Dict, Any, List, Optional, Tuple
 
 from ...exceptions import ContractError
@@ -9,6 +8,7 @@ from ..contract.contract import FineTuningContract
 from ..contract.types import Deliverable, CustomizedModel
 from ..provider.provider import FineTuningProvider
 from ..constants import get_model_config, get_storage_config
+from ..storage import StorageClient
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,11 @@ class ModelProcessor:
         self,
         contract: FineTuningContract,
         provider: FineTuningProvider,
+        storage_client: Optional[StorageClient] = None,
     ):
         self.contract = contract
         self.provider = provider
+        self.storage_client = storage_client or StorageClient()
 
     def list_model(self) -> Tuple[List[tuple], List[tuple]]:
         chain_id = self.contract.get_chain_id()
@@ -200,44 +202,14 @@ class ModelProcessor:
             )
 
         download_path = self._resolve_download_path(data_path, task_id)
-        output_dir = os.path.dirname(download_path)
-        if output_dir:
-            os.makedirs(output_dir, exist_ok=True)
-
         chain_id = self.contract.get_chain_id()
         config = get_storage_config(chain_id)
-        cmd = [
-            "0g-storage-client",
-            "download",
-            "--file",
-            download_path,
-            "--indexer",
-            config["indexer_url"],
-            "--roots",
-            root_hash,
-        ]
-
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=600
-            )
-        except FileNotFoundError:
-            raise ContractError(
-                "downloadModelFrom0GStorage",
-                "0g-storage-client binary not found. "
-                "Install it or use download_lora_from_tee() instead.",
-            )
-        except subprocess.TimeoutExpired:
-            raise ContractError(
-                "downloadModelFrom0GStorage",
-                "Download timed out after 600s",
-            )
-
-        if result.returncode != 0:
-            raise ContractError(
-                "downloadModelFrom0GStorage",
-                f"Storage client failed: {result.stderr}",
-            )
+        self.storage_client.download(
+            data_path=download_path,
+            data_root=root_hash,
+            indexer_url=config["indexer_url"],
+            operation="downloadModelFrom0GStorage",
+        )
 
     @staticmethod
     def _normalize_download_method(download_method: str) -> str:

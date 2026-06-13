@@ -1,9 +1,10 @@
 from typing import Optional
 
-from ...exceptions import ContractError, NetworkError
+from ...exceptions import ContractError
 from ..contract.contract import FineTuningContract
 from ..provider.provider import FineTuningProvider
 from ..constants import get_storage_config, get_model_config
+from ..storage import StorageClient
 
 
 class DatasetProcessor:
@@ -11,9 +12,11 @@ class DatasetProcessor:
         self,
         contract: FineTuningContract,
         provider: FineTuningProvider,
+        storage_client: Optional[StorageClient] = None,
     ):
         self.contract = contract
         self.provider = provider
+        self.storage_client = storage_client or StorageClient()
 
     def upload_dataset_to_tee(
         self,
@@ -37,80 +40,28 @@ class DatasetProcessor:
         gas_price: Optional[int] = None,
         max_gas_price: Optional[int] = None,
     ) -> str:
-        """Upload dataset to 0G Storage. Requires 0g-storage-client binary."""
-        import subprocess
-        import re
-
+        """Upload a dataset to 0G Storage."""
         chain_id = self.contract.get_chain_id()
         config = get_storage_config(chain_id)
-
-        cmd = [
-            "0g-storage-client",
-            "upload",
-            "--url", config["rpc_url"],
-            "--key", private_key,
-            "--indexer", config["indexer_url"],
-            "--file", data_path,
-        ]
-
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=600
-            )
-            if result.returncode != 0:
-                raise ContractError(
-                    "uploadDataset",
-                    f"Storage client failed: {result.stderr}",
-                )
-
-            match = re.search(r"root\s*=\s*(0x[0-9a-fA-F]+)", result.stdout)
-            if not match:
-                raise ContractError(
-                    "uploadDataset",
-                    "Could not parse root hash from storage client output",
-                )
-            return match.group(1)
-
-        except FileNotFoundError:
-            raise ContractError(
-                "uploadDataset",
-                "0g-storage-client binary not found. "
-                "Install it or use upload_dataset_to_tee() instead.",
-            )
-        except subprocess.TimeoutExpired:
-            raise ContractError("uploadDataset", "Upload timed out after 600s")
+        return self.storage_client.upload(
+            private_key=private_key,
+            data_path=data_path,
+            rpc_url=config["rpc_url"],
+            indexer_url=config["indexer_url"],
+            gas_price=gas_price,
+            max_gas_price=max_gas_price,
+        )
 
     def download_dataset(self, data_path: str, data_root: str) -> None:
-        """Download dataset from 0G Storage. Requires 0g-storage-client binary."""
-        import subprocess
-
+        """Download a dataset from 0G Storage."""
         chain_id = self.contract.get_chain_id()
         config = get_storage_config(chain_id)
-
-        cmd = [
-            "0g-storage-client",
-            "download",
-            "--file", data_path,
-            "--indexer", config["indexer_url"],
-            "--roots", data_root,
-        ]
-
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=600
-            )
-            if result.returncode != 0:
-                raise ContractError(
-                    "downloadDataset",
-                    f"Storage client failed: {result.stderr}",
-                )
-        except FileNotFoundError:
-            raise ContractError(
-                "downloadDataset",
-                "0g-storage-client binary not found.",
-            )
-        except subprocess.TimeoutExpired:
-            raise ContractError("downloadDataset", "Download timed out after 600s")
+        self.storage_client.download(
+            data_path=data_path,
+            data_root=data_root,
+            indexer_url=config["indexer_url"],
+            operation="downloadDataset",
+        )
 
     def calculate_token(
         self,
