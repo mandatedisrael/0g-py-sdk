@@ -14,6 +14,7 @@ from .ledger import LedgerManager
 from .inference import InferenceManager
 from .auth import AuthManager
 from .fine_tuning.broker import FineTuningBroker
+from .fine_tuning.binaries import BinaryConfig
 from .contracts.abis import SERVING_CONTRACT_ABI, LEDGER_CONTRACT_ABI
 from .constants import (
     get_contract_addresses,
@@ -59,6 +60,7 @@ class ZGServingBroker:
         inference_address: Optional[str] = None,
         ledger_address: Optional[str] = None,
         fine_tuning_address: Optional[str] = None,
+        binary_config: Optional[BinaryConfig] = None,
     ):
         """
         Initialize the broker.
@@ -69,6 +71,7 @@ class ZGServingBroker:
             inference_address: Inference contract address (auto-detected if None)
             ledger_address: Ledger contract address (auto-detected if None)
             fine_tuning_address: Fine-tuning contract address (auto-detected if None)
+            binary_config: Optional fine-tuning helper binary configuration
         """
         self.account = account
         self.web3 = web3
@@ -113,6 +116,7 @@ class ZGServingBroker:
             web3=self.web3,
             contract_address=fine_tuning_address,
             ledger_manager=self._ledger_manager,
+            binary_config=binary_config,
         )
     
     @property
@@ -218,6 +222,7 @@ def create_fine_tuning_broker(
     gas_price: Optional[int] = None,
     max_gas_price: Optional[int] = None,
     step: int = 11,
+    binary_config: Optional[BinaryConfig] = None,
 ) -> FineTuningBroker:
     """Create a standalone fine-tuning broker, matching the TS SDK factory."""
     return FineTuningBroker(
@@ -228,6 +233,7 @@ def create_fine_tuning_broker(
         gas_price=gas_price,
         max_gas_price=max_gas_price,
         step=step,
+        binary_config=binary_config,
     )
 
 
@@ -238,6 +244,7 @@ def create_broker(
     inference_address: Optional[str] = None,
     ledger_address: Optional[str] = None,
     fine_tuning_address: Optional[str] = None,
+    binary_config: Optional[BinaryConfig] = None,
 ) -> ZGServingBroker:
     """
     Factory function to create a broker instance.
@@ -248,6 +255,8 @@ def create_broker(
         rpc_url: RPC endpoint URL. Uses default for network if not provided.
         inference_address: Override inference contract address
         ledger_address: Override ledger contract address
+        fine_tuning_address: Override fine-tuning contract address
+        binary_config: Optional fine-tuning helper binary configuration
         
     Returns:
         Initialized ZGServingBroker instance
@@ -315,6 +324,7 @@ def create_broker(
             inference_address=inference_address,
             ledger_address=ledger_address,
             fine_tuning_address=fine_tuning_address,
+            binary_config=binary_config,
         )
         
     except ConfigurationError:

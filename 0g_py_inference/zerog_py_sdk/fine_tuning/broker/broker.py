@@ -20,6 +20,8 @@ from .service import ServiceProcessor
 from .model import ModelProcessor
 from .dataset import DatasetProcessor
 from .verifier import Verifier
+from ..binaries import BinaryConfig, BinaryResolver
+from ..storage import StorageClient
 
 
 class FineTuningBroker:
@@ -32,6 +34,7 @@ class FineTuningBroker:
         gas_price: Optional[int] = None,
         max_gas_price: Optional[int] = None,
         step: int = 11,
+        binary_config: Optional[BinaryConfig] = None,
     ):
         self._account = account
         self._web3 = web3
@@ -49,6 +52,8 @@ class FineTuningBroker:
             contract=self._contract,
             account=account,
         )
+        self._binary_resolver = BinaryResolver(binary_config)
+        self._storage_client = StorageClient(self._binary_resolver)
 
         self._service = ServiceProcessor(
             contract=self._contract,
@@ -59,11 +64,13 @@ class FineTuningBroker:
         self._model = ModelProcessor(
             contract=self._contract,
             provider=self._provider,
+            storage_client=self._storage_client,
         )
 
         self._dataset = DatasetProcessor(
             contract=self._contract,
             provider=self._provider,
+            storage_client=self._storage_client,
         )
 
         self._verifier = Verifier(
