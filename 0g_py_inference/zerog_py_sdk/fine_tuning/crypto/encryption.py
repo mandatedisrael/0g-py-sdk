@@ -1,4 +1,6 @@
 import logging
+import os
+import tempfile
 
 from eth_keys import keys
 from web3 import Web3
@@ -67,49 +69,88 @@ def aes_gcm_decrypt_to_file(
     """
     try:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        from cryptography.exceptions import InvalidTag
     except ImportError:
         raise ImportError(
             "cryptography is required for model decryption. "
             "Install with: pip install cryptography"
         )
 
-    key = bytes.fromhex(key_hex.lstrip("0x").lstrip("0X"))
-    aesgcm = AESGCM(key)
+    try:
+        key = bytes.fromhex(key_hex.removeprefix("0x").removeprefix("0X"))
+        aesgcm = AESGCM(key)
+    except (TypeError, ValueError) as e:
+        raise ModelVerificationError(
+            "Model decryption key must be a valid AES key encoded as hex"
+        ) from e
+    destination = os.path.abspath(decrypted_path)
+    destination_dir = os.path.dirname(destination)
+    os.makedirs(destination_dir, exist_ok=True)
+    temporary_path = ""
 
-    with open(encrypted_path, "rb") as f_in, open(decrypted_path, "wb") as f_out:
-        tag_sig = f_in.read(SIG_LENGTH)
-        if len(tag_sig) < SIG_LENGTH:
-            raise ValueError("Encrypted file too small: missing tag signature")
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            prefix=f".{os.path.basename(destination)}.",
+            suffix=".part",
+            dir=destination_dir,
+            delete=False,
+        ) as f_out:
+            temporary_path = f_out.name
+            with open(encrypted_path, "rb") as f_in:
+                tag_sig = f_in.read(SIG_LENGTH)
+                if len(tag_sig) != SIG_LENGTH:
+                    raise ModelVerificationError(
+                        "Encrypted model is missing its tag signature"
+                    )
 
-        iv = bytearray(f_in.read(IV_LENGTH))
-        if len(iv) < IV_LENGTH:
-            raise ValueError("Encrypted file too small: missing IV")
+                iv = bytearray(f_in.read(IV_LENGTH))
+                if len(iv) != IV_LENGTH:
+                    raise ModelVerificationError(
+                        "Encrypted model is missing its initialization vector"
+                    )
 
-        all_tags = b""
+                all_tags = b""
+                while True:
+                    chunk = f_in.read(CHUNK_LENGTH)
+                    if not chunk:
+                        break
+                    if len(chunk) <= TAG_LENGTH:
+                        raise ModelVerificationError(
+                            "Encrypted model contains an invalid chunk"
+                        )
 
-        while True:
-            chunk = f_in.read(CHUNK_LENGTH)
-            if not chunk:
-                break
+                    encrypted_data = chunk[:-TAG_LENGTH]
+                    auth_tag = chunk[-TAG_LENGTH:]
+                    all_tags += auth_tag
+                    decrypted = aesgcm.decrypt(
+                        bytes(iv),
+                        encrypted_data + auth_tag,
+                        None,
+                    )
+                    f_out.write(decrypted)
+                    _increment_iv(iv)
+            f_out.flush()
+            os.fsync(f_out.fileno())
 
-            if len(chunk) <= TAG_LENGTH:
-                raise ValueError("Invalid chunk: smaller than auth tag")
-
-            encrypted_data = chunk[:-TAG_LENGTH]
-            auth_tag = chunk[-TAG_LENGTH:]
-            all_tags += auth_tag
-
-            # AES-GCM expects nonce + ciphertext+tag combined
-            ciphertext_with_tag = encrypted_data + auth_tag
-            decrypted = aesgcm.decrypt(bytes(iv), ciphertext_with_tag, None)
-            f_out.write(decrypted)
-
-            # Increment IV (big-endian counter)
-            _increment_iv(iv)
-
-    if not all_tags:
-        raise ModelVerificationError("Encrypted model contains no authenticated chunks")
-    _verify_tag_signature(all_tags, tag_sig, provider_signer)
+        if not all_tags:
+            raise ModelVerificationError(
+                "Encrypted model contains no authenticated chunks"
+            )
+        _verify_tag_signature(all_tags, tag_sig, provider_signer)
+        os.replace(temporary_path, destination)
+        temporary_path = ""
+    except InvalidTag as e:
+        raise ModelVerificationError(
+            "AES-GCM authentication failed; the model is corrupted or uses "
+            "the wrong decryption key"
+        ) from e
+    finally:
+        if temporary_path:
+            try:
+                os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
 
 
 def _increment_iv(iv: bytearray) -> None:
@@ -139,7 +180,7 @@ def _verify_tag_signature(
             bytes(tags_hash)
         ).to_checksum_address()
         expected = Web3.to_checksum_address(expected_signer)
-        if recovered.lower() != expected_signer.lower():
+        if recovered.lower() != expected.lower():
             raise ModelVerificationError(
                 "TEE tag signer does not match the provider signer",
                 expected_signer=expected,
