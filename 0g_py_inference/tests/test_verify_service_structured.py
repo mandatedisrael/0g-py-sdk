@@ -16,6 +16,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from zerog_py_sdk.inference import InferenceManager
+from zerog_py_sdk.exceptions import NetworkError
 from zerog_py_sdk.models import ServiceMetadata
 from zerog_py_sdk.verifier import VerificationResult, VerificationStep
 
@@ -58,7 +59,7 @@ def test_verify_service_returns_typed_result(capsys):
     mgr = _manager()
     mgr.get_service = MagicMock(return_value=_service())
     mgr._extract_tee_signer_address = MagicMock(return_value=("0xsigner", "tdx"))
-    mgr._verify_quote_with_automata = MagicMock(return_value=False)
+    mgr._verify_quote_with_automata = MagicMock(return_value=True)
 
     with patch(
         "zerog_py_sdk.inference.requests.get",
@@ -82,7 +83,7 @@ def test_verify_service_on_log_receives_each_step(capsys):
     mgr = _manager()
     mgr.get_service = MagicMock(return_value=_service())
     mgr._extract_tee_signer_address = MagicMock(return_value=("0xsigner", "tdx"))
-    mgr._verify_quote_with_automata = MagicMock(return_value=False)
+    mgr._verify_quote_with_automata = MagicMock(return_value=True)
 
     received: list[VerificationStep] = []
 
@@ -116,4 +117,58 @@ def test_verify_service_quote_failure_marks_failure(capsys):
     assert result.success is False
     assert result.quote_available is False
     assert any("Quote fetch failed" in e for e in result.errors)
+    assert capsys.readouterr().out == ""
+
+
+def test_verify_service_automata_rejection_marks_failure(capsys):
+    mgr = _manager()
+    mgr.get_service = MagicMock(return_value=_service())
+    mgr._extract_tee_signer_address = MagicMock(
+        return_value=("0xsigner", "tdx")
+    )
+    mgr._verify_quote_with_automata = MagicMock(return_value=False)
+
+    with patch(
+        "zerog_py_sdk.inference.requests.get",
+        return_value=_fake_quote_response({"quote": "deadbeef"}),
+    ):
+        result = mgr.verify_service(PROVIDER)
+
+    assert result.success is False
+    assert result.attestation_verified is False
+    assert result.attestation_method == "automata_contract"
+    assert "Automata rejected" in result.attestation_error
+    assert result.attestation_error in result.errors
+    assert any(step.type == "error" for step in result.steps)
+    assert capsys.readouterr().out == ""
+
+
+def test_verify_service_automata_outage_remains_unavailable(capsys):
+    mgr = _manager()
+    mgr.get_service = MagicMock(return_value=_service())
+    mgr._extract_tee_signer_address = MagicMock(
+        return_value=("0xsigner", "tdx")
+    )
+    mgr._verify_quote_with_automata = MagicMock(
+        side_effect=NetworkError(
+            "Automata is unavailable",
+            endpoint="https://1rpc.io/ata",
+        )
+    )
+
+    with patch(
+        "zerog_py_sdk.inference.requests.get",
+        return_value=_fake_quote_response({"quote": "deadbeef"}),
+    ):
+        result = mgr.verify_service(PROVIDER)
+
+    assert result.success is True
+    assert result.attestation_verified is None
+    assert result.attestation_method == "automata_contract"
+    assert "unavailable" in result.attestation_error
+    assert result.errors == []
+    assert any(
+        "Automata verification unavailable" in step.message
+        for step in result.steps
+    )
     assert capsys.readouterr().out == ""
