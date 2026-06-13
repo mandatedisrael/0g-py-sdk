@@ -16,6 +16,7 @@ from eth_account.signers.local import LocalAccount
 
 from .models import LedgerAccount, LedgerDetail
 from .exceptions import ContractError
+from .contract_errors import contract_error_from_exception
 from .utils import og_to_wei, parse_transaction_receipt
 
 logger = logging.getLogger(__name__)
@@ -195,7 +196,7 @@ class LedgerManager:
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-            raise ContractError("addLedger", str(e))
+            raise contract_error_from_exception("addLedger", e) from e
     
     def deposit_fund(self, amount: str) -> Dict[str, Any]:
         """
@@ -256,7 +257,7 @@ class LedgerManager:
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-            raise ContractError("depositFund", str(e))
+            raise contract_error_from_exception("depositFund", e) from e
     
     def deposit_fund_for(self, recipient: str, amount: str) -> Dict[str, Any]:
         """
@@ -308,7 +309,7 @@ class LedgerManager:
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-            raise ContractError("depositFundFor", str(e))
+            raise contract_error_from_exception("depositFundFor", e) from e
     
     def get_ledger(self) -> LedgerAccount:
         """
@@ -340,7 +341,7 @@ class LedgerManager:
             )
             
         except Exception as e:
-            raise ContractError("getLedger", str(e))
+            raise contract_error_from_exception("getLedger", e) from e
     
     def list_ledger(self, offset: int = 0, limit: int = 50) -> List[tuple]:
         """
@@ -356,7 +357,7 @@ class LedgerManager:
             ledgers, _total = self.contract.functions.getAllLedgers(offset, limit).call()
             return list(ledgers)
         except Exception as e:
-            raise ContractError("listLedger", str(e))
+            raise contract_error_from_exception("listLedger", e) from e
 
     def retrieve_fund(self, service_type: str = "inference") -> Dict[str, Any]:
         """
@@ -416,7 +417,7 @@ class LedgerManager:
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-            raise ContractError("retrieveFund", str(e))
+            raise contract_error_from_exception("retrieveFund", e) from e
     
     def refund(self, amount: str) -> Dict[str, Any]:
 
@@ -456,8 +457,7 @@ class LedgerManager:
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-
-            raise ContractError("refund", str(e))
+            raise contract_error_from_exception("refund", e) from e
         
     def transfer_fund(self, provider_address: str, service_type: str, amount: int = 0) -> Dict[str, Any]:
         """
@@ -514,7 +514,7 @@ class LedgerManager:
             return parse_transaction_receipt(receipt)
 
         except Exception as e:
-            raise ContractError("transferFund", str(e))
+            raise contract_error_from_exception("transferFund", e) from e
     
     def delete_ledger(self) -> Dict[str, Any]:
         """
@@ -558,7 +558,7 @@ class LedgerManager:
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-            raise ContractError("deleteLedger", str(e))
+            raise contract_error_from_exception("deleteLedger", e) from e
     
     def get_providers_with_balance(
         self, service_type: str = "inference"
@@ -631,7 +631,9 @@ class LedgerManager:
             return parse_transaction_receipt(receipt)
 
         except Exception as e:
-            raise ContractError("retrieveFundFromProvider", str(e))
+            raise contract_error_from_exception(
+                "retrieveFundFromProvider", e
+            ) from e
 
     def get_ledger_with_detail(
         self,
@@ -748,4 +750,4 @@ class LedgerManager:
             )
             
         except Exception as e:
-            raise ContractError("getLedgerWithDetail", str(e))
+            raise contract_error_from_exception("getLedgerWithDetail", e) from e

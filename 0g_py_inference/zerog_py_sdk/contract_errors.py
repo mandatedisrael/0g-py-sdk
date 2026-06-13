@@ -10,7 +10,6 @@ from web3 import Web3
 
 from .contracts.abis import LEDGER_CONTRACT_ABI, SERVING_CONTRACT_ABI
 from .exceptions import ContractError
-from .fine_tuning.contract.abi import FINE_TUNING_SERVING_ABI
 
 
 HEX_DATA_PATTERN = re.compile(r"0x[0-9a-fA-F]{8,}")
@@ -209,6 +208,8 @@ def extract_revert_data(value: Any) -> Optional[str]:
 
 @lru_cache(maxsize=1)
 def _default_registry() -> Dict[bytes, ErrorSpec]:
+    from .fine_tuning.contract.abi import FINE_TUNING_SERVING_ABI
+
     return _build_registry(
         (
             LEDGER_CONTRACT_ABI,

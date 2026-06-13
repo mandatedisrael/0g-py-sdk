@@ -32,6 +32,7 @@ from .exceptions import (
     InvalidResponseError,
     NetworkError
 )
+from .contract_errors import contract_error_from_exception
 from .utils import format_address, validate_provider_address, parse_transaction_receipt
 from .session import SessionManager, SessionMode, ApiKeyInfo
 from .extractors import (
@@ -258,7 +259,7 @@ class InferenceManager:
             return services
 
         except Exception as e:
-            raise ContractError("getAllServices", str(e))
+            raise contract_error_from_exception("getAllServices", e) from e
     
     def get_service(self, provider_address: str) -> ServiceMetadata:
         """
@@ -388,9 +389,9 @@ class InferenceManager:
             return parse_transaction_receipt(receipt)
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            raise ContractError("acknowledge", str(e))
+            raise contract_error_from_exception(
+                "acknowledgeTEESigner", e
+            ) from e
 
     def _create_provider_account(self, provider_address: str):
         """
@@ -423,7 +424,7 @@ class InferenceManager:
             print("✅ Account created on InferenceServing")
 
         except Exception as e:
-            raise ContractError("addAccount", str(e))
+            raise contract_error_from_exception("addAccount", e) from e
 
     def _verify_quote_with_automata(self, quote: str) -> bool:
         """Verify a TEE quote using Automata's dedicated attestation RPC."""
@@ -1105,7 +1106,7 @@ class InferenceManager:
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-            raise ContractError("revokeToken", str(e))
+            raise contract_error_from_exception("revokeToken", e) from e
 
     def revoke_tokens(
         self,
@@ -1156,7 +1157,7 @@ class InferenceManager:
             return parse_transaction_receipt(receipt)
 
         except Exception as e:
-            raise ContractError("revokeTokens", str(e))
+            raise contract_error_from_exception("revokeTokens", e) from e
 
     def revoke_all_tokens(
         self,
@@ -1200,7 +1201,7 @@ class InferenceManager:
             return parse_transaction_receipt(receipt)
             
         except Exception as e:
-            raise ContractError("revokeAllTokens", str(e))
+            raise contract_error_from_exception("revokeAllTokens", e) from e
     
     # ==================== Account Management ====================
 
@@ -1217,7 +1218,7 @@ class InferenceManager:
         try:
             return self.contract.functions.lockTime().call()
         except Exception as e:
-            raise ContractError("lockTime", str(e))
+            raise contract_error_from_exception("lockTime", e) from e
 
     def get_locked_time(self) -> int:
         """Alias for ``lock_time()`` matching the fine-tuning broker naming."""
@@ -1252,7 +1253,7 @@ class InferenceManager:
             return self._parse_account(account_data)
             
         except Exception as e:
-            raise ContractError("getAccount", str(e))
+            raise contract_error_from_exception("getAccount", e) from e
     
     def get_account_with_detail(
         self,
@@ -1318,7 +1319,9 @@ class InferenceManager:
             )
             
         except Exception as e:
-            raise ContractError("getAccountWithDetail", str(e))
+            raise contract_error_from_exception(
+                "getAccountWithDetail", e
+            ) from e
     
     def list_accounts(
         self,
@@ -1362,7 +1365,7 @@ class InferenceManager:
             return [self._parse_account(acc) for acc in accounts_data]
             
         except Exception as e:
-            raise ContractError("listAccounts", str(e))
+            raise contract_error_from_exception("listAccounts", e) from e
     
     def _parse_account(self, account_data: tuple) -> Account:
         """
@@ -1488,7 +1491,9 @@ class InferenceManager:
             return parse_transaction_receipt(receipt)
 
         except Exception as e:
-            raise ContractError("acknowledgeTEESignerByOwner", str(e))
+            raise contract_error_from_exception(
+                "acknowledgeTEESignerByOwner", e
+            ) from e
 
     def revoke_provider_tee_signer_acknowledgement(
         self,
@@ -1532,7 +1537,9 @@ class InferenceManager:
             return parse_transaction_receipt(receipt)
 
         except Exception as e:
-            raise ContractError("revokeTEESignerAcknowledgement", str(e))
+            raise contract_error_from_exception(
+                "revokeTEESignerAcknowledgement", e
+            ) from e
 
     def _get_service_with_signer(self, provider_address: str) -> ServiceMetadata:
         service = self.get_service(provider_address)
@@ -1579,7 +1586,7 @@ class InferenceManager:
             return parse_transaction_receipt(receipt)
 
         except Exception as e:
-            raise ContractError("removeService", str(e))
+            raise contract_error_from_exception("removeService", e) from e
 
     def update_service(
         self,
@@ -1641,7 +1648,9 @@ class InferenceManager:
             return parse_transaction_receipt(receipt)
 
         except Exception as e:
-            raise ContractError("addOrUpdateService", str(e))
+            raise contract_error_from_exception(
+                "addOrUpdateService", e
+            ) from e
 
     # ==================== Attestation Download ====================
 
