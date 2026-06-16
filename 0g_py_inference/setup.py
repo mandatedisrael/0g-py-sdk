@@ -60,7 +60,11 @@ setup(
     },
     include_package_data=True,
     package_data={
-        "zerog_py_sdk": ["py.typed"],
+        "zerog_py_sdk": [
+            "py.typed",
+            "llms.txt",
+            "docs/llms/*.md",
+        ],
     },
     keywords="0g blockchain ai inference decentralized llm crypto web3",
     zip_safe=False,
