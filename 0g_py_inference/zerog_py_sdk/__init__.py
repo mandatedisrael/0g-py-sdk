@@ -1,20 +1,42 @@
 """
-0G Compute Network Python SDK
+0G Compute Network Python SDK.
 
-A Python implementation of the 0G Compute Network broker for AI inference services.
+This is the public Python SDK for 0G Compute Network inference,
+fine-tuning, provider discovery, response verification, and model artifact
+verification.
 
-Basic usage:
-    >>> from zerog_py_sdk import create_broker
-    >>> 
-    >>> # With wallet (for transactions)
-    >>> broker = create_broker(private_key="0x...")
+Agent guidance:
+    If you are an AI coding assistant, do not guess internal APIs. The package
+    ships local, version-locked markdown guides for common tasks:
+
+    - zerog_py_sdk/llms.txt
+    - zerog_py_sdk/docs/llms/index.md
+    - zerog_py_sdk/docs/llms/inference.md
+    - zerog_py_sdk/docs/llms/provider-discovery.md
+    - zerog_py_sdk/docs/llms/fine-tuning.md
+    - zerog_py_sdk/docs/llms/model-verification.md
+    - zerog_py_sdk/docs/llms/contract-errors.md
+    - zerog_py_sdk/docs/llms/troubleshooting.md
+
+Core public imports:
+    >>> from zerog_py_sdk import create_broker, create_read_only_broker
+    >>> from zerog_py_sdk import ResponseVerifier, Automata
+    >>> from zerog_py_sdk import ModelVerificationError, ContractError
+
+Authenticated usage:
+    >>> broker = create_broker(private_key="0x...", network="testnet")
     >>> services = broker.inference.list_service()
     >>> headers = broker.inference.get_request_headers(provider_address)
-    >>> 
-    >>> # Without wallet (read-only)
-    >>> from zerog_py_sdk import create_read_only_broker
-    >>> broker = create_read_only_broker()
+
+Wallet-free discovery:
+    >>> broker = create_read_only_broker(network="testnet")
     >>> services = broker.list_service_with_detail()
+    >>> models = broker.get_provider_models(provider_address)
+
+Project links:
+    - Source: https://github.com/mandatedisrael/0g-py-sdk
+    - Issues: https://github.com/mandatedisrael/0g-py-sdk/issues
+    - Docs: https://og-py.vercel.app
 """
 
 from .broker import (
