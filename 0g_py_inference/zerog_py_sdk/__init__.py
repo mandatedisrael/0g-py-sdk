@@ -189,7 +189,7 @@ from .fine_tuning.contract.types import (
     TdxQuoteResponse,
 )
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 # TS-SDK name aliases for the combined broker / factory.
 ZGComputeNetworkBroker = ZGServingBroker

@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - 2026-06-17
+
+Agent-readiness patch release for coding assistants and local package
+inspection workflows.
+
+### Added
+
+- **Bundled agent documentation.** The `0g-inference-sdk` wheel now ships
+  local, version-locked markdown guides under
+  `zerog_py_sdk/docs/llms/`, plus `zerog_py_sdk/llms.txt` as a lightweight
+  machine-readable index.
+- **Agent front-door breadcrumbs.** The top-level `zerog_py_sdk` docstring now
+  points coding agents to the bundled docs and to the real public broker,
+  verification, Automata, and error-decoding APIs.
+- **Wheel packaging guard.** Added tests that build the wheel and confirm the
+  agent docs are included in the installable artifact.
+
+### Changed
+
+- Packaged docs as importable SDK resources so agents can access the right
+  docs for the installed version after `pip install`.
+
 ## [0.9.0] - 2026-06-13
 
 Production-hardening parity release for
