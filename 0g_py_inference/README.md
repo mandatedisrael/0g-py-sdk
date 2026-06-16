@@ -8,6 +8,11 @@ Python SDK for the [0G Compute Network](https://docs.0g.ai/developer-hub/buildin
 
 > 📚 **Full developer documentation:** [og-py.vercel.app](https://og-py.vercel.app/)
 
+> 🤖 **Agent-readable docs:** the wheel also ships local, version-locked
+> markdown guides at `zerog_py_sdk/llms.txt` and
+> `zerog_py_sdk/docs/llms/`, so coding assistants can inspect the installed
+> package and use APIs that match your exact SDK version.
+
 ## What you get
 
 - **Decentralized AI inference** — chatbot, text-to-image, image-editing, speech-to-text providers, all OpenAI-compatible
