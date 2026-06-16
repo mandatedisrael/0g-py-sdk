@@ -4,10 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [0.9.1] - 2026-06-17
 
-Agent-readiness patch release for coding assistants and local package
-inspection workflows.
+Agent-readiness and production-hardening release for builders preparing for
+0G Bridge by AKINDO and Zero Cup. This release includes the bundled
+agent-readable documentation added in `0.9.1`, plus the production updates
+introduced in `0.9.0`.
 
-### Added
+### Agent-Readable SDK
 
 - **Bundled agent documentation.** The `0g-inference-sdk` wheel now ships
   local, version-locked markdown guides under
@@ -16,13 +18,45 @@ inspection workflows.
 - **Agent front-door breadcrumbs.** The top-level `zerog_py_sdk` docstring now
   points coding agents to the bundled docs and to the real public broker,
   verification, Automata, and error-decoding APIs.
+- **Task-specific recipes.** Added local guides for inference, provider
+  discovery, fine-tuning, model verification, contract errors, and common
+  troubleshooting.
 - **Wheel packaging guard.** Added tests that build the wheel and confirm the
   agent docs are included in the installable artifact.
+- **Installed-package resource access.** Packaged docs as importable SDK
+  resources so agents can access the right docs for the installed version after
+  `pip install`.
 
-### Changed
+### Production Updates Included
 
-- Packaged docs as importable SDK resources so agents can access the right
-  docs for the installed version after `pip install`.
+- **Production-grade TEE model signer verification.** Model artifact
+  verification now fails closed on missing signers, signer mismatches,
+  malformed signatures, invalid keys, and AES-GCM authentication failures.
+- **Ledger refund and provider balance fixes.** Refund flows now resolve
+  service names correctly, and provider balance details are more accurate for
+  production usage.
+- **Atomic decrypted model publishing.** Decrypted model artifacts and 0G
+  Storage downloads are written to temporary files and atomically replace the
+  destination only after verification or successful completion.
+- **Official Automata attestation client.** Added a public `Automata` helper
+  using the official RPC and contract interface for service verification flows.
+- **Speech billing parity.** Speech-to-text billing now supports duration and
+  token usage accounting with compatible rounding and malformed-input handling.
+- **Multi-model discovery/API parity.** Authenticated and read-only brokers can
+  browse provider models, pricing, health, and service details before routing
+  inference requests.
+
+### Also Included
+
+- Managed fine-tuning binary resolution with explicit paths, environment
+  variables, user cache, packaged files, and `PATH` lookup.
+- Verified token counter bootstrap with SHA-256 validation and atomic cache
+  installation.
+- ABI-aware contract error decoding for custom Solidity errors, standard
+  reverts, panics, nested RPC errors, and Web3 exception shapes.
+- Tests covering agent-doc packaging, Automata outcomes, model encryption
+  security, binary management, contract errors, speech billing, and
+  multi-model discovery.
 
 ## [0.9.0] - 2026-06-13
 
