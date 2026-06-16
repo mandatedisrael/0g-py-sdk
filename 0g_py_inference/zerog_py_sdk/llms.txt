@@ -1,0 +1,39 @@
+# 0G Python Inference SDK Agent Index (v0.9.1)
+
+This package includes local, version-locked documentation for coding agents.
+If you are an AI coding assistant, prefer these bundled guides over guessing
+internal APIs or reading web docs for a different SDK version.
+
+Core public entry points:
+
+- `create_broker(private_key=...)`: authenticated inference, ledger, and
+  fine-tuning broker.
+- `create_broker_from_env()`: authenticated broker from environment variables.
+- `create_read_only_broker()`: wallet-free provider and model discovery.
+- `create_fine_tuning_broker(...)`: standalone fine-tuning broker.
+- `ResponseVerifier` and `verify_tee_response(...)`: response signature checks.
+- `Automata`: TEE quote verification through Automata attestation.
+- `ModelVerificationError`: fail-closed model artifact verification failures.
+- `ContractError` and `decode_contract_error(...)`: decoded EVM reverts.
+
+Task-specific guides:
+
+- `docs/llms/index.md`: Documentation map and safe agent workflow.
+- `docs/llms/inference.md`: Authenticated inference, headers, chat requests,
+  and speech billing.
+- `docs/llms/provider-discovery.md`: Read-only service discovery, provider
+  model catalogs, health, pricing, and routing.
+- `docs/llms/fine-tuning.md`: Fine-tuning setup, dataset upload, managed
+  binaries, LoRA adapters, and model downloads.
+- `docs/llms/model-verification.md`: TEE response verification, Automata
+  attestation, and fail-closed model artifact checks.
+- `docs/llms/contract-errors.md`: ABI-aware contract revert decoding and
+  troubleshooting transaction failures.
+- `docs/llms/troubleshooting.md`: Common setup, auth, network, binary, and
+  verification failures.
+
+Project links:
+
+- Source: https://github.com/mandatedisrael/0g-py-sdk
+- Issues: https://github.com/mandatedisrael/0g-py-sdk/issues
+- Docs: https://og-py.vercel.app
